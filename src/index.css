@@ -17,11 +17,28 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 172 88% 27%; /* Teal 700 #0A7F6B */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 221 83% 53%; /* Blue 600 #2563EB */
+    --secondary-foreground: 0 0% 100%;
+    
+    --success: 142 71% 45%; /* Green 600 #16A34A */
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 32 95% 44%; /* Orange 600 #D97706 */
+    --warning-foreground: 0 0% 100%;
+    
+    --danger: 346 77% 49%; /* Rose 600 #E11D48 */
+    --danger-foreground: 0 0% 100%;
+    
+    --info: 199 89% 48%; /* Sky 600 #0284C7 */
+    --info-foreground: 0 0% 100%;
+    
+    /* Disease colors */
+    --dengue: 0 84% 60%; /* Red 500 #DC2626 */
+    --tcm: 43 96% 56%; /* Amber 500 #F59E0B */
+    --ari: 221 83% 53%; /* Blue 600 #2563EB */
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
@@ -65,11 +82,27 @@ All colors MUST be HSL.
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 172 88% 27%; /* Teal 700 */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 221 83% 53%; /* Blue 600 */
+    --secondary-foreground: 0 0% 100%;
+    
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 32 95% 44%;
+    --warning-foreground: 0 0% 100%;
+    
+    --danger: 346 77% 49%;
+    --danger-foreground: 0 0% 100%;
+    
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+    
+    --dengue: 0 84% 60%;
+    --tcm: 43 96% 56%;
+    --ari: 221 83% 53%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;

@@ -3,7 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { TopNavbar } from "@/components/TopNavbar";
+import Dashboard from "./pages/Dashboard";
+import Surveillance from "./pages/Surveillance";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -14,11 +18,31 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full">
+            <AppSidebar />
+            <div className="flex-1 flex flex-col">
+              <TopNavbar />
+              <main className="flex-1 p-6 bg-background">
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/surveillance" element={<Surveillance />} />
+                  <Route path="/alerts" element={<div>Cảnh báo</div>} />
+                  <Route path="/maps" element={<div>Bản đồ</div>} />
+                  <Route path="/patients" element={<div>Bệnh nhân</div>} />
+                  <Route path="/encounters" element={<div>Khám bệnh</div>} />
+                  <Route path="/appointments" element={<div>Lịch hẹn</div>} />
+                  <Route path="/campaigns" element={<div>Chiến dịch</div>} />
+                  <Route path="/facilities" element={<div>Cơ sở y tế</div>} />
+                  <Route path="/stocks" element={<div>Kho tồn</div>} />
+                  <Route path="/data-quality" element={<div>Chất lượng dữ liệu</div>} />
+                  <Route path="/security" element={<div>Bảo mật</div>} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
+          </div>
+        </SidebarProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
