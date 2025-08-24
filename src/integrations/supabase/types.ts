@@ -239,6 +239,8 @@ export type Database = {
       orders: {
         Row: {
           address: string | null
+          amount: number | null
+          city: string | null
           created_at: string
           customer_name: string | null
           email: string
@@ -258,13 +260,18 @@ export type Database = {
           quantity: number
           shipping_fee: number | null
           source: string | null
+          status: string | null
           total_amount: number | null
+          transfer_proof_url: string | null
           transferred_amount: number | null
           unit_price: number | null
+          user_id: string | null
           variant: string | null
         }
         Insert: {
           address?: string | null
+          amount?: number | null
+          city?: string | null
           created_at?: string
           customer_name?: string | null
           email: string
@@ -284,13 +291,18 @@ export type Database = {
           quantity?: number
           shipping_fee?: number | null
           source?: string | null
+          status?: string | null
           total_amount?: number | null
+          transfer_proof_url?: string | null
           transferred_amount?: number | null
           unit_price?: number | null
+          user_id?: string | null
           variant?: string | null
         }
         Update: {
           address?: string | null
+          amount?: number | null
+          city?: string | null
           created_at?: string
           customer_name?: string | null
           email?: string
@@ -310,9 +322,12 @@ export type Database = {
           quantity?: number
           shipping_fee?: number | null
           source?: string | null
+          status?: string | null
           total_amount?: number | null
+          transfer_proof_url?: string | null
           transferred_amount?: number | null
           unit_price?: number | null
+          user_id?: string | null
           variant?: string | null
         }
         Relationships: []
@@ -733,6 +748,18 @@ export type Database = {
         Args: { p_token: string }
         Returns: string
       }
+      create_preorder: {
+        Args: {
+          p_address: string
+          p_amount: number
+          p_city: string
+          p_name: string
+          p_phone: string
+          p_transfer_proof_url: string
+          p_variant: string
+        }
+        Returns: string
+      }
       create_transfer: {
         Args: {
           p_asset: Database["public"]["Enums"]["asset_type"]
@@ -782,6 +809,15 @@ export type Database = {
       normalize_email: {
         Args: { raw: string }
         Returns: string
+      }
+      preorder_totals: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          confirmed: number
+          confirmed_vnd: number
+          preordered_vnd: number
+          preorders: number
+        }[]
       }
       recompute_month: {
         Args: { p_month: string; p_user: string }
