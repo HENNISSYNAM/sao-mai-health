@@ -23,15 +23,11 @@ import {
 const caseIntakeSchema = z.object({
   name_hash: z.string().min(1, "Tên bệnh nhân là bắt buộc"),
   dob: z.string().min(1, "Ngày sinh là bắt buộc"),
-  gender: z.enum(["male", "female", "other"]).refine(val => val, {
-    message: "Giới tính là bắt buộc"
-  }),
+  gender: z.enum(["male", "female", "other"]),
   address_hash: z.string().min(1, "Địa chỉ là bắt buộc"),
   phone_hash: z.string(),
-  disease_code: z.enum(["dengue", "tcm", "ari", "covid19", "influenza", "measles", "other"]).refine(val => val, {
-    message: "Mã bệnh là bắt buộc"
-  }),
-  status: z.enum(["suspected", "probable", "confirmed", "ruled_out", "pending"]).default("suspected"),
+  disease_code: z.enum(["dengue", "tcm", "ari", "covid19", "influenza", "measles", "other"]),
+  status: z.enum(["suspected", "probable", "confirmed", "ruled_out", "pending"]),
   onset_date: z.string().min(1, "Ngày khởi phát là bắt buộc"),
   report_date: z.string().optional(),
   district_id: z.string().min(1, "Quận/Huyện là bắt buộc"),
@@ -66,7 +62,14 @@ export default function EnhancedCaseIntake() {
   const form = useForm<CaseIntakeFormData>({
     resolver: zodResolver(caseIntakeSchema),
     defaultValues: autoSavedData || {
-      status: "suspected",
+      name_hash: "",
+      dob: "",
+      gender: "male" as const,
+      address_hash: "",
+      phone_hash: "",
+      disease_code: "dengue" as const,
+      status: "suspected" as const,
+      onset_date: "",
       report_date: new Date().toISOString().split('T')[0],
       district_id: "",
       ward_id: "",

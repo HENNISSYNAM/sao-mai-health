@@ -18,6 +18,10 @@ import { toast } from "sonner"
 interface DashboardMetric {
   metric_name: string
   value: number
+  change: {
+    value: number
+    type: 'increase' | 'decrease'
+  }
   trend: number
   last_updated: string
 }
@@ -82,26 +86,26 @@ export default function EnhancedDashboard() {
 
   const getMetricTrend = (name: string) => {
     const metric = metrics.find(m => m.metric_name === name)
-    return metric ? metric.trend : 0
+    return metric?.change || { value: 0, type: 'increase' as const }
   }
 
   // Mock data for charts (in real app, this would come from API)
   const trendData = [
-    { date: '2024-01-15', dengue: 45, tcm: 23, ari: 67 },
-    { date: '2024-01-16', dengue: 52, tcm: 19, ari: 71 },
-    { date: '2024-01-17', dengue: 48, tcm: 25, ari: 63 },
-    { date: '2024-01-18', dengue: 61, tcm: 31, ari: 69 },
-    { date: '2024-01-19', dengue: 55, tcm: 28, ari: 74 },
-    { date: '2024-01-20', dengue: 67, tcm: 33, ari: 82 },
-    { date: '2024-01-21', dengue: 59, tcm: 29, ari: 77 }
+    { name: '2024-01-15', value: 45, dengue: 45, tcm: 23, ari: 67 },
+    { name: '2024-01-16', value: 52, dengue: 52, tcm: 19, ari: 71 },
+    { name: '2024-01-17', value: 48, dengue: 48, tcm: 25, ari: 63 },
+    { name: '2024-01-18', value: 61, dengue: 61, tcm: 31, ari: 69 },
+    { name: '2024-01-19', value: 55, dengue: 55, tcm: 28, ari: 74 },
+    { name: '2024-01-20', value: 67, dengue: 67, tcm: 33, ari: 82 },
+    { name: '2024-01-21', value: 59, dengue: 59, tcm: 29, ari: 77 }
   ]
 
   const facilityData = [
-    { name: 'BV Chợ Rẫy', occupancy: 85, capacity: 1200 },
-    { name: 'BV Nhi Đồng 1', occupancy: 92, capacity: 800 },
-    { name: 'BV Từ Dũ', occupancy: 78, capacity: 600 },
-    { name: 'BV Bình Dan', occupancy: 88, capacity: 500 },
-    { name: 'BV Thống Nhất', occupancy: 76, capacity: 400 }
+    { name: 'BV Chợ Rẫy', value: 85, occupancy: 85, capacity: 1200 },
+    { name: 'BV Nhi Đồng 1', value: 92, occupancy: 92, capacity: 800 },
+    { name: 'BV Từ Dũ', value: 78, occupancy: 78, capacity: 600 },
+    { name: 'BV Bình Dan', value: 88, occupancy: 88, capacity: 500 },
+    { name: 'BV Thống Nhất', value: 76, occupancy: 76, capacity: 400 }
   ]
 
   const getPriorityBadge = (priority: string) => {
@@ -225,33 +229,31 @@ export default function EnhancedDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KpiCard
           title="Ca mới hôm nay"
-          value={getMetricValue('new_cases_today')}
-          change={getMetricTrend('new_cases_today')}
+          value={getMetricValue('Ca mới hôm nay')}
+          change={getMetricTrend('Ca mới hôm nay')}
           icon={Users}
-          color="primary"
+          variant="default"
         />
         <KpiCard
           title="Rt 7 ngày"
-          value={getMetricValue('rt_7d')}
-          change={getMetricTrend('rt_7d')}
+          value={getMetricValue('Rt 7 ngày')}
+          change={getMetricTrend('Rt 7 ngày')}
           icon={TrendingUp}
-          color="info"
-          format="decimal"
+          variant="info"
         />
         <KpiCard
           title="Công suất giường"
-          value={getMetricValue('bed_occupancy')}
-          change={getMetricTrend('bed_occupancy')}
+          value={getMetricValue('Công suất giường')}
+          change={getMetricTrend('Công suất giường')}
           icon={Bed}
-          color="warning"
-          format="percentage"
+          variant="warning"
         />
         <KpiCard
           title="Cảnh báo mở"
           value={alerts.length}
-          change={0}
+          change={{ value: 0, type: 'increase' }}
           icon={AlertTriangle}
-          color="danger"
+          variant="danger"
         />
       </div>
 
@@ -263,13 +265,10 @@ export default function EnhancedDashboard() {
           </CardHeader>
           <CardContent>
             <DashboardChart
+              title="Xu hướng ca bệnh"
               data={trendData}
               type="line"
-              dataKeys={[
-                { key: 'dengue', name: 'Sốt xuất huyết', color: '#DC2626' },
-                { key: 'tcm', name: 'Tay chân miệng', color: '#F59E0B' },
-                { key: 'ari', name: 'Nhiễm khuẩn hô hấp', color: '#2563EB' }
-              ]}
+              dataKey="value"
             />
           </CardContent>
         </Card>
@@ -280,12 +279,10 @@ export default function EnhancedDashboard() {
           </CardHeader>
           <CardContent>
             <DashboardChart
+              title="Công suất cơ sở y tế"
               data={facilityData}
               type="bar"
-              dataKeys={[
-                { key: 'occupancy', name: 'Công suất (%)', color: '#0A7F6B' }
-              ]}
-              layout="horizontal"
+              dataKey="value"
             />
           </CardContent>
         </Card>
