@@ -12,7 +12,10 @@ import CaseIntake from "./pages/CaseIntake";
 import LabImport from "./pages/LabImport";
 import Alerts from "./pages/Alerts";
 import NotFound from "./pages/NotFound";
-import { CommandPalette } from "./components/CommandPalette";
+import { EnhancedCommandPalette } from "./components/EnhancedCommandPalette";
+import MapView from "./pages/MapView";
+import Patients from "./pages/Patients";
+import Encounters from "./pages/Encounters";
 
 const queryClient = new QueryClient();
 
@@ -34,9 +37,9 @@ const App = () => (
                   <Route path="/case-intake" element={<CaseIntake />} />
                   <Route path="/lab-import" element={<LabImport />} />
                   <Route path="/alerts" element={<Alerts />} />
-                  <Route path="/maps" element={<div>Bản đồ</div>} />
-                  <Route path="/patients" element={<div>Bệnh nhân</div>} />
-                  <Route path="/encounters" element={<div>Khám bệnh</div>} />
+                  <Route path="/map" element={<MapView />} />
+                  <Route path="/patients" element={<Patients />} />
+                  <Route path="/encounters" element={<Encounters />} />
                   <Route path="/appointments" element={<div>Lịch hẹn</div>} />
                   <Route path="/campaigns" element={<div>Chiến dịch</div>} />
                   <Route path="/facilities" element={<div>Cơ sở y tế</div>} />
@@ -46,7 +49,7 @@ const App = () => (
                   <Route path="/security" element={<div>Bảo mật</div>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-                <CommandPalette />
+                <EnhancedCommandPalette />
               </main>
             </div>
           </div>
