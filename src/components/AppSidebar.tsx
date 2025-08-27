@@ -114,7 +114,7 @@ export function AppSidebar() {
                     <SidebarMenuButton asChild>
                       <NavLink to={item.url} end className={getNavCls}>
                         <item.icon className={`h-5 w-5 flex-shrink-0 ${item.color}`} />
-                        {!collapsed && <span className="font-medium text-sm">{item.title}</span>}
+                        {!collapsed && <span className={`font-medium text-sm ${item.color}`}>{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
