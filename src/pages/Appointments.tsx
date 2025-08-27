@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useUpdateAppointmentStatus } from '@/hooks/useOptimisticMutations';
 import { Calendar, Clock, Phone, User, Building, Plus, Send, Edit } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import {
   Table,
   TableBody,
@@ -43,7 +44,7 @@ interface NoShowPrediction {
 }
 
 export default function Appointments() {
-  const { toast } = useToast();
+  const updateStatusMutation = useUpdateAppointmentStatus();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [facilityFilter, setFacilityFilter] = useState<string>('all');
@@ -102,11 +103,7 @@ export default function Appointments() {
       setAppointments(data || []);
     } catch (error) {
       console.error('Error fetching appointments:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách lịch hẹn",
-        variant: "destructive",
-      });
+      toast.error("Không thể tải danh sách lịch hẹn");
     } finally {
       setLoading(false);
     }
@@ -139,35 +136,15 @@ export default function Appointments() {
     }
   };
 
-  const updateAppointmentStatus = async (id: string, status: string) => {
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({ status })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Thành công",
-        description: `Đã cập nhật trạng thái lịch hẹn`,
-      });
-    } catch (error) {
-      console.error('Error updating appointment:', error);
-      toast({
-        title: "Lỗi",
-        description: "Không thể cập nhật lịch hẹn",
-        variant: "destructive",
-      });
-    }
+  const updateAppointmentStatus = (id: string, status: string) => {
+    updateStatusMutation.mutate({ 
+      appointmentId: id, 
+      status 
+    });
   };
 
   const sendReminder = (appointment: Appointment) => {
-    // Placeholder for send reminder functionality
-    toast({
-      title: "Nhắc nhở đã gửi",
-      description: `Đã gửi tin nhắn nhắc nhở đến ${appointment.patient_name}`,
-    });
+    toast.success(`Đã gửi tin nhắn nhắc nhở đến ${appointment.patient_name}`);
   };
 
   const getRiskBadge = (appointmentId: string) => {

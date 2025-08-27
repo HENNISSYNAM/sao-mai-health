@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DataTable } from "@/components/DataTable"
-import { toast } from "sonner"
+import { useAcknowledgeAlert } from "@/hooks/useOptimisticMutations"
 import { AlertTriangle, CheckCircle, Clock, Search, Filter, User, MapPin } from "lucide-react"
 import type { ColumnDef } from "@tanstack/react-table"
 
@@ -136,22 +136,20 @@ export default function Alerts() {
     }
   }
 
+  const acknowledgeMutation = useAcknowledgeAlert();
+
   const acknowledgeAndAssign = (alertId: string) => {
-    setAlerts(prev => prev.map(alert => 
-      alert.id === alertId 
-        ? { ...alert, status: 'assigned' as const, assignedTo: 'Current User' }
-        : alert
-    ))
-    toast.success("Đã xác nhận và nhận phụ trách cảnh báo")
+    acknowledgeMutation.mutate({ 
+      alertId, 
+      status: 'assigned' 
+    });
   }
 
   const resolveAlert = (alertId: string) => {
-    setAlerts(prev => prev.map(alert => 
-      alert.id === alertId 
-        ? { ...alert, status: 'resolved' as const }
-        : alert
-    ))
-    toast.success("Đã đánh dấu cảnh báo là đã giải quyết")
+    acknowledgeMutation.mutate({ 
+      alertId, 
+      status: 'resolved' 
+    });
   }
 
   const columns: ColumnDef<Alert>[] = [
