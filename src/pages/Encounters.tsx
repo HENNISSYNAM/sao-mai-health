@@ -138,9 +138,10 @@ export default function Encounters() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="p-6 min-h-screen">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text-900">Khám bệnh</h1>
           <p className="text-text-500 mt-1">
@@ -388,6 +389,7 @@ export default function Encounters() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

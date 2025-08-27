@@ -165,8 +165,9 @@ export default function LabImport() {
 
   if (step === 'upload') {
     return (
-      <div className="space-y-6">
-        <div>
+      <div className="p-6 min-h-screen">
+        <div className="space-y-6">
+          <div>
           <h1 className="text-3xl font-bold text-foreground">Import kết quả xét nghiệm</h1>
           <p className="text-muted-foreground">Kéo thả file CSV hoặc click để chọn file</p>
         </div>
@@ -209,13 +210,15 @@ export default function LabImport() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     )
   }
 
   if (step === 'mapping') {
     return (
-      <div className="space-y-6">
+      <div className="p-6 min-h-screen">
+        <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Mapping cột dữ liệu</h1>
           <p className="text-muted-foreground">
@@ -282,13 +285,15 @@ export default function LabImport() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     )
   }
 
   if (step === 'preview') {
     return (
-      <div className="space-y-6">
+      <div className="p-6 min-h-screen">
+        <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Xem trước dữ liệu</h1>
           <p className="text-muted-foreground">
@@ -380,6 +385,7 @@ export default function LabImport() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     )
   }

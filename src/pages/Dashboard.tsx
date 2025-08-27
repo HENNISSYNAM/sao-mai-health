@@ -62,11 +62,12 @@ const alerts = [
 
 export default function Dashboard() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Tổng quan hệ thống</h1>
-        <p className="text-muted-foreground">Giám sát y tế công cộng TP. Hồ Chí Minh</p>
-      </div>
+    <div className="p-6 min-h-screen">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Tổng quan hệ thống</h1>
+          <p className="text-muted-foreground">Giám sát y tế công cộng TP. Hồ Chí Minh</p>
+        </div>
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -116,6 +117,7 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
-  )
+  );
 }

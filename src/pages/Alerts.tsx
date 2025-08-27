@@ -275,9 +275,10 @@ export default function Alerts() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Quản lý cảnh báo</h1>
+    <div className="p-6 min-h-screen">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Quản lý cảnh báo</h1>
         <p className="text-muted-foreground">Theo dõi và xử lý các cảnh báo y tế công cộng</p>
       </div>
 
@@ -391,6 +392,7 @@ export default function Alerts() {
           />
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

@@ -391,9 +391,10 @@ const DataIngestion = () => {
   const failedJobs = filteredJobs.filter(j => j.status === 'failed').length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="p-6 min-h-screen">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
           <h1 className="text-3xl font-bold text-foreground">Nhập dữ liệu</h1>
           <p className="text-muted-foreground">
             Import và xử lý dữ liệu từ CSV
@@ -606,6 +607,7 @@ const DataIngestion = () => {
           />
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };

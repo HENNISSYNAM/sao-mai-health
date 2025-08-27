@@ -364,9 +364,10 @@ const Inventory = () => {
   const activeAlerts = tempAlerts.filter(a => a.status === 'active').length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+    <div className="p-6 min-h-screen">
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
           <h1 className="text-3xl font-bold text-foreground">Quản lý kho tồn</h1>
           <p className="text-muted-foreground">
             Theo dõi vật tư y tế, vaccine và thuốc men
@@ -503,6 +504,7 @@ const Inventory = () => {
           />
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
