@@ -228,6 +228,130 @@ export type Database = {
           },
         ]
       }
+      campaign_checkins: {
+        Row: {
+          campaign_id: string
+          check_in_time: string
+          created_at: string
+          id: string
+          offline_sync: boolean | null
+          participant_name: string
+          phone: string | null
+          qr_code: string | null
+          ward: string
+        }
+        Insert: {
+          campaign_id: string
+          check_in_time?: string
+          created_at?: string
+          id?: string
+          offline_sync?: boolean | null
+          participant_name: string
+          phone?: string | null
+          qr_code?: string | null
+          ward: string
+        }
+        Update: {
+          campaign_id?: string
+          check_in_time?: string
+          created_at?: string
+          id?: string
+          offline_sync?: boolean | null
+          participant_name?: string
+          phone?: string | null
+          qr_code?: string | null
+          ward?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_checkins_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_slots: {
+        Row: {
+          allocated_slots: number
+          campaign_id: string
+          capacity_constraint: number | null
+          created_at: string
+          id: string
+          total_slots: number
+          ward: string
+        }
+        Insert: {
+          allocated_slots?: number
+          campaign_id: string
+          capacity_constraint?: number | null
+          created_at?: string
+          id?: string
+          total_slots?: number
+          ward: string
+        }
+        Update: {
+          allocated_slots?: number
+          campaign_id?: string
+          capacity_constraint?: number | null
+          created_at?: string
+          id?: string
+          total_slots?: number
+          ward?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_slots_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_date: string
+          id: string
+          name: string
+          priority_groups: Json | null
+          start_date: string
+          status: string
+          target_participants: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          name: string
+          priority_groups?: Json | null
+          start_date: string
+          status?: string
+          target_participants?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          name?: string
+          priority_groups?: Json | null
+          start_date?: string
+          status?: string
+          target_participants?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           category: string
@@ -714,6 +838,39 @@ export type Database = {
           proj4text?: string | null
           srid?: number
           srtext?: string | null
+        }
+        Relationships: []
+      }
+      stocks: {
+        Row: {
+          created_at: string
+          id: string
+          item_name: string
+          location: string | null
+          quantity: number
+          reserved_quantity: number
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_name: string
+          location?: string | null
+          quantity?: number
+          reserved_quantity?: number
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_name?: string
+          location?: string | null
+          quantity?: number
+          reserved_quantity?: number
+          unit?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1225,9 +1382,17 @@ export type Database = {
         Args: { p_email: string }
         Returns: string
       }
+      fn_inventory_reserve: {
+        Args: { campaign_id: string; item_id: string; qty: number }
+        Returns: Json
+      }
       fn_log_event: {
         Args: { p_name: string; p_props: Json }
         Returns: undefined
+      }
+      fn_schedule_campaign: {
+        Args: { campaign_data: Json }
+        Returns: Json
       }
       generate_order_code: {
         Args: Record<PropertyKey, never>
