@@ -4,7 +4,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 
 // Enhanced realtime hook specifically for health tables
 interface UseRealtimeHealthOptions {
-  table: 'cases' | 'alerts' | 'beds' | 'stocks' | 'campaigns' | 'appointments' | 'encounters' | 'etl_queue' | 'dq_errors' | 'outbreaks' | 'metrics_cases_daily' | 'ai_outputs'
+  table: 'cases' | 'alerts' | 'beds' | 'stocks' | 'campaigns' | 'appointments' | 'encounters' | 'etl_queue' | 'dq_errors' | 'outbreaks' | 'metrics_cases_daily' | 'ai_outputs' | 'inventory_stock' | 'temperature_alerts'
   event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*'
   schema?: string
   onUpdate?: (payload: any) => void
@@ -23,7 +23,7 @@ interface RealtimePayload<T = any> {
 export function useRealtimeHealth<T = any>({ 
   table, 
   event = '*', 
-  schema = 'health',
+  schema = 'public',
   onUpdate,
   invalidateKey
 }: UseRealtimeHealthOptions) {
@@ -189,3 +189,9 @@ export const useRealtimeMetrics = (onUpdate?: (payload: any) => void) =>
 
 export const useRealtimeAI = (onUpdate?: (payload: any) => void) => 
   useRealtimeHealth({ table: 'ai_outputs', onUpdate })
+
+export const useRealtimeInventoryStock = (onUpdate?: (payload: any) => void) => 
+  useRealtimeHealth({ table: 'inventory_stock', onUpdate })
+
+export const useRealtimeTemperatureAlerts = (onUpdate?: (payload: any) => void) => 
+  useRealtimeHealth({ table: 'temperature_alerts', onUpdate })

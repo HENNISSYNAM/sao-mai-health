@@ -20,6 +20,9 @@ import Encounters from "./pages/Encounters";
 import Campaigns from "./pages/Campaigns";
 import Appointments from "./pages/Appointments";
 import Beds from "./pages/Beds";
+import Inventory from "./pages/Inventory";
+import DataIngestion from "./pages/DataIngestion";
+import DataQuality from "./pages/DataQuality";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,8 +58,9 @@ const App = () => (
                   <Route path="/campaigns" element={<Campaigns />} />
                   <Route path="/beds" element={<Beds />} />
                   <Route path="/facilities" element={<div>Cơ sở y tế</div>} />
-                  <Route path="/stocks" element={<div>Kho tồn</div>} />
-                  <Route path="/data-quality" element={<div>Chất lượng dữ liệu</div>} />
+                  <Route path="/inventory" element={<Inventory />} />
+                  <Route path="/data" element={<DataIngestion />} />
+                  <Route path="/data-quality" element={<DataQuality />} />
                   <Route path="/security" element={<div>Bảo mật</div>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

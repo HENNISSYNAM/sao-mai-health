@@ -352,6 +352,194 @@ export type Database = {
         }
         Relationships: []
       }
+      data_quality_scores: {
+        Row: {
+          created_at: string | null
+          error_count: number
+          facility_id: string
+          id: string
+          quality_score: number | null
+          score_date: string
+          table_name: string
+          total_records: number
+        }
+        Insert: {
+          created_at?: string | null
+          error_count: number
+          facility_id: string
+          id?: string
+          quality_score?: number | null
+          score_date: string
+          table_name: string
+          total_records: number
+        }
+        Update: {
+          created_at?: string | null
+          error_count?: number
+          facility_id?: string
+          id?: string
+          quality_score?: number | null
+          score_date?: string
+          table_name?: string
+          total_records?: number
+        }
+        Relationships: []
+      }
+      dq_errors: {
+        Row: {
+          created_at: string | null
+          error_message: string
+          error_type: string
+          facility_id: string | null
+          field_name: string | null
+          fixed_at: string | null
+          fixed_by: string | null
+          id: string
+          original_value: string | null
+          record_id: string | null
+          rule_id: string | null
+          severity: string
+          status: string | null
+          suggested_value: string | null
+          table_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message: string
+          error_type: string
+          facility_id?: string | null
+          field_name?: string | null
+          fixed_at?: string | null
+          fixed_by?: string | null
+          id?: string
+          original_value?: string | null
+          record_id?: string | null
+          rule_id?: string | null
+          severity: string
+          status?: string | null
+          suggested_value?: string | null
+          table_name: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string
+          error_type?: string
+          facility_id?: string | null
+          field_name?: string | null
+          fixed_at?: string | null
+          fixed_by?: string | null
+          id?: string
+          original_value?: string | null
+          record_id?: string | null
+          rule_id?: string | null
+          severity?: string
+          status?: string | null
+          suggested_value?: string | null
+          table_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dq_errors_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "dq_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dq_rules: {
+        Row: {
+          column_name: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          rule_config: Json
+          rule_name: string
+          rule_type: string
+          severity: string | null
+          table_name: string
+        }
+        Insert: {
+          column_name?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_config?: Json
+          rule_name: string
+          rule_type: string
+          severity?: string | null
+          table_name: string
+        }
+        Update: {
+          column_name?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          rule_config?: Json
+          rule_name?: string
+          rule_type?: string
+          severity?: string | null
+          table_name?: string
+        }
+        Relationships: []
+      }
+      etl_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          error_message: string | null
+          error_rows: number | null
+          file_path: string | null
+          id: string
+          job_type: string
+          max_retries: number | null
+          metadata: Json | null
+          processed_rows: number | null
+          progress: number | null
+          retry_count: number | null
+          started_at: string | null
+          status: string | null
+          total_rows: number | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          error_rows?: number | null
+          file_path?: string | null
+          id?: string
+          job_type: string
+          max_retries?: number | null
+          metadata?: Json | null
+          processed_rows?: number | null
+          progress?: number | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          total_rows?: number | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          error_rows?: number | null
+          file_path?: string | null
+          id?: string
+          job_type?: string
+          max_retries?: number | null
+          metadata?: Json | null
+          processed_rows?: number | null
+          progress?: number | null
+          retry_count?: number | null
+          started_at?: string | null
+          status?: string | null
+          total_rows?: number | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           category: string
@@ -461,6 +649,122 @@ export type Database = {
           zone_id?: string | null
         }
         Relationships: []
+      }
+      inventory_items: {
+        Row: {
+          category: string
+          code: string
+          cost_per_unit: number | null
+          created_at: string | null
+          expiry_alert_days: number | null
+          id: string
+          is_active: boolean | null
+          lead_time_days: number | null
+          max_stock: number
+          max_temp: number | null
+          min_temp: number | null
+          name: string
+          reorder_point: number
+          storage_type: string
+          unit: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          code: string
+          cost_per_unit?: number | null
+          created_at?: string | null
+          expiry_alert_days?: number | null
+          id?: string
+          is_active?: boolean | null
+          lead_time_days?: number | null
+          max_stock?: number
+          max_temp?: number | null
+          min_temp?: number | null
+          name: string
+          reorder_point?: number
+          storage_type?: string
+          unit?: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          code?: string
+          cost_per_unit?: number | null
+          created_at?: string | null
+          expiry_alert_days?: number | null
+          id?: string
+          is_active?: boolean | null
+          lead_time_days?: number | null
+          max_stock?: number
+          max_temp?: number | null
+          min_temp?: number | null
+          name?: string
+          reorder_point?: number
+          storage_type?: string
+          unit?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      inventory_stock: {
+        Row: {
+          available_quantity: number | null
+          batch_no: string | null
+          created_at: string | null
+          expiry_date: string | null
+          facility_id: string
+          id: string
+          item_id: string
+          last_temp_check: string | null
+          quantity: number
+          reserved_quantity: number
+          temperature_log: Json | null
+          unit_cost: number | null
+          updated_at: string | null
+          ward_id: string | null
+        }
+        Insert: {
+          available_quantity?: number | null
+          batch_no?: string | null
+          created_at?: string | null
+          expiry_date?: string | null
+          facility_id: string
+          id?: string
+          item_id: string
+          last_temp_check?: string | null
+          quantity?: number
+          reserved_quantity?: number
+          temperature_log?: Json | null
+          unit_cost?: number | null
+          updated_at?: string | null
+          ward_id?: string | null
+        }
+        Update: {
+          available_quantity?: number | null
+          batch_no?: string | null
+          created_at?: string | null
+          expiry_date?: string | null
+          facility_id?: string
+          id?: string
+          item_id?: string
+          last_temp_check?: string | null
+          quantity?: number
+          reserved_quantity?: number
+          temperature_log?: Json | null
+          unit_cost?: number | null
+          updated_at?: string | null
+          ward_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_stock_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orders: {
         Row: {
@@ -841,6 +1145,62 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_movements: {
+        Row: {
+          batch_no: string | null
+          created_at: string | null
+          expiry_date: string | null
+          facility_id: string
+          id: string
+          item_id: string
+          movement_type: string
+          notes: string | null
+          quantity: number
+          reference_no: string | null
+          unit_cost: number | null
+          user_id: string | null
+          ward_id: string | null
+        }
+        Insert: {
+          batch_no?: string | null
+          created_at?: string | null
+          expiry_date?: string | null
+          facility_id: string
+          id?: string
+          item_id: string
+          movement_type: string
+          notes?: string | null
+          quantity: number
+          reference_no?: string | null
+          unit_cost?: number | null
+          user_id?: string | null
+          ward_id?: string | null
+        }
+        Update: {
+          batch_no?: string | null
+          created_at?: string | null
+          expiry_date?: string | null
+          facility_id?: string
+          id?: string
+          item_id?: string
+          movement_type?: string
+          notes?: string | null
+          quantity?: number
+          reference_no?: string | null
+          unit_cost?: number | null
+          user_id?: string | null
+          ward_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stocks: {
         Row: {
           created_at: string
@@ -871,6 +1231,45 @@ export type Database = {
           reserved_quantity?: number
           unit?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      temperature_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string | null
+          current_temp: number
+          facility_id: string
+          id: string
+          resolved_at: string | null
+          status: string | null
+          ward_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          created_at?: string | null
+          current_temp: number
+          facility_id: string
+          id?: string
+          resolved_at?: string | null
+          status?: string | null
+          ward_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string | null
+          current_temp?: number
+          facility_id?: string
+          id?: string
+          resolved_at?: string | null
+          status?: string | null
+          ward_id?: string | null
         }
         Relationships: []
       }
