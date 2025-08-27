@@ -67,7 +67,37 @@
     --sidebar-accent-foreground: 214 31% 23%;
     --sidebar-border: 214 32% 91%;
     --sidebar-ring: 172 88% 27%;
-  }
+}
+
+/* Enhanced focus rings and form styling */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary;
+}
+
+/* Input focus styling */
+input:focus,
+textarea:focus,
+select:focus {
+  @apply outline-none ring-2 ring-primary/20 border-primary;
+  transition: all 0.2s ease-in-out;
+}
+
+/* Error state focus */
+input[aria-invalid="true"]:focus,
+textarea[aria-invalid="true"]:focus,
+select[aria-invalid="true"]:focus {
+  @apply ring-2 ring-destructive/20 border-destructive;
+}
+
+/* Button focus */
+button:focus-visible {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-2;
+}
+
+/* Link focus */
+a:focus-visible {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-2 rounded-sm;
+}
 
   .dark {
     --bg: 218 100% 10%;

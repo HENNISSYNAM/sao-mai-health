@@ -26,6 +26,7 @@ import {
   Lock
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
+import { usePrefetch } from "@/hooks/usePrefetch"
 
 import {
   Sidebar,
@@ -80,12 +81,17 @@ export function AppSidebar() {
   const collapsed = state === "collapsed"
   const location = useLocation()
   const currentPath = location.pathname
+  const { prefetchByRoute } = usePrefetch()
 
   const isActive = (path: string) => currentPath === path
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive 
       ? "bg-primary text-primary-foreground font-semibold shadow-sm border border-primary/20" 
       : "text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
+
+  const handleMouseEnter = (url: string) => {
+    prefetchByRoute(url);
+  };
 
   return (
     <Sidebar
@@ -112,7 +118,12 @@ export function AppSidebar() {
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink to={item.url} end className={getNavCls}>
+                      <NavLink 
+                        to={item.url} 
+                        end 
+                        className={getNavCls}
+                        onMouseEnter={() => handleMouseEnter(item.url)}
+                      >
                         <item.icon className={`h-5 w-5 flex-shrink-0 ${item.color}`} />
                         {!collapsed && <span className={`font-medium text-sm ${item.color}`}>{item.title}</span>}
                       </NavLink>

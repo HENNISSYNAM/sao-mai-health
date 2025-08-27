@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavbar } from "@/components/TopNavbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Dashboard from "./pages/Dashboard";
 import Surveillance from "./pages/Surveillance";
 import CaseIntake from "./pages/CaseIntake";
@@ -29,6 +30,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import { AuthProvider } from "./components/AuthProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import FormDemo from "./pages/FormDemo";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,11 +42,12 @@ const queryClient = new QueryClient({
 });
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
         <AuthProvider>
           <Routes>
             {/* Public routes */}
@@ -78,6 +81,7 @@ const App = () => (
                           <Route path="/data" element={<DataIngestion />} />
                           <Route path="/data-quality" element={<DataQuality />} />
                           <Route path="/security" element={<Security />} />
+                          <Route path="/form-demo" element={<FormDemo />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                         <EnhancedCommandPalette />
@@ -89,9 +93,10 @@ const App = () => (
             } />
           </Routes>
         </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
