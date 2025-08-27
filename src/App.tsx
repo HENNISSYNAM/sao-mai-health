@@ -16,6 +16,7 @@ import { EnhancedCommandPalette } from "./components/EnhancedCommandPalette";
 import MapView from "./pages/MapView";
 import Patients from "./pages/Patients";
 import Encounters from "./pages/Encounters";
+import Appointments from "./pages/Appointments";
 
 const queryClient = new QueryClient();
 
@@ -40,7 +41,7 @@ const App = () => (
                   <Route path="/map" element={<MapView />} />
                   <Route path="/patients" element={<Patients />} />
                   <Route path="/encounters" element={<Encounters />} />
-                  <Route path="/appointments" element={<div>Lịch hẹn</div>} />
+                  <Route path="/appointments" element={<Appointments />} />
                   <Route path="/campaigns" element={<div>Chiến dịch</div>} />
                   <Route path="/facilities" element={<div>Cơ sở y tế</div>} />
                   <Route path="/stocks" element={<div>Kho tồn</div>} />
