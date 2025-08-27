@@ -76,17 +76,17 @@ export const AlertsBell: React.FC = () => {
       
       <DropdownMenuContent 
         align="end" 
-        className="w-80 max-h-96 overflow-y-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        className="w-80 max-h-96 overflow-y-auto bg-card border shadow-lg z-50"
         sideOffset={8}
       >
-        <DropdownMenuLabel className="flex items-center justify-between">
+        <DropdownMenuLabel className="flex items-center justify-between text-card-foreground">
           <span>Alerts</span>
           {hasUnread && (
             <Button
               variant="ghost"
               size="sm"
               onClick={markAllAsRead}
-              className="h-auto p-1 text-xs hover:bg-accent"
+              className="h-auto p-1 text-xs hover:bg-accent hover:text-accent-foreground"
             >
               <CheckCheck className="h-3 w-3 mr-1" />
               Mark all read
@@ -109,7 +109,7 @@ export const AlertsBell: React.FC = () => {
           alerts.map((alert) => (
             <DropdownMenuItem
               key={alert.id}
-              className={`cursor-pointer p-3 space-y-2 ${
+              className={`cursor-pointer p-3 space-y-2 text-card-foreground hover:bg-accent hover:text-accent-foreground transition-colors ${
                 alert.is_unread ? 'bg-accent/50' : ''
               }`}
               onClick={() => handleAlertClick(alert.id)}
@@ -160,7 +160,7 @@ export const AlertsBell: React.FC = () => {
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              className="text-center text-sm text-primary hover:bg-accent cursor-pointer"
+              className="text-center text-sm text-primary hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors"
               onClick={() => window.location.href = '/alerts'}
             >
               View all alerts

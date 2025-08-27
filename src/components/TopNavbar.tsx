@@ -243,11 +243,11 @@ export function TopNavbar() {
             
             {/* Search suggestions dropdown */}
             {searchTerm && suggestions.length > 0 && (
-              <div className="absolute top-full mt-1 w-full bg-background border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+              <div className="absolute top-full mt-1 w-full bg-card border shadow-lg z-50 max-h-60 overflow-y-auto rounded-md">
                 {suggestions.map((suggestion) => (
                   <div
                     key={suggestion.id}
-                    className="px-3 py-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                    className="px-3 py-2 hover:bg-accent hover:text-accent-foreground cursor-pointer border-b last:border-b-0 transition-colors"
                     onClick={() => {
                       setSearchTerm('');
                       // Handle suggestion selection
@@ -257,7 +257,7 @@ export function TopNavbar() {
                       <Badge variant="outline" className="text-xs">
                         {suggestion.type}
                       </Badge>
-                      <span className="text-sm">{suggestion.label}</span>
+                      <span className="text-sm text-card-foreground">{suggestion.label}</span>
                     </div>
                   </div>
                 ))}
@@ -293,31 +293,31 @@ export function TopNavbar() {
                   <User className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {user?.email?.split('@')[0] || 'User'}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="w-56 bg-card border shadow-lg z-50">
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none text-card-foreground">
+              {user?.email?.split('@')[0] || 'User'}
+            </p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user?.email}
+            </p>
+          </div>
+        </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Thông tin cá nhân</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Cài đặt</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-danger" onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Đăng xuất</span>
-                </DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer text-card-foreground hover:bg-accent hover:text-accent-foreground">
+          <User className="mr-2 h-4 w-4" />
+          <span>Thông tin cá nhân</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer text-card-foreground hover:bg-accent hover:text-accent-foreground">
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Cài đặt</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="cursor-pointer text-danger hover:bg-destructive/10" onClick={handleSignOut}>
+          <LogOut className="mr-2 h-4 w-4" />
+          <span>Đăng xuất</span>
+        </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -326,8 +326,8 @@ export function TopNavbar() {
 
       {/* Enhanced Command Palette */}
       <CommandDialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
-        <CommandInput placeholder="Tìm lệnh nhanh..." />
-        <CommandList>
+        <CommandInput placeholder="Tìm lệnh nhanh..." className="border-input" />
+        <CommandList className="bg-card">
           <CommandEmpty>Không tìm thấy lệnh nào.</CommandEmpty>
           
           <CommandGroup heading="Thêm mới">
