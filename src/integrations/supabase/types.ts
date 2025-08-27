@@ -37,6 +37,51 @@ export type Database = {
           },
         ]
       }
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          created_at: string
+          doctor: string | null
+          facility: string
+          id: string
+          no_show_risk: number | null
+          overbook_suggestion: number | null
+          patient_name: string
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          created_at?: string
+          doctor?: string | null
+          facility: string
+          id?: string
+          no_show_risk?: number | null
+          overbook_suggestion?: number | null
+          patient_name: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          created_at?: string
+          doctor?: string | null
+          facility?: string
+          id?: string
+          no_show_risk?: number | null
+          overbook_suggestion?: number | null
+          patient_name?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       baseline_stats: {
         Row: {
           mu: number | null
