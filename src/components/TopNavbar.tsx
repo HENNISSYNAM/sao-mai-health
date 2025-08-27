@@ -284,15 +284,51 @@ export function TopNavbar() {
             <ConnectionStatus />
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-              >
-                3
-              </Badge>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-4 w-4" />
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse"
+                  >
+                    2
+                  </Badge>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel>Cảnh báo mới</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="p-3 border-b hover:bg-accent cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-destructive rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Bất thường ca sốt xuất huyết</p>
+                        <p className="text-xs text-muted-foreground">Tăng đột biến 150% tại Quận 1</p>
+                        <p className="text-xs text-muted-foreground">5 phút trước</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-3 border-b hover:bg-accent cursor-pointer">
+                    <div className="flex items-start gap-3">
+                      <div className="w-2 h-2 bg-warning rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">Vượt ngưỡng giường ICU</p>
+                        <p className="text-xs text-muted-foreground">Công suất 95% tại BV Chợ Rẫy</p>
+                        <p className="text-xs text-muted-foreground">12 phút trước</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <div className="p-2">
+                  <Button variant="ghost" size="sm" className="w-full" onClick={() => window.location.href = '/alerts'}>
+                    Xem tất cả cảnh báo
+                  </Button>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* User Menu */}
             <DropdownMenu>
