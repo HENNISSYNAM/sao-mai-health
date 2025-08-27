@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { UserCheck, Search, Plus, Stethoscope, AlertTriangle } from "lucide-react";
-import { useRealtimeHealth } from "@/hooks/useRealtimeHealth";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Encounter {
   id: string;
@@ -24,16 +23,41 @@ interface Encounter {
   ended_at?: string;
 }
 
+// Mock data for encounters
+const mockEncounters: Encounter[] = [
+  {
+    id: '1',
+    patient_id: 'p1',
+    patient_name: 'Nguyễn Văn A',
+    facility_id: 'f1',
+    facility_name: 'Bệnh viện Bạch Mai',
+    encounter_type: 'emergency',
+    status: 'arrived',
+    triage_level: 2,
+    chief_complaint: 'Đau ngực, khó thở',
+    started_at: new Date().toISOString()
+  },
+  {
+    id: '2',
+    patient_id: 'p2',
+    patient_name: 'Trần Thị B',
+    facility_id: 'f2',
+    facility_name: 'Phòng khám Đa khoa',
+    encounter_type: 'outpatient',
+    status: 'in-progress',
+    triage_level: 4,
+    chief_complaint: 'Khám định kỳ',
+    started_at: new Date(Date.now() - 60000).toISOString()
+  }
+];
+
 export default function Encounters() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedEncounter, setSelectedEncounter] = useState<Encounter | null>(null);
   const [triageNote, setTriageNote] = useState("");
+  const [encounters, setEncounters] = useState<Encounter[]>(mockEncounters);
+  const [isConnected] = useState(true); // Mock connection status
   const { toast } = useToast();
-  
-  const { data: encounters, isConnected } = useRealtimeHealth<Encounter>({
-    table: 'encounters',
-    event: '*'
-  });
 
   const filteredEncounters = encounters.filter(encounter => {
     const searchLower = searchTerm.toLowerCase();
