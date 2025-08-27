@@ -2093,6 +2093,26 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
       is_admin: {
         Args: { user_id: string }
         Returns: boolean
@@ -2327,6 +2347,18 @@ export type Database = {
       refresh_baseline: {
         Args: { in_date: string }
         Returns: undefined
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
       }
       spheroid_in: {
         Args: { "": unknown }
@@ -3404,6 +3436,14 @@ export type Database = {
       transfer_points: {
         Args: { p_amount: number; p_from: string; p_note: string; p_to: string }
         Returns: string
+      }
+      unaccent: {
+        Args: { "": string }
+        Returns: string
+      }
+      unaccent_init: {
+        Args: { "": unknown }
+        Returns: unknown
       }
       unlockrows: {
         Args: { "": string }
