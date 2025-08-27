@@ -25,6 +25,10 @@ import DataIngestion from "./pages/DataIngestion";
 import DataQuality from "./pages/DataQuality";
 import Facilities from "./pages/Facilities";
 import Security from "./pages/Security";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import { AuthProvider } from "./components/AuthProvider";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,37 +45,50 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <SidebarProvider>
-          <div className="min-h-screen flex w-full">
-            <AppSidebar />
-            <div className="flex-1 flex flex-col">
-              <TopNavbar />
-              <main className="flex-1 p-6 bg-background">
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/surveillance" element={<Surveillance />} />
-                  <Route path="/case-intake" element={<CaseIntake />} />
-                  <Route path="/lab-import" element={<LabImport />} />
-                  <Route path="/alerts" element={<Alerts />} />
-                  <Route path="/map" element={<MapView />} />
-                  <Route path="/patients" element={<Patients />} />
-                  <Route path="/encounters" element={<Encounters />} />
-                  <Route path="/appointments" element={<Appointments />} />
-                  <Route path="/campaigns" element={<Campaigns />} />
-                  <Route path="/beds" element={<Beds />} />
-                  <Route path="/facilities" element={<Facilities />} />
-                  <Route path="/stocks" element={<Inventory />} />
-                  <Route path="/inventory" element={<Inventory />} />
-                  <Route path="/data" element={<DataIngestion />} />
-                  <Route path="/data-quality" element={<DataQuality />} />
-                  <Route path="/security" element={<Security />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <EnhancedCommandPalette />
-              </main>
-            </div>
-          </div>
-        </SidebarProvider>
+        <AuthProvider>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            
+            {/* Protected routes */}
+            <Route path="/*" element={
+              <ProtectedRoute>
+                <SidebarProvider>
+                  <div className="min-h-screen flex w-full">
+                    <AppSidebar />
+                    <div className="flex-1 flex flex-col">
+                      <TopNavbar />
+                      <main className="flex-1 p-6 bg-background">
+                        <Routes>
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/surveillance" element={<Surveillance />} />
+                          <Route path="/case-intake" element={<CaseIntake />} />
+                          <Route path="/lab-import" element={<LabImport />} />
+                          <Route path="/alerts" element={<Alerts />} />
+                          <Route path="/map" element={<MapView />} />
+                          <Route path="/patients" element={<Patients />} />
+                          <Route path="/encounters" element={<Encounters />} />
+                          <Route path="/appointments" element={<Appointments />} />
+                          <Route path="/campaigns" element={<Campaigns />} />
+                          <Route path="/beds" element={<Beds />} />
+                          <Route path="/facilities" element={<Facilities />} />
+                          <Route path="/stocks" element={<Inventory />} />
+                          <Route path="/inventory" element={<Inventory />} />
+                          <Route path="/data" element={<DataIngestion />} />
+                          <Route path="/data-quality" element={<DataQuality />} />
+                          <Route path="/security" element={<Security />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                        <EnhancedCommandPalette />
+                      </main>
+                    </div>
+                  </div>
+                </SidebarProvider>
+              </ProtectedRoute>
+            } />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
