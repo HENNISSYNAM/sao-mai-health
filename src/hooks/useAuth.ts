@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export interface AuthState {
   user: User | null;
@@ -16,6 +17,7 @@ export const useAuth = () => {
     loading: true
   });
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Set up auth state listener
@@ -32,6 +34,11 @@ export const useAuth = () => {
             title: "Đăng nhập thành công",
             description: "Chào mừng bạn trở lại!"
           });
+          
+          // Redirect to home page after successful login
+          setTimeout(() => {
+            navigate('/');
+          }, 100);
         }
         
         if (event === 'SIGNED_OUT') {
@@ -53,7 +60,7 @@ export const useAuth = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [toast]);
+  }, [toast, navigate]);
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();

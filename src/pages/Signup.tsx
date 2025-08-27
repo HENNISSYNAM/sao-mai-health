@@ -1,8 +1,8 @@
 import React from 'react';
-import { AuthForm } from '@/components/AuthForm';
+import { GoogleLoginForm } from '@/components/GoogleLoginForm';
 
 const Signup = () => {
-  return <AuthForm mode="signup" />;
+  return <GoogleLoginForm />;
 };
 
 export default Signup;
