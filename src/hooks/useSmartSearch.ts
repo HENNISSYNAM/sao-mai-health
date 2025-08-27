@@ -5,7 +5,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 export interface SearchSuggestion {
   id: string;
   label: string;
-  type: 'patient' | 'case';
+  type: 'appointment' | 'campaign';
   icon: string;
   data: any;
 }
@@ -74,20 +74,24 @@ export const useSmartSearch = (term: string) => {
     setError(null);
     
     try {
-      // Search pattern for PostgreSQL ILIKE with unaccent
+      // Search pattern for PostgreSQL ILIKE
       const searchPattern = `%${searchTerm}%`;
       
-      // Parallel queries for patients and cases using RPC calls
-      const [patientsResponse, casesResponse] = await Promise.all([
-        // Search patients
-        supabase.rpc('search_patients', { 
-          search_term: searchPattern 
-        }),
+      // Parallel queries for appointments and campaigns using existing tables
+      const [appointmentsResponse, campaignsResponse] = await Promise.all([
+        // Search appointments - using ilike for case-insensitive search
+        supabase
+          .from('appointments')
+          .select('id, patient_name, facility, appointment_date')
+          .or(`patient_name.ilike.${searchPattern},facility.ilike.${searchPattern}`)
+          .limit(10),
         
-        // Search cases
-        supabase.rpc('search_cases', { 
-          search_term: searchPattern 
-        })
+        // Search campaigns - using ilike for case-insensitive search  
+        supabase
+          .from('campaigns')
+          .select('id, name, description, status')
+          .or(`name.ilike.${searchPattern},description.ilike.${searchPattern}`)
+          .limit(10)
       ]);
       
       // Check if request was cancelled
@@ -95,38 +99,38 @@ export const useSmartSearch = (term: string) => {
         return;
       }
       
-      if (patientsResponse.error) {
-        console.error('Patients search error:', patientsResponse.error);
+      if (appointmentsResponse.error) {
+        console.error('Appointments search error:', appointmentsResponse.error);
       }
       
-      if (casesResponse.error) {
-        console.error('Cases search error:', casesResponse.error);
+      if (campaignsResponse.error) {
+        console.error('Campaigns search error:', campaignsResponse.error);
       }
       
       const combinedSuggestions: SearchSuggestion[] = [];
       
-      // Add patient suggestions
-      if (patientsResponse.data) {
-        patientsResponse.data.forEach(patient => {
+      // Add appointment suggestions
+      if (appointmentsResponse.data) {
+        appointmentsResponse.data.forEach(appointment => {
           combinedSuggestions.push({
-            id: patient.id,
-            label: `${patient.name_hash} - ${patient.dob}`,
-            type: 'patient',
-            icon: 'User',
-            data: patient
+            id: appointment.id,
+            label: `${appointment.patient_name} - ${appointment.facility} (${appointment.appointment_date})`,
+            type: 'appointment',
+            icon: 'Calendar',
+            data: appointment
           });
         });
       }
       
-      // Add case suggestions
-      if (casesResponse.data) {
-        casesResponse.data.forEach(caseItem => {
+      // Add campaign suggestions
+      if (campaignsResponse.data) {
+        campaignsResponse.data.forEach(campaign => {
           combinedSuggestions.push({
-            id: caseItem.id,
-            label: `${caseItem.disease_name} - ${caseItem.case_status} (${caseItem.ward})`,
-            type: 'case',
-            icon: 'FileText',
-            data: caseItem
+            id: campaign.id,
+            label: `${campaign.name} - ${campaign.status}`,
+            type: 'campaign',
+            icon: 'Megaphone',
+            data: campaign
           });
         });
       }
@@ -157,14 +161,14 @@ export const useSmartSearch = (term: string) => {
     };
   }, [normalizedTerm, searchFunction]);
   
-  // Function to handle selection (navigate to profile or case)
+  // Function to handle selection (navigate to appointment or campaign)
   const handleSelect = useCallback((suggestion: SearchSuggestion) => {
-    if (suggestion.type === 'patient') {
-      // Navigate to patient profile
-      window.location.href = `/patients/${suggestion.id}`;
-    } else if (suggestion.type === 'case') {
-      // Navigate to case details
-      window.location.href = `/cases/${suggestion.id}`;
+    if (suggestion.type === 'appointment') {
+      // Navigate to appointments page
+      window.location.href = `/appointments`;
+    } else if (suggestion.type === 'campaign') {
+      // Navigate to campaigns page
+      window.location.href = `/campaigns`;
     }
   }, []);
   
