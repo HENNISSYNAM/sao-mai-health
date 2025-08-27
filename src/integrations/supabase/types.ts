@@ -766,6 +766,42 @@ export type Database = {
           },
         ]
       }
+      map_overlays: {
+        Row: {
+          id: string
+          image_url: string
+          ne_lat: number
+          ne_lng: number
+          opacity: number
+          sw_lat: number
+          sw_lng: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id: string
+          image_url: string
+          ne_lat: number
+          ne_lng: number
+          opacity?: number
+          sw_lat: number
+          sw_lng: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          image_url?: string
+          ne_lat?: number
+          ne_lng?: number
+          opacity?: number
+          sw_lat?: number
+          sw_lng?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address: string | null
