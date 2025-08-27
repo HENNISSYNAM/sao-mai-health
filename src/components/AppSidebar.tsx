@@ -44,33 +44,33 @@ const menuItems = [
   {
     title: "Điều hành",
     items: [
-      { title: "Tổng quan", url: "/", icon: TrendingUp },
-      { title: "Giám sát bệnh", url: "/surveillance", icon: Microscope },
-      { title: "Cảnh báo", url: "/alerts", icon: Bell },
-      { title: "Bản đồ", url: "/maps", icon: MapPin },
+      { title: "Tổng quan", url: "/", icon: TrendingUp, color: "text-blue-600" },
+      { title: "Giám sát bệnh", url: "/surveillance", icon: Microscope, color: "text-red-600" },
+      { title: "Cảnh báo", url: "/alerts", icon: Bell, color: "text-orange-600" },
+      { title: "Bản đồ", url: "/maps", icon: MapPin, color: "text-green-600" },
     ]
   },
   {
     title: "Quản lý",
     items: [
-      { title: "Bệnh nhân", url: "/patients", icon: UserCheck },
-      { title: "Khám bệnh", url: "/encounters", icon: ClipboardList },
-      { title: "Lịch hẹn", url: "/appointments", icon: CalendarCheck },
-      { title: "Chiến dịch", url: "/campaigns", icon: Target },
+      { title: "Bệnh nhân", url: "/patients", icon: UserCheck, color: "text-purple-600" },
+      { title: "Khám bệnh", url: "/encounters", icon: ClipboardList, color: "text-cyan-600" },
+      { title: "Lịch hẹn", url: "/appointments", icon: CalendarCheck, color: "text-emerald-600" },
+      { title: "Chiến dịch", url: "/campaigns", icon: Target, color: "text-pink-600" },
     ]
   },
   {
     title: "Cơ sở vật chất",
     items: [
-      { title: "Cơ sở y tế", url: "/facilities", icon: Hospital },
-      { title: "Kho tồn", url: "/stocks", icon: Package },
+      { title: "Cơ sở y tế", url: "/facilities", icon: Hospital, color: "text-slate-600" },
+      { title: "Kho tồn", url: "/stocks", icon: Package, color: "text-amber-600" },
     ]
   },
   {
     title: "Dữ liệu",
     items: [
-      { title: "Chất lượng dữ liệu", url: "/data-quality", icon: FileCheck },
-      { title: "Bảo mật", url: "/security", icon: Lock },
+      { title: "Chất lượng dữ liệu", url: "/data-quality", icon: FileCheck, color: "text-indigo-600" },
+      { title: "Bảo mật", url: "/security", icon: Lock, color: "text-gray-700" },
     ]
   }
 ]
@@ -113,7 +113,7 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <NavLink to={item.url} end className={getNavCls}>
-                        <item.icon className="h-5 w-5 flex-shrink-0" />
+                        <item.icon className={`h-5 w-5 flex-shrink-0 ${item.color}`} />
                         {!collapsed && <span className="font-medium text-sm">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
