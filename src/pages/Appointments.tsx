@@ -46,8 +46,8 @@ export default function Appointments() {
   const { toast } = useToast();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [facilityFilter, setFacilityFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [facilityFilter, setFacilityFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<string>('');
   const [predictions, setPredictions] = useState<Record<string, NoShowPrediction>>({});
 
@@ -189,8 +189,8 @@ export default function Appointments() {
 
   const filteredAppointments = appointments.filter(apt => {
     return (
-      (!facilityFilter || apt.facility.includes(facilityFilter)) &&
-      (!statusFilter || apt.status === statusFilter) &&
+      (facilityFilter === 'all' || apt.facility.includes(facilityFilter)) &&
+      (statusFilter === 'all' || apt.status === statusFilter) &&
       (!dateFilter || apt.appointment_date === dateFilter)
     );
   });
@@ -227,7 +227,7 @@ export default function Appointments() {
                   <SelectValue placeholder="Tất cả cơ sở" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả cơ sở</SelectItem>
+                  <SelectItem value="all">Tất cả cơ sở</SelectItem>
                   {facilities.map(facility => (
                     <SelectItem key={facility} value={facility}>
                       {facility}
@@ -244,7 +244,7 @@ export default function Appointments() {
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Tất cả trạng thái</SelectItem>
+                  <SelectItem value="all">Tất cả trạng thái</SelectItem>
                   {statuses.map(status => (
                     <SelectItem key={status} value={status}>
                       {status}
