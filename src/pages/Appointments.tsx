@@ -204,10 +204,9 @@ export default function Appointments() {
   }
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Quản lý Lịch hẹn</h1>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Quản lý Lịch hẹn</h1>
         <Button className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
           Thêm lịch hẹn
@@ -372,7 +371,6 @@ export default function Appointments() {
           </Table>
         </CardContent>
       </Card>
-      </div>
     </div>
   );
 }

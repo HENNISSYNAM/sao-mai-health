@@ -383,10 +383,9 @@ const DataQuality = () => {
     : 0;
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-3xl font-bold text-foreground">Chất lượng dữ liệu</h1>
           <p className="text-muted-foreground">
             Giám sát và sửa lỗi dữ liệu
@@ -534,7 +533,6 @@ const DataQuality = () => {
           />
         </CardContent>
       </Card>
-      </div>
     </div>
   );
 };

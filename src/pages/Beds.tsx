@@ -273,10 +273,9 @@ const Beds = () => {
   const averageOccupancy = totalBeds > 0 ? (occupiedBeds / totalBeds) * 100 : 0;
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-3xl font-bold text-foreground">Quản lý giường bệnh</h1>
           <p className="text-muted-foreground">
             Theo dõi và dự báo tình hình giường bệnh
@@ -449,7 +448,6 @@ const Beds = () => {
           />
         </CardContent>
       </Card>
-      </div>
     </div>
   );
 };

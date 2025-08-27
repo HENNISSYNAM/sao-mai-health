@@ -70,8 +70,8 @@ export default function MapView() {
   // If user doesn't have access, show upgrade prompt
   if (!hasAccess(['pro', 'enterprise'])) {
     return (
-      <div className="p-6 min-h-screen">
-        <Card className="max-w-2xl mx-auto mt-20">
+      <div className="container mx-auto p-6">
+        <Card className="max-w-2xl mx-auto">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4 p-4 rounded-full bg-muted w-fit">
               <Lock className="h-8 w-8 text-muted-foreground" />
@@ -289,113 +289,109 @@ export default function MapView() {
   );
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-text-900">Bản đồ dịch bệnh</h1>
-            <p className="text-text-500 mt-1">
-              Theo dõi phân bố địa lý và ổ dịch
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-success' : 'bg-danger'}`} />
-            <span className="text-sm text-text-500">
-              {isConnected ? 'Realtime' : 'Offline'}
-            </span>
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text-900">Bản đồ dịch bệnh</h1>
+          <p className="text-text-500 mt-1">
+            Theo dõi phân bố địa lý và ổ dịch
+          </p>
         </div>
+        <div className="flex items-center gap-2">
+          <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-success' : 'bg-danger'}`} />
+          <span className="text-sm text-text-500">
+            {isConnected ? 'Realtime' : 'Offline'}
+          </span>
+        </div>
+      </div>
 
-        {/* Map Container */}
-        <div className="relative">
-          <div className="map-card rounded-lg p-4">
-            <MapContainer
-              center={[10.8231, 106.6297]} // Ho Chi Minh City
-              zoom={11}
-              className="h-[calc(100vh-300px)] w-full rounded-lg border border-border"
-            >
-              {/* Mock map markers based on selected layer */}
-              {selectedLayer === 'cases' && casesGeo.map((case_) => (
-                <div key={case_.id} className="text-xs">
-                  <Badge className={getDiseaseColor(case_.disease_code)}>
-                    {case_.cases_count} ca
-                  </Badge>
-                </div>
-              ))}
-              
-              {selectedLayer === 'outbreaks' && outbreaks.map((outbreak) => (
-                <div key={outbreak.id} className="text-xs">
-                  <Badge 
-                    variant="outline" 
-                    className={`border-2 ${getSeverityColor(outbreak.severity)}`}
-                  >
-                    Ổ dịch: {outbreak.cases_count} ca
-                  </Badge>
-                </div>
-              ))}
-            </MapContainer>
-
-            {/* Map Controls */}
-            <LayerControl />
-            <MapLegend />
-            
-            {selectedCase && <MapTooltip case_={selectedCase} />}
-
-            {/* Zoom Controls */}
-            <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-              <Button size="icon" variant="outline" className="focus-ring">
-                <ZoomIn className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="outline" className="focus-ring">
-                <ZoomOut className="h-4 w-4" />
-              </Button>
+      {/* Map Container */}
+      <div className="relative">
+        <MapContainer
+          center={[10.8231, 106.6297]} // Ho Chi Minh City
+          zoom={11}
+          className="h-[calc(100vh-200px)] w-full rounded-lg border border-border"
+        >
+          {/* Mock map markers based on selected layer */}
+          {selectedLayer === 'cases' && casesGeo.map((case_) => (
+            <div key={case_.id} className="text-xs">
+              <Badge className={getDiseaseColor(case_.disease_code)}>
+                {case_.cases_count} ca
+              </Badge>
             </div>
-          </div>
+          ))}
+          
+          {selectedLayer === 'outbreaks' && outbreaks.map((outbreak) => (
+            <div key={outbreak.id} className="text-xs">
+              <Badge 
+                variant="outline" 
+                className={`border-2 ${getSeverityColor(outbreak.severity)}`}
+              >
+                Ổ dịch: {outbreak.cases_count} ca
+              </Badge>
+            </div>
+          ))}
+        </MapContainer>
+
+        {/* Map Controls */}
+        <LayerControl />
+        <MapLegend />
+        
+        {selectedCase && <MapTooltip case_={selectedCase} />}
+
+        {/* Zoom Controls */}
+        <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+          <Button size="icon" variant="outline" className="focus-ring">
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="outline" className="focus-ring">
+            <ZoomOut className="h-4 w-4" />
+          </Button>
         </div>
+      </div>
 
-        {/* Map Statistics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-text-900">{casesGeo.length}</p>
-                <p className="text-sm text-text-500">Điểm ca bệnh</p>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Map Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-text-900">{casesGeo.length}</p>
+              <p className="text-sm text-text-500">Điểm ca bệnh</p>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-text-900">{outbreaks.length}</p>
-                <p className="text-sm text-text-500">Ổ dịch đang hoạt động</p>
-              </div>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-text-900">{outbreaks.length}</p>
+              <p className="text-sm text-text-500">Ổ dịch đang hoạt động</p>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-text-900">
-                  {casesGeo.reduce((sum, c) => sum + c.cases_count, 0)}
-                </p>
-                <p className="text-sm text-text-500">Tổng số ca</p>
-              </div>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-text-900">
+                {casesGeo.reduce((sum, c) => sum + c.cases_count, 0)}
+              </p>
+              <p className="text-sm text-text-500">Tổng số ca</p>
+            </div>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-danger">
-                  {outbreaks.filter(o => o.severity === 'high').length}
-                </p>
-                <p className="text-sm text-text-500">Ổ dịch nghiêm trọng</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-danger">
+                {outbreaks.filter(o => o.severity === 'high').length}
+              </p>
+              <p className="text-sm text-text-500">Ổ dịch nghiêm trọng</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

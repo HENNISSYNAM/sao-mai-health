@@ -29,7 +29,6 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import { AuthProvider } from "./components/AuthProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { Layout } from "./components/Layout";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,32 +58,30 @@ const App = () => (
                   <div className="min-h-screen flex w-full">
                     <AppSidebar />
                     <div className="flex-1 flex flex-col">
-                      <div className="header-ly bg-ly-animate">
-                        <TopNavbar />
-                      </div>
-                      <div className="flex-1">
+                      <TopNavbar />
+                      <main className="flex-1 p-6 bg-background">
                         <Routes>
-                          <Route path="/" element={<Layout area="dashboard"><Dashboard /></Layout>} />
-                          <Route path="/surveillance" element={<Layout area="surveillance"><Surveillance /></Layout>} />
-                          <Route path="/case-intake" element={<Layout area="surveillance"><CaseIntake /></Layout>} />
-                          <Route path="/lab-import" element={<Layout area="data-quality"><LabImport /></Layout>} />
-                          <Route path="/alerts" element={<Layout area="alerts"><Alerts /></Layout>} />
-                          <Route path="/map" element={<Layout area="map"><MapView /></Layout>} />
-                          <Route path="/patients" element={<Layout area="patients"><Patients /></Layout>} />
-                          <Route path="/encounters" element={<Layout area="encounters"><Encounters /></Layout>} />
-                          <Route path="/appointments" element={<Layout area="appointments"><Appointments /></Layout>} />
-                          <Route path="/campaigns" element={<Layout area="campaigns"><Campaigns /></Layout>} />
-                          <Route path="/beds" element={<Layout area="facilities"><Beds /></Layout>} />
-                          <Route path="/facilities" element={<Layout area="facilities"><Facilities /></Layout>} />
-                          <Route path="/stocks" element={<Layout area="inventory"><Inventory /></Layout>} />
-                          <Route path="/inventory" element={<Layout area="inventory"><Inventory /></Layout>} />
-                          <Route path="/data" element={<Layout area="data-quality"><DataIngestion /></Layout>} />
-                          <Route path="/data-quality" element={<Layout area="data-quality"><DataQuality /></Layout>} />
-                          <Route path="/security" element={<Layout area="security"><Security /></Layout>} />
-                          <Route path="*" element={<Layout area="app"><NotFound /></Layout>} />
+                          <Route path="/" element={<Dashboard />} />
+                          <Route path="/surveillance" element={<Surveillance />} />
+                          <Route path="/case-intake" element={<CaseIntake />} />
+                          <Route path="/lab-import" element={<LabImport />} />
+                          <Route path="/alerts" element={<Alerts />} />
+                          <Route path="/map" element={<MapView />} />
+                          <Route path="/patients" element={<Patients />} />
+                          <Route path="/encounters" element={<Encounters />} />
+                          <Route path="/appointments" element={<Appointments />} />
+                          <Route path="/campaigns" element={<Campaigns />} />
+                          <Route path="/beds" element={<Beds />} />
+                          <Route path="/facilities" element={<Facilities />} />
+                          <Route path="/stocks" element={<Inventory />} />
+                          <Route path="/inventory" element={<Inventory />} />
+                          <Route path="/data" element={<DataIngestion />} />
+                          <Route path="/data-quality" element={<DataQuality />} />
+                          <Route path="/security" element={<Security />} />
+                          <Route path="*" element={<NotFound />} />
                         </Routes>
                         <EnhancedCommandPalette />
-                      </div>
+                      </main>
                     </div>
                   </div>
                 </SidebarProvider>

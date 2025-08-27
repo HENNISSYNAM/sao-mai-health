@@ -92,10 +92,9 @@ export default function Surveillance() {
   }
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Giám sát bệnh truyền nhiễm</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Giám sát bệnh truyền nhiễm</h1>
         <p className="text-muted-foreground">Danh sách ca bệnh và theo dõi tiếp xúc</p>
       </div>
 
@@ -186,7 +185,6 @@ export default function Surveillance() {
           </Table>
         </CardContent>
       </Card>
-      </div>
     </div>
   )
 }

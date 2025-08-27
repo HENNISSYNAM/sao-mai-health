@@ -62,10 +62,9 @@ export default function Patients() {
   };
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-text-900">Quản lý bệnh nhân</h1>
           <p className="text-text-500 mt-1">
@@ -311,7 +310,6 @@ export default function Patients() {
           </div>
         </CardContent>
       </Card>
-      </div>
     </div>
   );
 }

@@ -59,15 +59,14 @@ const Facilities = () => {
   };
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Cơ sở y tế</h1>
-            <p className="text-muted-foreground">
-              Quản lý thông tin các cơ sở y tế trong hệ thống
-            </p>
-          </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Cơ sở y tế</h1>
+          <p className="text-muted-foreground">
+            Quản lý thông tin các cơ sở y tế trong hệ thống
+          </p>
+        </div>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
           Thêm cơ sở
@@ -110,7 +109,6 @@ const Facilities = () => {
             </CardContent>
           </Card>
         ))}
-      </div>
       </div>
     </div>
   );

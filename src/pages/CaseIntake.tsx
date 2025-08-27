@@ -153,10 +153,9 @@ export default function CaseIntake() {
   const selectedDisease = diseaseOptions.find(d => d.value === form.watch('disease'))
 
   return (
-    <div className="p-6 min-h-screen">
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
           <h1 className="text-3xl font-bold text-foreground">Nhập ca bệnh mới</h1>
           <p className="text-muted-foreground">
             Mục tiêu: hoàn thành trong 30 giây
@@ -445,7 +444,6 @@ export default function CaseIntake() {
           </Form>
         </CardContent>
       </Card>
-      </div>
     </div>
   )
 }

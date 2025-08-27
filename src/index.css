@@ -67,25 +67,6 @@
     --sidebar-accent-foreground: 214 31% 23%;
     --sidebar-border: 214 32% 91%;
     --sidebar-ring: 172 88% 27%;
-
-    /* Love Yourself Pastel Palette - BG Only */
-    --ly-pink: #F6C6D0;      /* Pastel Pink */
-    --ly-lav: #D7BDE2;       /* Baby Lavender */
-    --ly-lilac: #B39DDB;     /* Dreamy Lilac */
-    --ly-sky: #AEDFF7;       /* Sky Mist Blue */
-    --ly-peach: #FFD6A5;     /* Soft Peach */
-    --ly-coral: #FF9E9E;     /* Sunset Coral */
-    --ly-white: #FFFFFF;
-    --ly-smoke: #EBEDEE;
-
-    /* Love Yourself Gradients */
-    --ly-grad-primary: linear-gradient(135deg, var(--ly-pink) 0%, var(--ly-lav) 35%, var(--ly-sky) 100%);
-    --ly-grad-accent: linear-gradient(135deg, var(--ly-peach) 0%, var(--ly-coral) 50%, var(--ly-lilac) 100%);
-    --ly-grad-soft: linear-gradient(120deg, #FDFBFB 0%, var(--ly-smoke) 100%);
-
-    /* Glass card background */
-    --ly-glass: rgba(255,255,255,0.35);
-    --ly-glass-blur: 12px;
   }
 
   .dark {
@@ -199,7 +180,7 @@
     outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
   }
-
+  
   /* Input & Button Focus */
   input:focus-visible,
   button:focus-visible,
@@ -207,59 +188,5 @@
   textarea:focus-visible {
     outline: 2px solid hsl(var(--primary));
     outline-offset: 2px;
-  }
-
-  /* Love Yourself Background Classes - BG Only */
-  .bg-ly-soft { background: var(--ly-grad-soft); }
-  .bg-ly-main { background: var(--ly-grad-primary); }
-  .bg-ly-accent { background: var(--ly-grad-accent); }
-  .bg-ly-glass { 
-    background: var(--ly-glass); 
-    backdrop-filter: blur(var(--ly-glass-blur)); 
-  }
-
-  /* Area-specific backgrounds */
-  main[data-area="app"] { background: var(--ly-grad-soft); }
-  main[data-area="dashboard"] { background: var(--ly-grad-primary); }
-  main[data-area="surveillance"] { background: var(--ly-grad-soft); }
-  main[data-area="alerts"] { background: var(--ly-grad-soft); }
-  main[data-area="alerts"]::before {
-    content: "";
-    position: fixed;
-    inset: auto 0 0 0;
-    height: 180px;
-    background: var(--ly-grad-accent);
-    opacity: 0.18;
-    pointer-events: none;
-  }
-  main[data-area="map"] { background: var(--ly-grad-primary); }
-  main[data-area="map"] .map-card { 
-    background: var(--ly-glass); 
-    backdrop-filter: blur(var(--ly-glass-blur)); 
-  }
-  main[data-area="patients"],
-  main[data-area="encounters"],
-  main[data-area="appointments"],
-  main[data-area="campaigns"] { background: var(--ly-grad-soft); }
-  main[data-area="facilities"],
-  main[data-area="inventory"] { background: var(--ly-grad-primary); }
-  main[data-area="data-quality"],
-  main[data-area="security"] { background: var(--ly-grad-soft); }
-
-  /* Sidebar and Header backgrounds */
-  .sidebar { background: var(--ly-grad-soft) !important; }
-  .header-ly { background: var(--ly-grad-soft); }
-
-  /* Animate gradient on header */
-  @media (prefers-reduced-motion: no-preference) {
-    .bg-ly-animate {
-      background-size: 200% 200%;
-      animation: lyShift 18s ease-in-out infinite;
-    }
-    @keyframes lyShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
   }
 }
