@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Layers, ZoomIn, ZoomOut } from "lucide-react";
+import { MapPin, Layers, ZoomIn, ZoomOut, Lock, CreditCard, Loader2 } from "lucide-react";
 import { useRealtimeHealth } from "@/hooks/useRealtimeHealth";
+import { useSubscription } from "@/hooks/useSubscription";
 
 // Dynamic import for map components (client-side only)
 const MapContainer = ({ children, center, zoom, className }: any) => {
@@ -49,10 +50,85 @@ export default function MapView() {
   const [selectedLayer, setSelectedLayer] = useState<'cases' | 'outbreaks' | 'heatmap'>('cases');
   const [selectedCase, setSelectedCase] = useState<CaseGeo | null>(null);
   
+  // Subscription check
+  const { hasAccess, loading: subscriptionLoading, unlockPlan, unlocking } = useSubscription();
+  
   const { data: casesGeo, isConnected } = useRealtimeHealth<CaseGeo>({
     table: 'cases',
     event: '*'
   });
+
+  // If still loading subscription status, show loading
+  if (subscriptionLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  // If user doesn't have access, show upgrade prompt
+  if (!hasAccess(['pro', 'enterprise'])) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4 p-4 rounded-full bg-muted w-fit">
+              <Lock className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-2xl">Chức năng Bản đồ chưa được mở khóa</CardTitle>
+            <p className="text-muted-foreground">
+              Vui lòng đăng ký gói dịch vụ để sử dụng Bản đồ thời gian thực.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Payment QR Code */}
+            <div className="text-center">
+              <h3 className="font-semibold mb-4">Thông tin thanh toán</h3>
+              <div className="bg-muted p-4 rounded-lg mb-4">
+                <img 
+                  src="https://img.vietqr.io/image/970405-2800205302805-compact2.png?amount=299000&addInfo=Unlock%20HCMC%20Health%20Map"
+                  alt="VietQR Payment"
+                  className="mx-auto mb-4 max-w-64 h-auto"
+                />
+                <div className="text-sm space-y-1">
+                  <p><strong>Số tài khoản:</strong> 2800205302805</p>
+                  <p><strong>Chủ tài khoản:</strong> ĐINH VĂN NAM</p>
+                  <p><strong>Ngân hàng:</strong> Agribank – Chi nhánh Tỉnh Vĩnh Phúc</p>
+                  <p><strong>Số tiền:</strong> 299,000 VNĐ</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment confirmation button */}
+            <Button 
+              onClick={() => unlockPlan('pro')}
+              disabled={unlocking}
+              className="w-full"
+              size="lg"
+            >
+              {unlocking ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Tôi đã thanh toán
+                </>
+              )}
+            </Button>
+
+            <div className="text-center text-sm text-muted-foreground">
+              <p>Sau khi thanh toán, nhấn nút trên để kích hoạt gói dịch vụ.</p>
+              <p>Gói Pro có hiệu lực trong 30 ngày.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Mock outbreaks data (would come from real API)
   const outbreaks: Outbreak[] = [

@@ -1336,6 +1336,36 @@ export type Database = {
           },
         ]
       }
+      user_plans: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          plan: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          plan?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          plan?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           budget_kg: number
@@ -1792,6 +1822,10 @@ export type Database = {
       fn_schedule_campaign: {
         Args: { campaign_data: Json }
         Returns: Json
+      }
+      fn_unlock_plan: {
+        Args: { plan_name: string; uid: string }
+        Returns: undefined
       }
       generate_order_code: {
         Args: Record<PropertyKey, never>
