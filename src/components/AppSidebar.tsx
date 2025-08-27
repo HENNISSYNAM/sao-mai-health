@@ -11,7 +11,19 @@ import {
   Users, 
   Warehouse,
   AlertTriangle,
-  Map
+  Map,
+  Microscope,
+  TrendingUp,
+  Bell,
+  MapPin,
+  UserCheck,
+  ClipboardList,
+  CalendarCheck,
+  Target,
+  Hospital,
+  Package,
+  FileCheck,
+  Lock
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 
@@ -32,33 +44,33 @@ const menuItems = [
   {
     title: "Điều hành",
     items: [
-      { title: "Tổng quan", url: "/", icon: BarChart3 },
-      { title: "Giám sát bệnh", url: "/surveillance", icon: Activity },
-      { title: "Cảnh báo", url: "/alerts", icon: AlertTriangle },
-      { title: "Bản đồ", url: "/maps", icon: Map },
+      { title: "Tổng quan", url: "/", icon: TrendingUp },
+      { title: "Giám sát bệnh", url: "/surveillance", icon: Microscope },
+      { title: "Cảnh báo", url: "/alerts", icon: Bell },
+      { title: "Bản đồ", url: "/maps", icon: MapPin },
     ]
   },
   {
     title: "Quản lý",
     items: [
-      { title: "Bệnh nhân", url: "/patients", icon: Users },
-      { title: "Khám bệnh", url: "/encounters", icon: Stethoscope },
-      { title: "Lịch hẹn", url: "/appointments", icon: Calendar },
-      { title: "Chiến dịch", url: "/campaigns", icon: Heart },
+      { title: "Bệnh nhân", url: "/patients", icon: UserCheck },
+      { title: "Khám bệnh", url: "/encounters", icon: ClipboardList },
+      { title: "Lịch hẹn", url: "/appointments", icon: CalendarCheck },
+      { title: "Chiến dịch", url: "/campaigns", icon: Target },
     ]
   },
   {
     title: "Cơ sở vật chất",
     items: [
-      { title: "Cơ sở y tế", url: "/facilities", icon: Building2 },
-      { title: "Kho tồn", url: "/stocks", icon: Warehouse },
+      { title: "Cơ sở y tế", url: "/facilities", icon: Hospital },
+      { title: "Kho tồn", url: "/stocks", icon: Package },
     ]
   },
   {
     title: "Dữ liệu",
     items: [
-      { title: "Chất lượng dữ liệu", url: "/data-quality", icon: Database },
-      { title: "Bảo mật", url: "/security", icon: Shield },
+      { title: "Chất lượng dữ liệu", url: "/data-quality", icon: FileCheck },
+      { title: "Bảo mật", url: "/security", icon: Lock },
     ]
   }
 ]
