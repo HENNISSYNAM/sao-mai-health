@@ -13,7 +13,6 @@ import {
   CheckCircle,
   X,
   AlertCircle,
-  Bell,
   LogOut,
   Settings,
   User
@@ -31,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthContext } from "@/components/AuthProvider";
+import { AlertsBell } from "@/components/AlertsBell";
 import {
   CommandDialog,
   CommandEmpty,
@@ -283,16 +283,8 @@ export function TopNavbar() {
             {/* Connection Status */}
             <ConnectionStatus />
 
-            {/* Notifications */}
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-              >
-                3
-              </Badge>
-            </Button>
+            {/* Real-time Alerts Bell */}
+            <AlertsBell />
 
             {/* User Menu */}
             <DropdownMenu>
