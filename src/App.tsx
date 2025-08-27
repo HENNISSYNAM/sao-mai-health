@@ -23,6 +23,8 @@ import Beds from "./pages/Beds";
 import Inventory from "./pages/Inventory";
 import DataIngestion from "./pages/DataIngestion";
 import DataQuality from "./pages/DataQuality";
+import Facilities from "./pages/Facilities";
+import Security from "./pages/Security";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,11 +59,11 @@ const App = () => (
                   <Route path="/appointments" element={<Appointments />} />
                   <Route path="/campaigns" element={<Campaigns />} />
                   <Route path="/beds" element={<Beds />} />
-                  <Route path="/facilities" element={<div>Cơ sở y tế</div>} />
+                  <Route path="/facilities" element={<Facilities />} />
                   <Route path="/inventory" element={<Inventory />} />
                   <Route path="/data" element={<DataIngestion />} />
                   <Route path="/data-quality" element={<DataQuality />} />
-                  <Route path="/security" element={<div>Bảo mật</div>} />
+                  <Route path="/security" element={<Security />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 <EnhancedCommandPalette />
