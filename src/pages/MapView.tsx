@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,31 +8,21 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Map, MapPin, Activity, Clock } from 'lucide-react';
-import { useHealthRealtime } from '@/contexts/HealthRealtimeContext';
 import * as h3 from 'h3-js';
 
 // MapLibre GL imports (conditional)
 let maplibregl: any = null;
 const loadMapLibre = async () => {
   if (!maplibregl) {
-    const module: any = await import('maplibre-gl');
+    const module = await import('maplibre-gl');
     await import('maplibre-gl/dist/maplibre-gl.css');
-    maplibregl = module?.default || module;
+    maplibregl = module.default;
   }
   return maplibregl;
 };
 
-interface Prediction {
-  id: string;
-  h3?: string;
-  predicted: number;
-  label: string;
-  lat: number;
-  lon: number;
-  created_at: string;
-  model_version?: string;
-}
 
 interface FormData {
   lat: string;
@@ -110,16 +100,17 @@ const getDistrictName = (lat: number, lon: number): string => {
 };
 
 export default function MapView() {
-  const { predictions, latestByCell, isConnected, loading, lastTick } = useHealthRealtime()
-  
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [formData, setFormData] = useState<FormData>({
-    lat: '10.7756', // More central HCMC coordinates  
-    lon: '106.7009',
+  lat: '10.7756', // More central HCMC coordinates
+  lon: '106.7009',
     owner_id: '',
     features: '{}'
-  })
-  const [showMap, setShowMap] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
+  });
+  const [showMap, setShowMap] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
@@ -186,15 +177,7 @@ export default function MapView() {
         });
 
         mapSource.current = map.current.getSource('predictions');
-        updateMapData(Array.from(latestByCell.values()));
-      });
-
-      map.current.on('error', (e: any) => {
-        console.error('Map error:', e);
-        toast({
-          title: 'Bản đồ không khả dụng',
-          description: 'Không tải được style hoặc nguồn dữ liệu bản đồ',
-        });
+        updateMapData(Array.from(latestByCell.values()))
       });
     } catch (error) {
       console.error('Map initialization failed:', error);
@@ -206,7 +189,7 @@ export default function MapView() {
     }
   };
 
-  const updateMapData = (data: Prediction[]) => {
+  const updateMapData = (data: any[]) => {
     if (!mapSource.current) return;
 
     const features = data.map(pred => ({
@@ -219,6 +202,7 @@ export default function MapView() {
         predicted: pred.predicted,
         label: pred.label,
         h3: pred.h3,
+        district: pred.district
       }
     }));
 
@@ -254,10 +238,39 @@ export default function MapView() {
       const h3Cell = h3.latLngToCell(lat, lon, 8);
       const district = getDistrictName(lat, lon);
       
+      // Prepare event
+      const event = {
+        lat,
+        lon,
+        observed_at: new Date().toISOString(),
+        features: {
+          ...features,
+          hashed_owner_id
+        }
+      };
+
+      // Mock prediction (since no backend specified)
+      const mockPredicted = Math.floor(Math.random() * 45) + 55; // 55-99
+      const mockPrediction: Prediction = {
+        h3: h3Cell,
+        predicted: mockPredicted,
+        label: getLabelForPrediction(mockPredicted),
+        lat,
+        lon,
+        district,
+        created_at: new Date().toISOString(),
+        model_version: 'hcmc-mock'
+      };
+
       // Mock prediction will be handled by the global context
       toast({
         title: "Dự đoán demo",
-        description: `${district} | H3: ${h3Cell.slice(0, 6)}... | Predicted: Mock`,
+        description: "Trong môi trường thực, dữ liệu sẽ được gửi qua API",
+      })
+
+      toast({
+        title: "Đã gửi dự đoán",
+        description: `${district} | H3: ${h3Cell.slice(0, 6)}... | Predicted: ${mockPredicted}`,
       });
 
       // Reset form
@@ -386,7 +399,7 @@ export default function MapView() {
                   <div className="space-y-3">
                     {topHotspots.map((hotspot, index) => (
                       <div
-                        key={hotspot.h3 || hotspot.id}
+                        key={hotspot.h3}
                         className="flex items-center justify-between p-3 rounded-lg border bg-card"
                       >
                         <div className="flex items-center gap-3">
@@ -402,59 +415,104 @@ export default function MapView() {
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold" style={{ color: getColorForPrediction(hotspot.predicted) }}>
-                            {hotspot.predicted}
-                          </div>
-                          <div className="text-xs uppercase tracking-wide font-medium text-muted-foreground">
-                            {hotspot.label}
+                        
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <div className="font-bold text-lg">
+                              {hotspot.predicted.toFixed(1)}
+                            </div>
+                            <Badge
+                              variant="outline"
+                              style={{
+                                borderColor: getColorForPrediction(hotspot.predicted),
+                                color: getColorForPrediction(hotspot.predicted)
+                              }}
+                            >
+                              {hotspot.label}
+                            </Badge>
                           </div>
                         </div>
                       </div>
                     ))}
+                    
+                    {topHotspots.length === 0 && (
+                      <div className="text-center text-muted-foreground py-8">
+                        Chưa có dữ liệu hotspots
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column: Map */}
+          {/* Right Column: Map Panel */}
           <div className="space-y-6">
-            {/* Map Toggle */}
             <Card className="rounded-2xl shadow-lg">
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
                     <Map className="h-5 w-5" />
-                    Bản đồ dự đoán
+                    Map Panel
+                  </CardTitle>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="show-map"
+                      checked={showMap}
+                      onCheckedChange={setShowMap}
+                    />
+                    <Label htmlFor="show-map">Hiển thị bản đồ</Label>
                   </div>
-                  <Switch
-                    checked={showMap}
-                    onCheckedChange={setShowMap}
-                  />
-                </CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
                 {showMap ? (
-                  <div 
-                    ref={mapContainer} 
-                    className="w-full h-96 rounded-lg border bg-muted"
+                  <div
+                    ref={mapContainer}
+                    className="w-full h-96 rounded-lg overflow-hidden"
                   />
                 ) : (
-                  <div className="w-full h-96 rounded-lg border bg-muted flex items-center justify-center">
-                    <div className="text-center">
-                      <Map className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="text-muted-foreground">
-                        Bật công tắc để hiển thị bản đồ
-                      </p>
+                  <div className="w-full h-96 rounded-lg border-2 border-dashed border-muted flex items-center justify-center">
+                    <div className="text-center text-muted-foreground">
+                      <Map className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Bật bản đồ để xem TP.HCM trực quan</p>
+                      <p className="text-sm">24 quận/huyện • Real-time predictions</p>
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Stats Card */}
+            <Card className="rounded-2xl shadow-lg">
+              <CardHeader>
+                <CardTitle>Thống Kê</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">
+                      {predictions.length}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Tổng dự đoán
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">
+                      {new Set(predictions.map(p => p.h3)).size}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      H3 cells
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }
