@@ -3,29 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { AlertTriangle, Clock, CheckCircle, X } from "lucide-react"
-import { supabase } from "@/integrations/supabase/client"
-import { useRealtimeAlerts } from "@/hooks/useRealtimeHealth"
+import { AlertTriangle, Clock, CheckCircle, X, Plus } from "lucide-react"
+import { useHealthRealtime } from "@/contexts/HealthRealtimeContext"
 import { useToast } from "@/hooks/use-toast"
 
-interface Alert {
-  id: string
+interface AlertCandidate {
   disease_code: string
   day: string
   cases: number
-  status: string
-  rule?: string
-  district_id?: string
-  ward_id?: string
-  created_at: string
-  closed_at?: string
-}
-
-interface AlertCandidate {
-  disease_code?: string
-  day?: string
-  cases?: number
-  rule?: string
+  rule: string
   district_id?: string
   ward_id?: string
   avg7?: number
@@ -34,89 +20,19 @@ interface AlertCandidate {
 }
 
 export default function AlertsNew() {
-  const [alerts, setAlerts] = useState<Alert[]>([])
   const [candidates, setCandidates] = useState<AlertCandidate[]>([])
-  const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  
+  const { alerts, isConnected, loading, lastTick, closeAlert, createAlertFromCandidate, refreshCandidates } = useHealthRealtime()
 
-  // Realtime subscription
-  const { isConnected, nowTs } = useRealtimeAlerts((payload) => {
-    fetchAlerts()
-  })
-
-  const fetchAlerts = async () => {
+  const handleCloseAlert = async (alertId: string) => {
     try {
-      // Use mock data since alerts table structure doesn't match
-      const mockAlerts: Alert[] = [
-        {
-          id: 'mock-1',
-          disease_code: 'dengue',
-          day: new Date().toISOString().split('T')[0],
-          cases: 25,
-          status: 'open',
-          created_at: new Date().toISOString(),
-          rule: 'Vượt ngưỡng hàng ngày'
-        },
-        {
-          id: 'mock-2',
-          disease_code: 'covid19',
-          day: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          cases: 12,
-          status: 'closed',
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          closed_at: new Date().toISOString()
-        }
-      ]
-      setAlerts(mockAlerts)
-    } catch (error) {
-      console.error('Error fetching alerts:', error)
-    }
-  }
-
-  const fetchCandidates = async () => {
-    try {
-      // Use mock data since alert_candidates table doesn't exist
-      const mockCandidates: AlertCandidate[] = [
-        {
-          disease_code: 'dengue',
-          day: new Date().toISOString().split('T')[0],
-          cases: 45,
-          rule: 'Vượt ngưỡng hàng ngày',
-          district_id: 'quan_1',
-          avg7: 35.2,
-          threshold_daily: 40
-        },
-        {
-          disease_code: 'ari',
-          day: new Date().toISOString().split('T')[0],
-          cases: 32,
-          rule: 'Tăng trưởng nhanh',
-          district_id: 'quan_3',
-          avg7: 22.5,
-          threshold_growth: 2.0
-        }
-      ]
-      setCandidates(mockCandidates)
-    } catch (error) {
-      console.error('Error fetching alert candidates:', error)
-    }
-  }
-
-  const closeAlert = async (alertId: string) => {
-    try {
-      // Mock success for demo - update local state
-      setAlerts(prev => prev.map(alert => 
-        alert.id === alertId 
-          ? { ...alert, status: 'closed', closed_at: new Date().toISOString() }
-          : alert
-      ))
-      
+      await closeAlert(alertId)
       toast({
         title: "Đã đóng cảnh báo",
-        description: "Cảnh báo đã được đóng (demo mode)",
+        description: "Cảnh báo đã được đóng thành công",
       })
     } catch (error) {
-      console.error('Error closing alert:', error)
       toast({
         title: "Lỗi",
         description: "Không thể đóng cảnh báo",
@@ -125,16 +41,36 @@ export default function AlertsNew() {
     }
   }
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      await Promise.all([fetchAlerts(), fetchCandidates()])
-      setLoading(false)
+  const handleCreateAlert = async (candidate: AlertCandidate) => {
+    try {
+      await createAlertFromCandidate(candidate)
+      toast({
+        title: "Đã tạo cảnh báo",
+        description: `Tạo cảnh báo cho ${candidate.disease_code} - ${candidate.cases} ca`,
+      })
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể tạo cảnh báo",
+        variant: "destructive"
+      })
     }
-    loadData()
+  }
 
+  useEffect(() => {
+    const loadCandidates = async () => {
+      try {
+        const data = await refreshCandidates()
+        setCandidates(data)
+      } catch (error) {
+        console.error('Error loading candidates:', error)
+      }
+    }
+    
+    loadCandidates()
+    
     // Refresh candidates every 30s
-    const interval = setInterval(fetchCandidates, 30000)
+    const interval = setInterval(loadCandidates, 30000)
     return () => clearInterval(interval)
   }, [])
 
@@ -168,7 +104,7 @@ export default function AlertsNew() {
             {isConnected ? "Live" : "Offline"}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            {nowTs.toLocaleTimeString('vi-VN')}
+            {lastTick}
           </span>
         </div>
       </div>
@@ -216,7 +152,7 @@ export default function AlertsNew() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => closeAlert(alert.id)}
+                      onClick={() => handleCloseAlert(alert.id)}
                       className="ml-2"
                     >
                       <X className="h-4 w-4" />
@@ -246,15 +182,26 @@ export default function AlertsNew() {
               ) : (
                 candidates.map((candidate, index) => (
                   <div key={index} className="p-3 rounded-lg bg-warning/10 border border-warning/20">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className="text-xs">
-                        {candidate.disease_code}
-                      </Badge>
-                      {candidate.district_id && (
-                        <Badge variant="secondary" className="text-xs">
-                          {candidate.district_id}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">
+                          {candidate.disease_code}
                         </Badge>
-                      )}
+                        {candidate.district_id && (
+                          <Badge variant="secondary" className="text-xs">
+                            {candidate.district_id}
+                          </Badge>
+                        )}
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleCreateAlert(candidate)}
+                        className="h-6 text-xs"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Tạo alert
+                      </Button>
                     </div>
                     <p className="text-sm font-medium">
                       {candidate.cases} ca vào {candidate.day}
