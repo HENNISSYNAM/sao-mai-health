@@ -2933,6 +2933,27 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
+      intake_case_fast: {
+        Args: {
+          p_address_hash: string
+          p_birth_year: number
+          p_disease_code: string
+          p_district_id: string
+          p_facility_id: string
+          p_full_name: string
+          p_gender: string
+          p_lat: number
+          p_lng: number
+          p_mpi_hash: string
+          p_onset_date: string
+          p_phone_hash: string
+          p_report_date: string
+          p_status: string
+          p_symptoms: Json
+          p_ward_id: string
+        }
+        Returns: Json
+      }
       is_admin: {
         Args: { user_id: string }
         Returns: boolean
