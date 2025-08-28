@@ -37,6 +37,56 @@ export type Database = {
           },
         ]
       }
+      alerts: {
+        Row: {
+          avg7: number | null
+          cases: number
+          closed_at: string | null
+          created_at: string
+          day: string
+          disease_code: string
+          district_id: string | null
+          id: string
+          rule: string | null
+          status: string
+          ward_id: string | null
+        }
+        Insert: {
+          avg7?: number | null
+          cases: number
+          closed_at?: string | null
+          created_at?: string
+          day: string
+          disease_code: string
+          district_id?: string | null
+          id?: string
+          rule?: string | null
+          status?: string
+          ward_id?: string | null
+        }
+        Update: {
+          avg7?: number | null
+          cases?: number
+          closed_at?: string | null
+          created_at?: string
+          day?: string
+          disease_code?: string
+          district_id?: string | null
+          id?: string
+          rule?: string | null
+          status?: string
+          ward_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alerts_disease_code_fkey"
+            columns: ["disease_code"]
+            isOneToOne: false
+            referencedRelation: "ref_diseases"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           appointment_date: string
@@ -403,6 +453,96 @@ export type Database = {
           status?: string
           target_participants?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      case_events: {
+        Row: {
+          disease_code: string
+          district_id: string | null
+          facility_id: string | null
+          geom: unknown | null
+          id: string
+          lat: number | null
+          lon: number | null
+          occurred_at: string
+          patient_age_bucket: string | null
+          patient_gender: string | null
+          patient_hash: string | null
+          source: string | null
+          symptoms: Json | null
+          ward_id: string | null
+        }
+        Insert: {
+          disease_code: string
+          district_id?: string | null
+          facility_id?: string | null
+          geom?: unknown | null
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          occurred_at?: string
+          patient_age_bucket?: string | null
+          patient_gender?: string | null
+          patient_hash?: string | null
+          source?: string | null
+          symptoms?: Json | null
+          ward_id?: string | null
+        }
+        Update: {
+          disease_code?: string
+          district_id?: string | null
+          facility_id?: string | null
+          geom?: unknown | null
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          occurred_at?: string
+          patient_age_bucket?: string | null
+          patient_gender?: string | null
+          patient_hash?: string | null
+          source?: string | null
+          symptoms?: Json | null
+          ward_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_events_disease_code_fkey"
+            columns: ["disease_code"]
+            isOneToOne: false
+            referencedRelation: "ref_diseases"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "case_events_facility_id_fkey"
+            columns: ["facility_id"]
+            isOneToOne: false
+            referencedRelation: "health_facilities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_counts: {
+        Row: {
+          cases: number
+          day: string
+          disease_code: string
+          district_id: string
+          ward_id: string
+        }
+        Insert: {
+          cases?: number
+          day: string
+          disease_code: string
+          district_id?: string
+          ward_id?: string
+        }
+        Update: {
+          cases?: number
+          day?: string
+          disease_code?: string
+          district_id?: string
+          ward_id?: string
         }
         Relationships: []
       }
@@ -797,6 +937,60 @@ export type Database = {
         }
         Relationships: []
       }
+      health_facilities: {
+        Row: {
+          address: string | null
+          code: string | null
+          district_id: string | null
+          geom: unknown | null
+          id: string
+          lat: number | null
+          lon: number | null
+          name: string
+          type: string | null
+          ward_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          code?: string | null
+          district_id?: string | null
+          geom?: unknown | null
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          name: string
+          type?: string | null
+          ward_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          code?: string | null
+          district_id?: string | null
+          geom?: unknown | null
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          name?: string
+          type?: string | null
+          ward_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_facilities_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "ref_districts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "health_facilities_ward_id_fkey"
+            columns: ["ward_id"]
+            isOneToOne: false
+            referencedRelation: "ref_wards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       his_integrations: {
         Row: {
           api_key_encrypted: string | null
@@ -1075,6 +1269,33 @@ export type Database = {
         }
         Relationships: []
       }
+      observations: {
+        Row: {
+          geom: unknown | null
+          id: string
+          lat: number
+          lon: number
+          observed_at: string
+          props: Json
+        }
+        Insert: {
+          geom?: unknown | null
+          id?: string
+          lat: number
+          lon: number
+          observed_at?: string
+          props?: Json
+        }
+        Update: {
+          geom?: unknown | null
+          id?: string
+          lat?: number
+          lon?: number
+          observed_at?: string
+          props?: Json
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           address: string | null
@@ -1237,6 +1458,56 @@ export type Database = {
         }
         Relationships: []
       }
+      predictions: {
+        Row: {
+          created_at: string
+          district_id: string | null
+          h3: string | null
+          id: string
+          label: string | null
+          lat: number
+          lon: number
+          model_version: string
+          obs_id: string | null
+          predicted: number
+          ward_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          district_id?: string | null
+          h3?: string | null
+          id?: string
+          label?: string | null
+          lat: number
+          lon: number
+          model_version: string
+          obs_id?: string | null
+          predicted: number
+          ward_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          district_id?: string | null
+          h3?: string | null
+          id?: string
+          label?: string | null
+          lat?: number
+          lon?: number
+          model_version?: string
+          obs_id?: string | null
+          predicted?: number
+          ward_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_obs_id_fkey"
+            columns: ["obs_id"]
+            isOneToOne: false
+            referencedRelation: "observations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -1333,6 +1604,74 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ref_diseases: {
+        Row: {
+          code: string
+          name: string
+          threshold_daily: number | null
+          threshold_growth: number | null
+        }
+        Insert: {
+          code: string
+          name: string
+          threshold_daily?: number | null
+          threshold_growth?: number | null
+        }
+        Update: {
+          code?: string
+          name?: string
+          threshold_daily?: number | null
+          threshold_growth?: number | null
+        }
+        Relationships: []
+      }
+      ref_districts: {
+        Row: {
+          geom: unknown
+          id: string
+          name: string
+        }
+        Insert: {
+          geom: unknown
+          id: string
+          name: string
+        }
+        Update: {
+          geom?: unknown
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      ref_wards: {
+        Row: {
+          district_id: string
+          geom: unknown
+          id: string
+          name: string
+        }
+        Insert: {
+          district_id: string
+          geom: unknown
+          id: string
+          name: string
+        }
+        Update: {
+          district_id?: string
+          geom?: unknown
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ref_wards_district_id_fkey"
+            columns: ["district_id"]
+            isOneToOne: false
+            referencedRelation: "ref_districts"
             referencedColumns: ["id"]
           },
         ]
@@ -1890,39 +2229,6 @@ export type Database = {
           },
         ]
       }
-      zone_metric_daily: {
-        Row: {
-          band: string | null
-          data_quality: Json | null
-          date: string
-          metric: string
-          updated_at: string | null
-          value: number
-          value_smooth: number | null
-          zone_id: string
-        }
-        Insert: {
-          band?: string | null
-          data_quality?: Json | null
-          date: string
-          metric: string
-          updated_at?: string | null
-          value: number
-          value_smooth?: number | null
-          zone_id: string
-        }
-        Update: {
-          band?: string | null
-          data_quality?: Json | null
-          date?: string
-          metric?: string
-          updated_at?: string | null
-          value?: number
-          value_smooth?: number | null
-          zone_id?: string
-        }
-        Relationships: []
-      }
       zone_signal_intraday: {
         Row: {
           cases: number | null
@@ -1949,6 +2255,28 @@ export type Database = {
       }
     }
     Views: {
+      alert_candidates: {
+        Row: {
+          avg7: number | null
+          cases: number | null
+          day: string | null
+          disease_code: string | null
+          district_id: string | null
+          rule: string | null
+          threshold_daily: number | null
+          threshold_growth: number | null
+          ward_id: string | null
+        }
+        Relationships: []
+      }
+      dashboard_kpis: {
+        Row: {
+          diseases_7d: number | null
+          open_alerts: number | null
+          today_cases: number | null
+        }
+        Relationships: []
+      }
       geography_columns: {
         Row: {
           coord_dimension: number | null
@@ -1991,6 +2319,20 @@ export type Database = {
         }
         Relationships: []
       }
+      predictions_latest_by_cell: {
+        Row: {
+          created_at: string | null
+          district_id: string | null
+          h3_cell: string | null
+          label: string | null
+          lat: number | null
+          lon: number | null
+          model_version: string | null
+          predicted: number | null
+          ward_id: string | null
+        }
+        Relationships: []
+      }
       user_reward_codes: {
         Row: {
           code: string | null
@@ -2006,6 +2348,18 @@ export type Database = {
         Row: {
           confirmed_vnd: number | null
           preorders: number | null
+        }
+        Relationships: []
+      }
+      zone_metric_daily: {
+        Row: {
+          avg7_dist: number | null
+          avg7_ward: number | null
+          cases: number | null
+          d: string | null
+          disease_code: string | null
+          district_id: string | null
+          ward_id: string | null
         }
         Relationships: []
       }
@@ -2266,6 +2620,16 @@ export type Database = {
       find_user_id_by_email: {
         Args: { p_email: string }
         Returns: string
+      }
+      fn_daily_counts_upsert: {
+        Args: {
+          p_day: string
+          p_delta: number
+          p_dis: string
+          p_dist: string
+          p_ward: string
+        }
+        Returns: undefined
       }
       fn_inventory_reserve: {
         Args: { campaign_id: string; item_id: string; qty: number }
