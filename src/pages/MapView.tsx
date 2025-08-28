@@ -145,7 +145,7 @@ export default function MapView() {
       
       map.current = new maplibregl.Map({
         container: mapContainer.current!,
-        style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+        style: 'https://demotiles.maplibre.org/style.json',
         center: [106.7009, 10.7756], // Central HCMC
         zoom: 11.5 // Adjusted for better HCMC coverage
       });
