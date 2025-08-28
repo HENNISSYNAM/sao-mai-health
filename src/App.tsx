@@ -13,11 +13,13 @@ import Surveillance from "./pages/Surveillance";
 import CaseIntake from "./pages/CaseIntake";
 import LabImport from "./pages/LabImport";
 import Alerts from "./pages/Alerts";
+import AlertsNew from "./pages/AlertsNew";
 import NotFound from "./pages/NotFound";
 import { EnhancedCommandPalette } from "./components/EnhancedCommandPalette";
 import HealthStandards from "./pages/HealthStandards";
 import MapView from "./pages/MapView";
 import Patients from "./pages/Patients";
+import PatientsNew from "./pages/PatientsNew";
 import Encounters from "./pages/Encounters";
 import Campaigns from "./pages/Campaigns";
 import Appointments from "./pages/Appointments";
@@ -69,11 +71,13 @@ const App = () => (
                           <Route path="/surveillance" element={<Surveillance />} />
                           <Route path="/case-intake" element={<CaseIntake />} />
                           <Route path="/lab-import" element={<LabImport />} />
-                          <Route path="/alerts" element={<Alerts />} />
+                          <Route path="/alerts" element={<AlertsNew />} />
+                          <Route path="/alerts-old" element={<Alerts />} />
                           <Route path="/health-standards" element={<HealthStandards />} />
                           <Route path="/maps" element={<MapView />} />
                           <Route path="/map" element={<MapView />} />
-                          <Route path="/patients" element={<Patients />} />
+                          <Route path="/patients" element={<PatientsNew />} />
+                          <Route path="/patients-old" element={<Patients />} />
                           <Route path="/encounters" element={<Encounters />} />
                           <Route path="/appointments" element={<Appointments />} />
                           <Route path="/campaigns" element={<Campaigns />} />
