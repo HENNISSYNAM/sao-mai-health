@@ -34,6 +34,7 @@ import Signup from "./pages/Signup";
 import { AuthProvider } from "./components/AuthProvider";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import FormDemo from "./pages/FormDemo";
+import Subscription from "./pages/Subscription";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -88,6 +89,7 @@ const App = () => (
                           <Route path="/data" element={<DataIngestion />} />
                           <Route path="/data-quality" element={<DataQuality />} />
                           <Route path="/security" element={<Security />} />
+                          <Route path="/subscription" element={<Subscription />} />
                           <Route path="/form-demo" element={<FormDemo />} />
                           <Route path="*" element={<NotFound />} />
                         </Routes>

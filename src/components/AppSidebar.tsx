@@ -23,7 +23,8 @@ import {
   Hospital,
   Package,
   FileCheck,
-  Lock
+  Lock,
+  Crown
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import { usePrefetch } from "@/hooks/usePrefetch"
@@ -80,6 +81,12 @@ const menuItems = [
     items: [
       { title: "Chất lượng dữ liệu", url: "/data-quality", icon: FileCheck, color: "text-indigo-600" },
       { title: "Bảo mật", url: "/security", icon: Lock, color: "text-gray-700" },
+    ]
+  },
+  {
+    title: "Tài khoản",
+    items: [
+      { title: "Gói đăng ký", url: "/subscription", icon: Crown, color: "text-purple-600" },
     ]
   }
 ]
