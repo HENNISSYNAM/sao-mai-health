@@ -31,6 +31,7 @@ interface Prediction {
   lon: number;
   created_at: string;
   model_version: string;
+  district?: string;
 }
 
 interface FormData {
@@ -62,11 +63,57 @@ const getLabelForPrediction = (predicted: number): string => {
   return 'high';
 };
 
+// HCMC Districts data based on the reference map
+const hcmcDistricts = [
+  { id: 1, name: 'Quận 1', center: [106.7009, 10.7756] },
+  { id: 2, name: 'Quận 2', center: [106.7314, 10.7474] },
+  { id: 3, name: 'Quận 3', center: [106.6917, 10.7756] },
+  { id: 4, name: 'Quận 4', center: [106.7028, 10.7556] },
+  { id: 5, name: 'Quận 5', center: [106.6814, 10.7556] },
+  { id: 6, name: 'Quận 6', center: [106.6486, 10.7556] },
+  { id: 7, name: 'Quận 7', center: [106.7219, 10.7356] },
+  { id: 8, name: 'Quận 8', center: [106.6714, 10.7356] },
+  { id: 9, name: 'Quận 9', center: [106.8019, 10.7756] },
+  { id: 10, name: 'Quận 10', center: [106.6714, 10.7756] },
+  { id: 11, name: 'Quận 11', center: [106.6514, 10.7656] },
+  { id: 12, name: 'Quận 12', center: [106.6514, 10.8756] },
+  { id: 'bt', name: 'Q. Bình Tân', center: [106.6019, 10.7656] },
+  { id: 'tb', name: 'Q. Tân Bình', center: [106.6519, 10.8156] },
+  { id: 'pn', name: 'Q. Phú Nhuận', center: [106.6919, 10.7956] },
+  { id: 'gv', name: 'Q. Gò Vấp', center: [106.6819, 10.8456] },
+  { id: 'bd', name: 'Q. Bình Dương', center: [106.7519, 10.8156] },
+  { id: 'tp', name: 'Q. Tân Phú', center: [106.6319, 10.7956] },
+  { id: 'bc', name: 'H. Bình Chánh', center: [106.5919, 10.7156] },
+  { id: 'cc', name: 'H. Củ Chi', center: [106.4919, 10.7756] },
+  { id: 'hm', name: 'H. Hóc Môn', center: [106.5919, 10.8756] },
+  { id: 'nbe', name: 'H. Nhà Bè', center: [106.7319, 10.7056] },
+  { id: 'cg', name: 'H. Cần Giờ', center: [106.9519, 10.4156] }
+];
+
+const getDistrictName = (lat: number, lon: number): string => {
+  // Simple distance-based district assignment
+  let minDistance = Infinity;
+  let closestDistrict = 'Unknown';
+  
+  hcmcDistricts.forEach(district => {
+    const distance = Math.sqrt(
+      Math.pow(lat - district.center[1], 2) + 
+      Math.pow(lon - district.center[0], 2)
+    );
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestDistrict = district.name;
+    }
+  });
+  
+  return closestDistrict;
+};
+
 export default function MapView() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [formData, setFormData] = useState<FormData>({
-    lat: '10.77689',
-    lon: '106.70098',
+  lat: '10.7756', // More central HCMC coordinates
+  lon: '106.7009',
     owner_id: '',
     features: '{}'
   });
@@ -83,19 +130,23 @@ export default function MapView() {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        // Generate mock initial data for demo
-        const mockPredictions: Prediction[] = Array.from({ length: 10 }, (_, i) => {
-          const lat = 10.77689 + (Math.random() - 0.5) * 0.1;
-          const lon = 106.70098 + (Math.random() - 0.5) * 0.1;
+        // Generate mock initial data for HCMC districts
+        const mockPredictions: Prediction[] = Array.from({ length: 15 }, (_, i) => {
+          // Generate coordinates within HCMC bounds
+          const lat = 10.7756 + (Math.random() - 0.5) * 0.2; // ~10.6756 to 10.8756
+          const lon = 106.7009 + (Math.random() - 0.5) * 0.3; // ~106.5509 to 106.8509
           const predicted = Math.floor(Math.random() * 45) + 55;
+          const district = getDistrictName(lat, lon);
+          
           return {
             h3: h3.latLngToCell(lat, lon, 8),
             predicted,
             label: getLabelForPrediction(predicted),
             lat,
             lon,
+            district,
             created_at: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-            model_version: 'mock-v1'
+            model_version: 'hcmc-v1'
           };
         });
 
@@ -151,8 +202,8 @@ export default function MapView() {
       map.current = new maplibregl.Map({
         container: mapContainer.current!,
         style: 'https://demotiles.maplibre.org/style.json',
-        center: [106.70098, 10.77689],
-        zoom: 11
+        center: [106.7009, 10.7756], // Central HCMC
+        zoom: 11.5 // Adjusted for better HCMC coverage
       });
 
       map.current.on('load', () => {
@@ -165,7 +216,7 @@ export default function MapView() {
           }
         });
 
-        // Add circle layer
+        // Add circle layer for predictions
         map.current.addLayer({
           id: 'prediction-circles',
           type: 'circle',
@@ -175,8 +226,8 @@ export default function MapView() {
               'interpolate',
               ['linear'],
               ['get', 'predicted'],
-              50, 6,
-              100, 12
+              50, 8,
+              100, 16
             ],
             'circle-color': [
               'case',
@@ -184,8 +235,8 @@ export default function MapView() {
               ['<', ['get', 'predicted'], 80], 'hsl(48, 96%, 53%)',
               'hsl(0, 72%, 51%)'
             ],
-            'circle-opacity': 0.6,
-            'circle-stroke-width': 1,
+            'circle-opacity': 0.7,
+            'circle-stroke-width': 2,
             'circle-stroke-color': '#fff'
           }
         });
@@ -215,7 +266,8 @@ export default function MapView() {
       properties: {
         predicted: pred.predicted,
         label: pred.label,
-        h3: pred.h3
+        h3: pred.h3,
+        district: pred.district
       }
     }));
 
@@ -247,8 +299,9 @@ export default function MapView() {
       // Hash owner_id
       const hashed_owner_id = await sha256Hex(formData.owner_id);
       
-      // Calculate H3
+      // Calculate H3 and district
       const h3Cell = h3.latLngToCell(lat, lon, 8);
+      const district = getDistrictName(lat, lon);
       
       // Prepare event
       const event = {
@@ -269,8 +322,9 @@ export default function MapView() {
         label: getLabelForPrediction(mockPredicted),
         lat,
         lon,
+        district,
         created_at: new Date().toISOString(),
-        model_version: 'mock'
+        model_version: 'hcmc-mock'
       };
 
       // Add to local state (simulating realtime)
@@ -284,7 +338,7 @@ export default function MapView() {
 
       toast({
         title: "Đã gửi dự đoán",
-        description: `H3: ${h3Cell.slice(0, 6)}... | Predicted: ${mockPredicted}`,
+        description: `${district} | H3: ${h3Cell.slice(0, 6)}... | Predicted: ${mockPredicted}`,
       });
 
       // Reset form
@@ -430,11 +484,17 @@ export default function MapView() {
                             #{index + 1}
                           </div>
                           <div>
-                            <div className="font-medium">
-                              H3: {hotspot.h3.slice(0, 8)}...
+                            <div className="font-medium flex items-center gap-2">
+                              <span>H3: {hotspot.h3.slice(0, 8)}...</span>
+                              {hotspot.district && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {hotspot.district}
+                                </Badge>
+                              )}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {new Date(hotspot.created_at).toLocaleTimeString()}
+                              {hotspot.district && ` • ${hotspot.district}`}
                             </div>
                           </div>
                         </div>
@@ -499,8 +559,8 @@ export default function MapView() {
                   <div className="w-full h-96 rounded-lg border-2 border-dashed border-muted flex items-center justify-center">
                     <div className="text-center text-muted-foreground">
                       <Map className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Bật bản đồ để xem trực quan</p>
-                      <p className="text-sm">Hoạt động hoàn chỉnh mà không cần bản đồ</p>
+                      <p>Bật bản đồ để xem TP.HCM trực quan</p>
+                      <p className="text-sm">24 quận/huyện • Real-time predictions</p>
                     </div>
                   </div>
                 )}
