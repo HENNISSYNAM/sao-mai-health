@@ -103,14 +103,8 @@ export default function EnhancedCaseIntake() {
         const processingTime = (endTime - startTime) / 1000
         setSubmitTime(processingTime)
 
-        // Push optimistic update to realtime
-        pushUpdate({
-          id: result.case_id,
-          patient_id: result.patient_id,
-          case_number: `CASE-${Date.now()}`,
-          ...data,
-          created_at: new Date().toISOString()
-        })
+        // Note: Optimistic update would be added here when realtime hooks are connected
+        console.log('Case submitted successfully:', result.case_id)
 
         // Clear auto-saved data
         clearData()
