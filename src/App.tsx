@@ -15,6 +15,7 @@ import LabImport from "./pages/LabImport";
 import Alerts from "./pages/Alerts";
 import NotFound from "./pages/NotFound";
 import { EnhancedCommandPalette } from "./components/EnhancedCommandPalette";
+import HealthStandards from "./pages/HealthStandards";
 import MapView from "./pages/MapView";
 import Patients from "./pages/Patients";
 import Encounters from "./pages/Encounters";
@@ -69,6 +70,7 @@ const App = () => (
                           <Route path="/case-intake" element={<CaseIntake />} />
                           <Route path="/lab-import" element={<LabImport />} />
                           <Route path="/alerts" element={<Alerts />} />
+                          <Route path="/health-standards" element={<HealthStandards />} />
                           <Route path="/maps" element={<MapView />} />
                           <Route path="/map" element={<MapView />} />
                           <Route path="/patients" element={<Patients />} />

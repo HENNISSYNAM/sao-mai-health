@@ -61,6 +61,14 @@ const menuItems = [
     ]
   },
   {
+    title: "Chuẩn y tế & Tích hợp",
+    items: [
+      { title: "HL7, FHIR, DICOM", url: "/health-standards", icon: Activity, color: "text-blue-600" },
+      { title: "VNeID & BHYT", url: "/health-standards", icon: UserCheck, color: "text-green-600" },
+      { title: "HIS/LIS/PACS", url: "/health-standards", icon: Building2, color: "text-purple-600" },
+    ]
+  },
+  {
     title: "Cơ sở vật chất",
     items: [
       { title: "Cơ sở y tế", url: "/facilities", icon: Hospital, color: "text-slate-600" },

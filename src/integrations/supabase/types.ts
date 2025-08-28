@@ -109,6 +109,60 @@ export type Database = {
         }
         Relationships: []
       }
+      bhyt_records: {
+        Row: {
+          benefit_level: string | null
+          bhyt_number: string
+          card_number: string | null
+          created_at: string | null
+          district_code: string | null
+          hospital_code: string | null
+          id: string
+          last_verified: string | null
+          patient_id: string | null
+          province_code: string | null
+          status: Database["public"]["Enums"]["integration_status"] | null
+          valid_from: string | null
+          valid_to: string | null
+          verification_data: Json | null
+          ward_code: string | null
+        }
+        Insert: {
+          benefit_level?: string | null
+          bhyt_number: string
+          card_number?: string | null
+          created_at?: string | null
+          district_code?: string | null
+          hospital_code?: string | null
+          id?: string
+          last_verified?: string | null
+          patient_id?: string | null
+          province_code?: string | null
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          valid_from?: string | null
+          valid_to?: string | null
+          verification_data?: Json | null
+          ward_code?: string | null
+        }
+        Update: {
+          benefit_level?: string | null
+          bhyt_number?: string
+          card_number?: string | null
+          created_at?: string | null
+          district_code?: string | null
+          hospital_code?: string | null
+          id?: string
+          last_verified?: string | null
+          patient_id?: string | null
+          province_code?: string | null
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          valid_from?: string | null
+          valid_to?: string | null
+          verification_data?: Json | null
+          ward_code?: string | null
+        }
+        Relationships: []
+      }
       buyback_merchants: {
         Row: {
           company_name: string
@@ -385,6 +439,63 @@ export type Database = {
         }
         Relationships: []
       }
+      dicom_studies: {
+        Row: {
+          accession_number: string | null
+          created_at: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          images_count: number | null
+          institution_name: string | null
+          modality: string | null
+          patient_id: string | null
+          referring_physician: string | null
+          series_count: number | null
+          status: Database["public"]["Enums"]["integration_status"] | null
+          study_date: string | null
+          study_description: string | null
+          study_instance_uid: string
+          study_time: string | null
+        }
+        Insert: {
+          accession_number?: string | null
+          created_at?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          images_count?: number | null
+          institution_name?: string | null
+          modality?: string | null
+          patient_id?: string | null
+          referring_physician?: string | null
+          series_count?: number | null
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          study_date?: string | null
+          study_description?: string | null
+          study_instance_uid: string
+          study_time?: string | null
+        }
+        Update: {
+          accession_number?: string | null
+          created_at?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          images_count?: number | null
+          institution_name?: string | null
+          modality?: string | null
+          patient_id?: string | null
+          referring_physician?: string | null
+          series_count?: number | null
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          study_date?: string | null
+          study_description?: string | null
+          study_instance_uid?: string
+          study_time?: string | null
+        }
+        Relationships: []
+      }
       dq_errors: {
         Row: {
           created_at: string | null
@@ -620,6 +731,42 @@ export type Database = {
         }
         Relationships: []
       }
+      fhir_resources: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_updated: string | null
+          patient_id: string | null
+          resource_content: Json
+          resource_id: string
+          resource_type: Database["public"]["Enums"]["fhir_resource_type"]
+          status: Database["public"]["Enums"]["integration_status"] | null
+          version_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          patient_id?: string | null
+          resource_content: Json
+          resource_id: string
+          resource_type: Database["public"]["Enums"]["fhir_resource_type"]
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          version_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          patient_id?: string | null
+          resource_content?: Json
+          resource_id?: string
+          resource_type?: Database["public"]["Enums"]["fhir_resource_type"]
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          version_id?: string | null
+        }
+        Relationships: []
+      }
       health_alert: {
         Row: {
           alert_id: number
@@ -647,6 +794,132 @@ export type Database = {
           message?: string | null
           metric?: string
           zone_id?: string | null
+        }
+        Relationships: []
+      }
+      his_integrations: {
+        Row: {
+          api_key_encrypted: string | null
+          configuration: Json | null
+          created_at: string | null
+          endpoint_url: string | null
+          facility_id: string | null
+          id: string
+          last_sync: string | null
+          status: Database["public"]["Enums"]["integration_status"] | null
+          sync_interval: number | null
+          system_name: string
+          system_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          api_key_encrypted?: string | null
+          configuration?: Json | null
+          created_at?: string | null
+          endpoint_url?: string | null
+          facility_id?: string | null
+          id?: string
+          last_sync?: string | null
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          sync_interval?: number | null
+          system_name: string
+          system_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          api_key_encrypted?: string | null
+          configuration?: Json | null
+          created_at?: string | null
+          endpoint_url?: string | null
+          facility_id?: string | null
+          id?: string
+          last_sync?: string | null
+          status?: Database["public"]["Enums"]["integration_status"] | null
+          sync_interval?: number | null
+          system_name?: string
+          system_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      hl7_messages: {
+        Row: {
+          ack_code: string | null
+          created_at: string | null
+          error_message: string | null
+          facility_id: string | null
+          id: string
+          message_content: string
+          message_type: Database["public"]["Enums"]["hl7_message_type"]
+          patient_id: string | null
+          received_at: string | null
+          sent_at: string | null
+          status: Database["public"]["Enums"]["integration_status"] | null
+        }
+        Insert: {
+          ack_code?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          facility_id?: string | null
+          id?: string
+          message_content: string
+          message_type: Database["public"]["Enums"]["hl7_message_type"]
+          patient_id?: string | null
+          received_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["integration_status"] | null
+        }
+        Update: {
+          ack_code?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          facility_id?: string | null
+          id?: string
+          message_content?: string
+          message_type?: Database["public"]["Enums"]["hl7_message_type"]
+          patient_id?: string | null
+          received_at?: string | null
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["integration_status"] | null
+        }
+        Relationships: []
+      }
+      icd_codes: {
+        Row: {
+          category: string | null
+          code: string
+          created_at: string | null
+          description: string | null
+          effective_date: string | null
+          id: string
+          is_active: boolean | null
+          parent_code: string | null
+          title: string
+          version: string
+        }
+        Insert: {
+          category?: string | null
+          code: string
+          created_at?: string | null
+          description?: string | null
+          effective_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          parent_code?: string | null
+          title: string
+          version: string
+        }
+        Update: {
+          category?: string | null
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          effective_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          parent_code?: string | null
+          title?: string
+          version?: string
         }
         Relationships: []
       }
@@ -1196,6 +1469,57 @@ export type Database = {
           },
         ]
       }
+      security_audits: {
+        Row: {
+          action: string
+          audit_type: string
+          compliance_standard: Database["public"]["Enums"]["security_compliance"]
+          id: string
+          ip_address: unknown | null
+          request_data: Json | null
+          resource_id: string | null
+          resource_type: string | null
+          response_data: Json | null
+          risk_level: string | null
+          status: string | null
+          timestamp: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          audit_type: string
+          compliance_standard: Database["public"]["Enums"]["security_compliance"]
+          id?: string
+          ip_address?: unknown | null
+          request_data?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          response_data?: Json | null
+          risk_level?: string | null
+          status?: string | null
+          timestamp?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          audit_type?: string
+          compliance_standard?: Database["public"]["Enums"]["security_compliance"]
+          id?: string
+          ip_address?: unknown | null
+          request_data?: Json | null
+          resource_id?: string | null
+          resource_type?: string | null
+          response_data?: Json | null
+          risk_level?: string | null
+          status?: string | null
+          timestamp?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       spatial_ref_sys: {
         Row: {
           auth_name: string | null
@@ -1474,6 +1798,63 @@ export type Database = {
           onboarded?: boolean | null
           redeemed_points?: number
           region?: string | null
+        }
+        Relationships: []
+      }
+      vneid_integrations: {
+        Row: {
+          address: string | null
+          citizen_id: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          full_name: string
+          gender: string | null
+          id: string
+          nationality: string | null
+          patient_id: string | null
+          place_of_birth: string | null
+          verification_data: Json | null
+          verification_status:
+            | Database["public"]["Enums"]["integration_status"]
+            | null
+          verified_at: string | null
+          vneid_number: string
+        }
+        Insert: {
+          address?: string | null
+          citizen_id?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          full_name: string
+          gender?: string | null
+          id?: string
+          nationality?: string | null
+          patient_id?: string | null
+          place_of_birth?: string | null
+          verification_data?: Json | null
+          verification_status?:
+            | Database["public"]["Enums"]["integration_status"]
+            | null
+          verified_at?: string | null
+          vneid_number: string
+        }
+        Update: {
+          address?: string | null
+          citizen_id?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          full_name?: string
+          gender?: string | null
+          id?: string
+          nationality?: string | null
+          patient_id?: string | null
+          place_of_birth?: string | null
+          verification_data?: Json | null
+          verification_status?:
+            | Database["public"]["Enums"]["integration_status"]
+            | null
+          verified_at?: string | null
+          vneid_number?: string
         }
         Relationships: []
       }
@@ -3541,6 +3922,18 @@ export type Database = {
     }
     Enums: {
       asset_type: "credit" | "gp" | "vnd"
+      fhir_resource_type:
+        | "Patient"
+        | "Observation"
+        | "DiagnosticReport"
+        | "Procedure"
+        | "Medication"
+        | "Encounter"
+        | "Organization"
+        | "Practitioner"
+      hl7_message_type: "ADT" | "ORU" | "ORM" | "MDM" | "SIU" | "DFT"
+      integration_status: "active" | "inactive" | "pending" | "error"
+      security_compliance: "iso27001" | "hipaa" | "vnlaw" | "gdpr"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -3677,6 +4070,19 @@ export const Constants = {
   public: {
     Enums: {
       asset_type: ["credit", "gp", "vnd"],
+      fhir_resource_type: [
+        "Patient",
+        "Observation",
+        "DiagnosticReport",
+        "Procedure",
+        "Medication",
+        "Encounter",
+        "Organization",
+        "Practitioner",
+      ],
+      hl7_message_type: ["ADT", "ORU", "ORM", "MDM", "SIU", "DFT"],
+      integration_status: ["active", "inactive", "pending", "error"],
+      security_compliance: ["iso27001", "hipaa", "vnlaw", "gdpr"],
     },
   },
 } as const
