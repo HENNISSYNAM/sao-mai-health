@@ -126,100 +126,11 @@ export function useRealtimeHealth<T = any>({
   }
 }
 
-// Hook for patients table
-export const useRealtimePatients = () => useRealtimeHealth<Patient>({
-  table: 'patients',
-  schema: 'public',
-  onUpdate: (payload) => {
-    console.log('Patient updated:', payload);
-  }
-});
-
-// Hook for cases table
-export const useRealtimeCases = () => useRealtimeHealth<Case>({
-  table: 'cases',
-  schema: 'public',
-  onUpdate: (payload) => {
-    console.log('Case updated:', payload);
-  }
-});
-
-// Hook for case intake with combined patient+case data
-export const useRealtimeCaseIntake = () => {
-  const [data, setData] = useState<CaseIntakeData[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
-  const [channel, setChannel] = useState<RealtimeChannel | null>(null);
-
-  useEffect(() => {
-    const channelName = 'case-intake'
-    const realtimeChannel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes' as any,
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'cases'
-        },
-        async (payload: any) => {
-          console.log('New case added:', payload);
-          
-  // Note: This is a simplified realtime hook for cases
-          // In practice, you might want to fetch additional data
-          console.log('Case added realtime:', payload.new);
-          
-          setData(currentData => [
-            {
-              ...payload.new,
-              patient: null // Would need separate query to get patient data
-            } as CaseIntakeData,
-            ...currentData
-          ]);
-        }
-      )
-      .on(
-        'postgres_changes' as any,
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'patients'
-        },
-        (payload: any) => {
-          console.log('Patient updated:', payload);
-          setData(currentData => 
-            currentData.map(item => 
-              item.patient?.id === payload.new.id 
-                ? { ...item, patient: payload.new }
-                : item
-            )
-          );
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          setIsConnected(true);
-        }
-      });
-
-    setChannel(realtimeChannel);
-
-    return () => {
-      if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel);
-      }
-      setIsConnected(false);
-    };
-  }, []);
-
-  return {
-    data,
-    setData,
-    isConnected,
-    channel
-  };
-};
-
 // Specialized hooks for specific tables
+export function useRealtimeCases(onUpdate?: (payload: any) => void) {
+  return useRealtimeHealth({ table: 'case_events', onUpdate })
+}
+
 export function useRealtimeAlerts(onUpdate?: (payload: any) => void) {
   return useRealtimeHealth({ table: 'alerts', onUpdate })
 }
@@ -258,39 +169,4 @@ export function useRealtimeDailyCounts(onUpdate?: (payload: any) => void) {
 // Additional hooks for other pages
 export function useRealtimeMetrics(onUpdate?: (payload: any) => void) {
   return useRealtimeHealth({ table: 'zone_metric_daily', onUpdate })
-}
-
-// Types for realtime data
-interface Patient {
-  id: string;
-  mpi_hash: string;
-  full_name: string;
-  birth_year?: number;
-  gender?: string;
-  phone_hash?: string;
-  address_hash?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Case {
-  id: string;
-  patient_id: string;
-  case_number: string;
-  disease_code: string;
-  status: string;
-  onset_date: string;
-  report_date: string;
-  district_id?: string;
-  ward_id?: string;
-  facility_id?: string;
-  lat?: number;
-  lng?: number;
-  symptoms?: any;
-  created_at: string;
-  updated_at: string;
-}
-
-interface CaseIntakeData extends Case {
-  patient?: Patient;
 }

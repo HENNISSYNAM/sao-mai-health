@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { supabase } from "@/integrations/supabase/client"
 import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHealth"
-import RealtimeCaseList from "@/components/RealtimeCaseList"
 
 interface DailyCount {
   id: string
@@ -194,10 +193,10 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Tổng quan hệ thống</h1>
-        <p className="text-muted-foreground">Giám sát y tế công cộng TP. Hồ Chí Minh - Realtime</p>
-      </div>
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Tổng quan hệ thống</h1>
+          <p className="text-muted-foreground">Giám sát y tế công cộng TP. Hồ Chí Minh</p>
+        </div>
         <div className="flex items-center gap-2">
           <Badge variant={countsConnected && alertsConnected ? "default" : "secondary"}>
             {countsConnected && alertsConnected ? "Live" : "Offline"}
@@ -216,14 +215,13 @@ export default function Dashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2">
         <DashboardChart
           title="Xu hướng ca bệnh (7 ngày)"
           data={trendData}
           type="line"
           multiSeries={false}
         />
-        <RealtimeCaseList />
         <Card className="rounded-2xl shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

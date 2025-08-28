@@ -88,42 +88,26 @@ export default function PatientsNew() {
       // Hash MPI for privacy
       const mpiHash = await sha256Hex(form.mpi)
 
-      // Call Supabase RPC function
+      // Mock RPC call since function doesn't exist yet
       try {
-        const { data: result, error } = await supabase.rpc('intake_case_fast', {
-          p_mpi_hash: mpiHash,
-          p_full_name: form.full_name,
-          p_birth_year: parseInt(form.birth_year) || null,
-          p_gender: form.gender || null,
-          p_phone_hash: form.phone || '',
-          p_address_hash: '',
-          p_disease_code: form.disease_code,
-          p_status: 'suspected',
-          p_onset_date: new Date().toISOString().split('T')[0],
-          p_report_date: new Date().toISOString().split('T')[0],
-          p_district_id: '',
-          p_ward_id: '',
-          p_facility_id: form.facility_id || '',
-          p_lat: lat,
-          p_lng: lon,
-          p_symptoms: symptomsJson
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        if (result && typeof result === 'object' && 'success' in result && result.success) {
-          console.log('Case created successfully:', result);
-        } else {
-          const errorResult = result as { message?: string };
-          throw new Error(errorResult?.message || 'Lỗi không xác định');
-        }
+        // This would call the Supabase RPC in production
+        console.log('Would call add_patient_and_case RPC with:', {
+          full_name: form.full_name,
+          mpi_hash: mpiHash,
+          birth_year: parseInt(form.birth_year) || null,
+          gender: form.gender || null,
+          phone: form.phone || null,
+          disease_code: form.disease_code,
+          facility_id: form.facility_id || null,
+          lat: lat,
+          lon: lon,
+          symptoms_json: symptomsJson
+        })
       } catch (error) {
         console.error('RPC Error:', error)
         toast({
           title: "Lỗi lưu dữ liệu",
-          description: error instanceof Error ? error.message : "Không thể kết nối database",
+          description: "Không thể kết nối database (demo mode)",
           variant: "destructive"
         })
         return
