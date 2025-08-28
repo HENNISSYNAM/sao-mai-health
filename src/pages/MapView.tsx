@@ -16,9 +16,9 @@ import * as h3 from 'h3-js';
 let maplibregl: any = null;
 const loadMapLibre = async () => {
   if (!maplibregl) {
-    const module = await import('maplibre-gl');
+    const module: any = await import('maplibre-gl');
     await import('maplibre-gl/dist/maplibre-gl.css');
-    maplibregl = module.default;
+    maplibregl = module?.default || module;
   }
   return maplibregl;
 };
@@ -145,7 +145,7 @@ export default function MapView() {
       
       map.current = new maplibregl.Map({
         container: mapContainer.current!,
-        style: 'https://demotiles.maplibre.org/style.json',
+        style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
         center: [106.7009, 10.7756], // Central HCMC
         zoom: 11.5 // Adjusted for better HCMC coverage
       });
@@ -187,6 +187,14 @@ export default function MapView() {
 
         mapSource.current = map.current.getSource('predictions');
         updateMapData(Array.from(latestByCell.values()));
+      });
+
+      map.current.on('error', (e: any) => {
+        console.error('Map error:', e);
+        toast({
+          title: 'Bản đồ không khả dụng',
+          description: 'Không tải được style hoặc nguồn dữ liệu bản đồ',
+        });
       });
     } catch (error) {
       console.error('Map initialization failed:', error);
