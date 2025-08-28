@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Users, Search, Plus, FileText, Link } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, Search, Plus, FileText, Link, Upload } from "lucide-react";
 import { useRealtimeHealth } from "@/hooks/useRealtimeHealth";
+import { PatientDocumentUpload } from "@/components/PatientDocumentUpload";
+import { PatientDocumentsList } from "@/components/PatientDocumentsList";
 
 interface Patient {
   id: string;
@@ -23,6 +26,7 @@ interface Patient {
 export default function Patients() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   const { data: patients, isConnected } = useRealtimeHealth<Patient>({
     table: 'cases',
@@ -232,66 +236,91 @@ export default function Patients() {
                             Xem chi tiết
                           </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
                             <DialogTitle>Hồ sơ bệnh nhân</DialogTitle>
                           </DialogHeader>
                           {selectedPatient && (
-                            <div className="space-y-4">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <label className="text-sm font-medium text-text-700">Họ tên</label>
-                                  <p className="text-text-900">{selectedPatient.full_name}</p>
-                                </div>
-                                <div>
-                                  <label className="text-sm font-medium text-text-700">CCCD/CMND</label>
-                                  <p className="text-text-900">{selectedPatient.national_id || '-'}</p>
-                                </div>
-                                <div>
-                                  <label className="text-sm font-medium text-text-700">Ngày sinh</label>
-                                  <p className="text-text-900">
-                                    {new Date(selectedPatient.date_of_birth).toLocaleDateString('vi-VN')}
-                                  </p>
-                                </div>
-                                <div>
-                                  <label className="text-sm font-medium text-text-700">Giới tính</label>
-                                  <p className="text-text-900">
-                                    {selectedPatient.sex === 'M' ? 'Nam' : 'Nữ'}
-                                  </p>
-                                </div>
-                                <div>
-                                  <label className="text-sm font-medium text-text-700">Số điện thoại</label>
-                                  <p className="text-text-900">{selectedPatient.phone || '-'}</p>
-                                </div>
-                                <div>
-                                  <label className="text-sm font-medium text-text-700">MPI Confidence</label>
-                                  <p className="text-text-900">
-                                    {selectedPatient.mpi_confidence ? 
-                                      `${(selectedPatient.mpi_confidence * 100).toFixed(1)}%` : '-'}
-                                  </p>
-                                </div>
-                              </div>
+                            <Tabs defaultValue="info" className="w-full">
+                              <TabsList className="grid w-full grid-cols-3">
+                                <TabsTrigger value="info">Thông tin</TabsTrigger>
+                                <TabsTrigger value="documents">Tài liệu</TabsTrigger>
+                                <TabsTrigger value="upload">
+                                  <Upload className="h-4 w-4 mr-1" />
+                                  Tải lên
+                                </TabsTrigger>
+                              </TabsList>
                               
-                              {selectedPatient.address && (
-                                <div>
-                                  <label className="text-sm font-medium text-text-700">Địa chỉ</label>
-                                  <p className="text-text-900">{selectedPatient.address}</p>
-                                </div>
-                              )}
-
-                              {selectedPatient.linked_patients && selectedPatient.linked_patients.length > 0 && (
-                                <div>
-                                  <label className="text-sm font-medium text-text-700">Hồ sơ liên kết</label>
-                                  <div className="mt-2 space-y-2">
-                                    {selectedPatient.linked_patients.map((linkedId) => (
-                                      <div key={linkedId} className="p-2 bg-muted/30 rounded-lg">
-                                        <p className="text-sm text-text-700">Patient ID: {linkedId}</p>
-                                      </div>
-                                    ))}
+                              <TabsContent value="info" className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="text-sm font-medium text-text-700">Họ tên</label>
+                                    <p className="text-text-900">{selectedPatient.full_name}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-text-700">CCCD/CMND</label>
+                                    <p className="text-text-900">{selectedPatient.national_id || '-'}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-text-700">Ngày sinh</label>
+                                    <p className="text-text-900">
+                                      {new Date(selectedPatient.date_of_birth).toLocaleDateString('vi-VN')}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-text-700">Giới tính</label>
+                                    <p className="text-text-900">
+                                      {selectedPatient.sex === 'M' ? 'Nam' : 'Nữ'}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-text-700">Số điện thoại</label>
+                                    <p className="text-text-900">{selectedPatient.phone || '-'}</p>
+                                  </div>
+                                  <div>
+                                    <label className="text-sm font-medium text-text-700">MPI Confidence</label>
+                                    <p className="text-text-900">
+                                      {selectedPatient.mpi_confidence ? 
+                                        `${(selectedPatient.mpi_confidence * 100).toFixed(1)}%` : '-'}
+                                    </p>
                                   </div>
                                 </div>
-                              )}
-                            </div>
+                                
+                                {selectedPatient.address && (
+                                  <div>
+                                    <label className="text-sm font-medium text-text-700">Địa chỉ</label>
+                                    <p className="text-text-900">{selectedPatient.address}</p>
+                                  </div>
+                                )}
+
+                                {selectedPatient.linked_patients && selectedPatient.linked_patients.length > 0 && (
+                                  <div>
+                                    <label className="text-sm font-medium text-text-700">Hồ sơ liên kết</label>
+                                    <div className="mt-2 space-y-2">
+                                      {selectedPatient.linked_patients.map((linkedId) => (
+                                        <div key={linkedId} className="p-2 bg-muted/30 rounded-lg">
+                                          <p className="text-sm text-text-700">Patient ID: {linkedId}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </TabsContent>
+
+                              <TabsContent value="documents">
+                                <PatientDocumentsList 
+                                  patientId={selectedPatient.id} 
+                                  refreshTrigger={refreshTrigger}
+                                />
+                              </TabsContent>
+
+                              <TabsContent value="upload">
+                                <PatientDocumentUpload
+                                  patientId={selectedPatient.id}
+                                  onUploadComplete={() => setRefreshTrigger(prev => prev + 1)}
+                                />
+                              </TabsContent>
+                            </Tabs>
                           )}
                         </DialogContent>
                       </Dialog>
