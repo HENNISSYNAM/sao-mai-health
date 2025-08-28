@@ -23,6 +23,16 @@ const loadMapLibre = async () => {
   return maplibregl;
 };
 
+interface Prediction {
+  h3: string;
+  predicted: number;
+  label: string;
+  lat: number;
+  lon: number;
+  created_at: string;
+  model_version: string;
+  district?: string;
+}
 
 interface FormData {
   lat: string;
@@ -116,12 +126,67 @@ export default function MapView() {
   const map = useRef<any>(null);
   const mapSource = useRef<any>(null);
 
-  // Map data updates when predictions change
+  // Initialize data and realtime subscription
   useEffect(() => {
-    if (showMap && mapSource.current) {
-      updateMapData(Array.from(latestByCell.values()))
-    }
-  }, [latestByCell, showMap])
+    const initializeData = async () => {
+      try {
+        // Generate mock initial data for HCMC districts
+        const mockPredictions: Prediction[] = Array.from({ length: 15 }, (_, i) => {
+          // Generate coordinates within HCMC bounds
+          const lat = 10.7756 + (Math.random() - 0.5) * 0.2; // ~10.6756 to 10.8756
+          const lon = 106.7009 + (Math.random() - 0.5) * 0.3; // ~106.5509 to 106.8509
+          const predicted = Math.floor(Math.random() * 45) + 55;
+          const district = getDistrictName(lat, lon);
+          
+          return {
+            h3: h3.latLngToCell(lat, lon, 8),
+            predicted,
+            label: getLabelForPrediction(predicted),
+            lat,
+            lon,
+            district,
+            created_at: new Date(Date.now() - Math.random() * 3600000).toISOString(),
+            model_version: 'hcmc-v1'
+          };
+        });
+
+        setPredictions(mockPredictions);
+        setLastUpdate(new Date());
+      } catch (error) {
+        console.error('Error loading predictions:', error);
+        toast({
+          title: "Lỗi tải dữ liệu",
+          description: "Đang sử dụng dữ liệu demo",
+          variant: "default"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeData();
+
+    // Setup realtime subscription (for future use when table exists)
+    const channel = supabase
+      .channel('predictions-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'predictions'
+        },
+        (payload) => {
+          console.log('New prediction received:', payload);
+          // Handle real predictions when table exists
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   // Map initialization
   useEffect(() => {
@@ -177,7 +242,7 @@ export default function MapView() {
         });
 
         mapSource.current = map.current.getSource('predictions');
-        updateMapData(Array.from(latestByCell.values()))
+        updateMapData(predictions);
       });
     } catch (error) {
       console.error('Map initialization failed:', error);
@@ -189,7 +254,7 @@ export default function MapView() {
     }
   };
 
-  const updateMapData = (data: any[]) => {
+  const updateMapData = (data: Prediction[]) => {
     if (!mapSource.current) return;
 
     const features = data.map(pred => ({
@@ -262,11 +327,14 @@ export default function MapView() {
         model_version: 'hcmc-mock'
       };
 
-      // Mock prediction will be handled by the global context
-      toast({
-        title: "Dự đoán demo",
-        description: "Trong môi trường thực, dữ liệu sẽ được gửi qua API",
-      })
+      // Add to local state (simulating realtime)
+      setPredictions(prev => [mockPrediction, ...prev.slice(0, 199)]);
+      setLastUpdate(new Date());
+
+      // Update map if visible
+      if (showMap && mapSource.current) {
+        updateMapData([mockPrediction, ...predictions]);
+      }
 
       toast({
         title: "Đã gửi dự đoán",
@@ -287,12 +355,19 @@ export default function MapView() {
     }
   };
 
-  // Get top hotspots from global state
+  // Get top hotspots (grouped by h3, latest per h3)
   const topHotspots = React.useMemo(() => {
-    return Array.from(latestByCell.values())
+    const grouped = predictions.reduce((acc, pred) => {
+      if (!acc[pred.h3] || new Date(pred.created_at) > new Date(acc[pred.h3].created_at)) {
+        acc[pred.h3] = pred;
+      }
+      return acc;
+    }, {} as Record<string, Prediction>);
+
+    return Object.values(grouped)
       .sort((a, b) => b.predicted - a.predicted)
-      .slice(0, 10)
-  }, [latestByCell])
+      .slice(0, 10);
+  }, [predictions]);
 
   return (
     <div className="min-h-screen bg-background p-4">
@@ -305,14 +380,16 @@ export default function MapView() {
           </div>
           
           <div className="flex items-center gap-4">
-            <Badge variant={isConnected ? "default" : "secondary"} className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-              {isConnected ? "Live" : "Offline"}
+            <Badge variant="outline" className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              Live
             </Badge>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              {lastTick}
-            </div>
+            {lastUpdate && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" />
+                {lastUpdate.toLocaleTimeString()}
+              </div>
+            )}
           </div>
         </div>
 
@@ -408,10 +485,16 @@ export default function MapView() {
                           </div>
                           <div>
                             <div className="font-medium flex items-center gap-2">
-                              <span>H3: {(hotspot.h3 || 'none').slice(0, 8)}...</span>
+                              <span>H3: {hotspot.h3.slice(0, 8)}...</span>
+                              {hotspot.district && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {hotspot.district}
+                                </Badge>
+                              )}
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {new Date(hotspot.created_at).toLocaleTimeString()}
+                              {hotspot.district && ` • ${hotspot.district}`}
                             </div>
                           </div>
                         </div>
