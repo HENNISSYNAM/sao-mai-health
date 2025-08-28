@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Map, MapPin, Activity, Clock } from 'lucide-react';
-import { latLngToCell } from 'h3-js';
+import * as h3 from 'h3-js';
 
 // MapLibre GL imports (conditional)
 let maplibregl: any = null;
@@ -89,7 +89,7 @@ export default function MapView() {
           const lon = 106.70098 + (Math.random() - 0.5) * 0.1;
           const predicted = Math.floor(Math.random() * 45) + 55;
           return {
-            h3: latLngToCell(lat, lon, 8),
+            h3: h3.latLngToCell(lat, lon, 8),
             predicted,
             label: getLabelForPrediction(predicted),
             lat,
@@ -248,7 +248,7 @@ export default function MapView() {
       const hashed_owner_id = await sha256Hex(formData.owner_id);
       
       // Calculate H3
-      const h3 = latLngToCell(lat, lon, 8);
+      const h3Cell = h3.latLngToCell(lat, lon, 8);
       
       // Prepare event
       const event = {
@@ -264,7 +264,7 @@ export default function MapView() {
       // Mock prediction (since no backend specified)
       const mockPredicted = Math.floor(Math.random() * 45) + 55; // 55-99
       const mockPrediction: Prediction = {
-        h3,
+        h3: h3Cell,
         predicted: mockPredicted,
         label: getLabelForPrediction(mockPredicted),
         lat,
@@ -284,7 +284,7 @@ export default function MapView() {
 
       toast({
         title: "Đã gửi dự đoán",
-        description: `H3: ${h3.slice(0, 6)}... | Predicted: ${mockPredicted}`,
+        description: `H3: ${h3Cell.slice(0, 6)}... | Predicted: ${mockPredicted}`,
       });
 
       // Reset form
