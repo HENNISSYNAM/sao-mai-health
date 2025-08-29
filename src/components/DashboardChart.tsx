@@ -56,22 +56,41 @@ export function DashboardChart({
                     type="monotone" 
                     dataKey="dengue" 
                     stroke="hsl(var(--dengue))" 
-                    strokeWidth={2}
+                    strokeWidth={3}
+                    strokeDasharray="0"
                     name="Sốt xuất huyết"
+                    dot={{ fill: 'hsl(var(--dengue))', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: 'hsl(var(--dengue))', strokeWidth: 2, fill: 'hsl(var(--card))' }}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="tcm" 
                     stroke="hsl(var(--tcm))" 
-                    strokeWidth={2}
+                    strokeWidth={3}
+                    strokeDasharray="5 5"
                     name="Tay chân miệng"
+                    dot={{ fill: 'hsl(var(--tcm))', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: 'hsl(var(--tcm))', strokeWidth: 2, fill: 'hsl(var(--card))' }}
                   />
                   <Line 
                     type="monotone" 
                     dataKey="ari" 
                     stroke="hsl(var(--ari))" 
-                    strokeWidth={2}
+                    strokeWidth={3}
+                    strokeDasharray="10 3 3 3"
                     name="Nhiễm khuẩn hô hấp"
+                    dot={{ fill: 'hsl(var(--ari))', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: 'hsl(var(--ari))', strokeWidth: 2, fill: 'hsl(var(--card))' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="covid19" 
+                    stroke="hsl(var(--secondary))" 
+                    strokeWidth={3}
+                    strokeDasharray="15 5"
+                    name="COVID-19"
+                    dot={{ fill: 'hsl(var(--secondary))', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: 'hsl(var(--secondary))', strokeWidth: 2, fill: 'hsl(var(--card))' }}
                   />
                 </>
               ) : (

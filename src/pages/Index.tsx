@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react"
 import { Activity, AlertTriangle, Building2, Heart, Users, TrendingUp, BarChart3, Calendar, MapPin } from "lucide-react"
 import { KpiCard } from "@/components/KpiCard"
 import { DashboardChart } from "@/components/DashboardChart"
+import { DiseaseStreamChart } from "@/components/DiseaseStreamChart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -43,6 +44,7 @@ const Index = () => {
   const [dailyCounts, setDailyCounts] = useState<DailyCount[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedDiseases, setSelectedDiseases] = useState<string[]>(['dengue', 'covid19', 'tcm', 'ari'])
 
   // Realtime subscriptions
   const { isConnected: countsConnected, nowTs } = useRealtimeDailyCounts((payload) => {
@@ -216,36 +218,40 @@ const Index = () => {
     ]
   }, [dailyCounts, alerts])
 
-  // Enhanced chart data with multiple series
+  // Enhanced chart data with multiple series and diseases
   const trendData = useMemo(() => {
     const last14Days = []
+    const diseases = ['dengue', 'covid19', 'tcm', 'ari', 'h1n1', 'malaria']
+    
     for (let i = 13; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
       const dayStr = date.toISOString().split('T')[0]
       const dayName = date.toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' })
       
-      const dengueCases = dailyCounts
-        .filter(count => count.day === dayStr && count.disease_code === 'dengue')
-        .reduce((sum, count) => sum + count.cases, 0)
-
-      const tcmCases = dailyCounts
-        .filter(count => count.day === dayStr && count.disease_code === 'tcm')
-        .reduce((sum, count) => sum + count.cases, 0)
-
-      const ariCases = dailyCounts
-        .filter(count => count.day === dayStr && count.disease_code === 'ari')
-        .reduce((sum, count) => sum + count.cases, 0)
+      const dayData: any = { name: dayName }
+      let totalCases = 0
       
-      last14Days.push({
-        name: dayName,
-        dengue: dengueCases,
-        tcm: tcmCases,
-        ari: ariCases,
-        value: dengueCases + tcmCases + ariCases
+      diseases.forEach(disease => {
+        const cases = dailyCounts
+          .filter(count => count.day === dayStr && count.disease_code === disease)
+          .reduce((sum, count) => sum + count.cases, 0)
+        dayData[disease] = cases
+        totalCases += cases
       })
+      
+      dayData.value = totalCases
+      last14Days.push(dayData)
     }
     return last14Days
   }, [dailyCounts])
+
+  const handleDiseaseToggle = (disease: string) => {
+    setSelectedDiseases(prev => 
+      prev.includes(disease) 
+        ? prev.filter(d => d !== disease)
+        : [...prev, disease]
+    )
+  }
 
   // District distribution data
   const districtData = useMemo(() => {
@@ -339,11 +345,11 @@ const Index = () => {
       {/* Main Charts */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <DashboardChart
-            title="Xu hướng ca bệnh theo thời gian (14 ngày)"
+          <DiseaseStreamChart
+            title="Phân loại xu hướng bệnh theo luồng (14 ngày)"
             data={trendData}
-            type="line"
-            multiSeries={true}
+            selectedDiseases={selectedDiseases}
+            onDiseaseToggle={handleDiseaseToggle}
           />
         </div>
         <DashboardChart
