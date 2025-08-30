@@ -5,8 +5,8 @@ import { DashboardChart } from "@/components/DashboardChart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { supabase } from "@/integrations/supabase/client"
 import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHealth"
+import { supabase } from "@/integrations/supabase/client"
 
 interface DailyCount {
   id: string
@@ -45,22 +45,30 @@ export default function Dashboard() {
 
   const fetchInitialData = async () => {
     try {
-      // Mock daily counts data since table doesn't exist yet
-      const mockData: DailyCount[] = []
-      for (let i = 0; i < 14; i++) {
-        const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
-        const dayStr = date.toISOString().split('T')[0]
-        
-        mockData.push({
-          id: `mock-${i}`,
-          day: dayStr,
-          disease_code: 'dengue',
-          district_id: 'quan_1',
-          cases: Math.floor(Math.random() * 50) + 10,
-          created_at: date.toISOString()
-        })
+      // Fetch real data from HCMC API
+      const { data, error } = await supabase.functions.invoke('fetch-hcmc-data', {
+        body: { type: 'diseases' }
+      })
+      
+      if (error) {
+        console.error('Error fetching HCMC disease data:', error)
+        return
       }
-      setDailyCounts(mockData)
+      
+      if (data?.success && data?.data) {
+        // Convert API data to DailyCount format
+        const formattedData: DailyCount[] = data.data.map((item: any) => ({
+          id: `${item.disease_code}-${item.district_id}-${item.date}`,
+          day: item.date,
+          district_id: item.district_id,
+          disease_code: item.disease_code,
+          cases: item.cases,
+          created_at: new Date().toISOString()
+        }))
+        
+        setDailyCounts(formattedData)
+        console.log(`Loaded ${formattedData.length} disease records from HCMC API`)
+      }
     } catch (error) {
       console.error('Error fetching daily counts:', error)
     }
@@ -68,29 +76,45 @@ export default function Dashboard() {
 
   const fetchAlerts = async () => {
     try {
-      // Use mock data since alerts table structure doesn't match  
-      const mockAlerts: Alert[] = [
-        {
-          id: 'mock-1',
-          disease_code: 'dengue',
-          day: new Date().toISOString().split('T')[0],
-          cases: 25,
-          status: 'open',
-          created_at: new Date().toISOString()
-        },
-        {
-          id: 'mock-2',
-          disease_code: 'covid19',
-          day: new Date().toISOString().split('T')[0],
-          cases: 12,
-          status: 'closed',
-          created_at: new Date().toISOString()
-        }
-      ]
-      setAlerts(mockAlerts)
+      // Fetch real alerts from HCMC API
+      const { data, error } = await supabase.functions.invoke('fetch-hcmc-data', {
+        body: { type: 'alerts' }
+      })
+      
+      if (error) {
+        console.error('Error fetching HCMC alerts:', error)
+        return
+      }
+      
+      if (data?.success && data?.data) {
+        // Convert API data to Alert format
+        const formattedAlerts: Alert[] = data.data.map((item: any) => ({
+          id: item.id,
+          disease_code: extractDiseaseFromTitle(item.title),
+          day: new Date(item.created_at).toISOString().split('T')[0],
+          cases: extractCasesFromTitle(item.title),
+          status: item.status,
+          created_at: item.created_at
+        }))
+        
+        setAlerts(formattedAlerts)
+        console.log(`Loaded ${formattedAlerts.length} alerts from HCMC API`)
+      }
     } catch (error) {
       console.error('Error fetching alerts:', error)
     }
+  }
+
+  const extractCasesFromTitle = (title: string): number => {
+    const match = title.match(/(\d+)\s*ca/)
+    return match ? parseInt(match[1]) : 0
+  }
+
+  const extractDiseaseFromTitle = (title: string): string => {
+    if (title.toLowerCase().includes('dengue')) return 'dengue'
+    if (title.toLowerCase().includes('covid')) return 'covid19'
+    if (title.toLowerCase().includes('hfmd')) return 'hfmd'
+    return 'unknown'
   }
 
   useEffect(() => {

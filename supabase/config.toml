@@ -1,1 +1,67 @@
 project_id = "eovndykfixqvvsvovmsw"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
+ip_version = "ipv6"
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1:54321"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+bucket_id = "bucket1"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://127.0.0.1:3000"]
+jwt_expiry = 3600
+enable_signup = true
+enable_manual_linking = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[auth.jwt]
+default_group = "authenticated"
+admin_group = "admin"
+aud = "authenticated"
+exp = 3600
+
+[edge_runtime]
+enabled = true
+ip_version = "ipv4"
+port = 54321
+inspector_port = 8083
+
+[functions.ai_no_show]
+verify_jwt = false
+
+[functions.fetch-hcmc-data]
+verify_jwt = false
