@@ -88,26 +88,51 @@ export default function PatientsNew() {
       // Hash MPI for privacy
       const mpiHash = await sha256Hex(form.mpi)
 
-      // Mock RPC call since function doesn't exist yet
-      try {
-        // This would call the Supabase RPC in production
-        console.log('Would call add_patient_and_case RPC with:', {
+      // Save patient to database
+      const { data: patientData, error: patientError } = await supabase
+        .from('patients')
+        .insert({
           full_name: form.full_name,
           mpi_hash: mpiHash,
           birth_year: parseInt(form.birth_year) || null,
           gender: form.gender || null,
           phone: form.phone || null,
+          facility_id: form.facility_id || null,
+        })
+        .select()
+        .single()
+
+      if (patientError) {
+        console.error('Patient creation error:', patientError)
+        toast({
+          title: "Lỗi lưu bệnh nhân",
+          description: patientError.message,
+          variant: "destructive"
+        })
+        return
+      }
+
+      // Create case event linked to patient
+      const { error: caseError } = await supabase
+        .from('case_events')
+        .insert({
+          patient_id: patientData.id,
           disease_code: form.disease_code,
           facility_id: form.facility_id || null,
           lat: lat,
           lon: lon,
-          symptoms_json: symptomsJson
+          symptoms: symptomsJson,
+          patient_hash: mpiHash,
+          patient_gender: form.gender || null,
+          patient_age_bucket: form.birth_year ? `${Math.floor((new Date().getFullYear() - parseInt(form.birth_year)) / 10) * 10}-${Math.floor((new Date().getFullYear() - parseInt(form.birth_year)) / 10) * 10 + 9}` : null,
+          source: 'manual_entry'
         })
-      } catch (error) {
-        console.error('RPC Error:', error)
+
+      if (caseError) {
+        console.error('Case creation error:', caseError)
         toast({
-          title: "Lỗi lưu dữ liệu",
-          description: "Không thể kết nối database (demo mode)",
+          title: "Lỗi lưu ca bệnh",
+          description: caseError.message,
           variant: "destructive"
         })
         return

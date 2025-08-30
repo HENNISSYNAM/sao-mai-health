@@ -469,6 +469,7 @@ export type Database = {
           patient_age_bucket: string | null
           patient_gender: string | null
           patient_hash: string | null
+          patient_id: string | null
           source: string | null
           symptoms: Json | null
           ward_id: string | null
@@ -485,6 +486,7 @@ export type Database = {
           patient_age_bucket?: string | null
           patient_gender?: string | null
           patient_hash?: string | null
+          patient_id?: string | null
           source?: string | null
           symptoms?: Json | null
           ward_id?: string | null
@@ -501,6 +503,7 @@ export type Database = {
           patient_age_bucket?: string | null
           patient_gender?: string | null
           patient_hash?: string | null
+          patient_id?: string | null
           source?: string | null
           symptoms?: Json | null
           ward_id?: string | null
@@ -518,6 +521,13 @@ export type Database = {
             columns: ["facility_id"]
             isOneToOne: false
             referencedRelation: "health_facilities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_events_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -1428,6 +1438,42 @@ export type Database = {
           patient_id?: string
           uploaded_at?: string
           uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      patients: {
+        Row: {
+          birth_year: number | null
+          created_at: string
+          facility_id: string | null
+          full_name: string
+          gender: string | null
+          id: string
+          mpi_hash: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          birth_year?: number | null
+          created_at?: string
+          facility_id?: string | null
+          full_name: string
+          gender?: string | null
+          id?: string
+          mpi_hash: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          birth_year?: number | null
+          created_at?: string
+          facility_id?: string | null
+          full_name?: string
+          gender?: string | null
+          id?: string
+          mpi_hash?: string
+          phone?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2932,6 +2978,27 @@ export type Database = {
       gtrgm_out: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      intake_case_fast: {
+        Args: {
+          p_address_hash: string
+          p_birth_year: number
+          p_disease_code: string
+          p_district_id: string
+          p_facility_id: string
+          p_full_name: string
+          p_gender: string
+          p_lat: number
+          p_lng: number
+          p_mpi_hash: string
+          p_onset_date: string
+          p_phone_hash: string
+          p_report_date: string
+          p_status: string
+          p_symptoms: Json
+          p_ward_id: string
+        }
+        Returns: Json
       }
       is_admin: {
         Args: { user_id: string }
