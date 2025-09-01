@@ -244,17 +244,54 @@ const Subscription = () => {
           </div>
         </div>
 
-        {/* FAQ Section */}
-        <div className="mt-16 text-center">
-          <h2 className="text-2xl font-bold text-foreground mb-4">
-            Còn thắc mắc?
-          </h2>
-          <p className="text-muted-foreground mb-6">
-            Liên hệ với đội ngũ bán hàng để được tư vấn chi tiết
-          </p>
-          <Button variant="outline">
-            Liên hệ hỗ trợ
-          </Button>
+        {/* Contact Sales Section */}
+        <div className="mt-16">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-foreground mb-4">
+              Còn thắc mắc?
+            </h2>
+            <p className="text-muted-foreground">
+              Liên hệ với đội ngũ bán hàng để được tư vấn chi tiết
+            </p>
+          </div>
+          
+          <div className="max-w-md mx-auto">
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="p-6 text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                  <Building className="w-8 h-8 text-primary" />
+                </div>
+                
+                <div>
+                  <h3 className="font-semibold text-foreground mb-2">Liên hệ bán hàng</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Nhận tư vấn miễn phí và báo giá tốt nhất cho doanh nghiệp của bạn
+                  </p>
+                </div>
+                
+                <div className="space-y-3">
+                  <Button 
+                    className="w-full" 
+                    onClick={() => window.location.href = 'mailto:hoc.qk2@gmail.com'}
+                  >
+                    Email: hoc.qk2@gmail.com
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => window.open('https://www.facebook.com/thorangsun3112/', '_blank')}
+                  >
+                    Facebook hỗ trợ
+                  </Button>
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  Phản hồi trong vòng 24 giờ
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
