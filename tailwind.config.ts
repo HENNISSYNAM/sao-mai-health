@@ -52,8 +52,12 @@ export default {
 					foreground: 'hsl(var(--info-foreground))'
 				},
 				dengue: 'hsl(var(--dengue))',
+				covid19: 'hsl(var(--covid19))',
 				tcm: 'hsl(var(--tcm))',
 				ari: 'hsl(var(--ari))',
+				hfmd: 'hsl(var(--hfmd))',
+				h1n1: 'hsl(var(--h1n1))',
+				malaria: 'hsl(var(--malaria))',
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
 					foreground: 'hsl(var(--destructive-foreground))'

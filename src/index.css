@@ -38,10 +38,14 @@
     --info: 199 89% 48%; /* #0284C7 */
     --info-foreground: 0 0% 100%;
     
-    /* Disease Tracking Colors */
-    --dengue: 0 84% 60%;
-    --tcm: 43 96% 56%;
-    --ari: 221 83% 53%;
+    /* Disease Tracking Colors - Distinct & Accessible */
+    --dengue: 0 84% 60%; /* #F87171 - Red for Dengue Fever */
+    --covid19: 221 83% 53%; /* #3B82F6 - Blue for COVID-19 */
+    --tcm: 43 96% 56%; /* #EAB308 - Yellow for Hand-Foot-Mouth */
+    --ari: 168 76% 42%; /* #059669 - Green for Respiratory Infections */
+    --hfmd: 271 91% 65%; /* #A855F7 - Purple for HFMD */
+    --h1n1: 17 88% 40%; /* #DC2626 - Orange for H1N1 */
+    --malaria: 281 83% 57%; /* #9333EA - Violet for Malaria */
 
     /* Component Tokens */
     --background: 215 29% 97%;

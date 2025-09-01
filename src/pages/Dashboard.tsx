@@ -114,6 +114,10 @@ export default function Dashboard() {
     if (title.toLowerCase().includes('dengue')) return 'dengue'
     if (title.toLowerCase().includes('covid')) return 'covid19'
     if (title.toLowerCase().includes('hfmd')) return 'hfmd'
+    if (title.toLowerCase().includes('tcm')) return 'tcm'
+    if (title.toLowerCase().includes('h1n1')) return 'h1n1'
+    if (title.toLowerCase().includes('malaria')) return 'malaria'
+    if (title.toLowerCase().includes('ari')) return 'ari'
     return 'unknown'
   }
 
@@ -258,23 +262,59 @@ export default function Dashboard() {
               {alerts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Không có cảnh báo</p>
               ) : (
-                alerts.slice(0, 5).map((alert) => (
-                  <div key={alert.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <Badge 
-                        variant={alert.status === 'open' ? 'destructive' : 'secondary'}
-                      >
-                        {alert.status === 'open' ? 'Mở' : 'Đóng'}
-                      </Badge>
-                      <span className="text-sm">
-                        {alert.disease_code} - {alert.cases} ca tại {alert.day}
+                alerts.slice(0, 5).map((alert) => {
+                  const getDiseaseColor = (disease: string) => {
+                    const colors: Record<string, string> = {
+                      dengue: 'hsl(var(--dengue))',
+                      covid19: 'hsl(var(--covid19))',
+                      tcm: 'hsl(var(--tcm))',
+                      ari: 'hsl(var(--ari))',
+                      hfmd: 'hsl(var(--hfmd))',
+                      h1n1: 'hsl(var(--h1n1))',
+                      malaria: 'hsl(var(--malaria))'
+                    }
+                    return colors[disease] || 'hsl(var(--muted))'
+                  }
+
+                  const getDiseaseName = (code: string) => {
+                    const names: Record<string, string> = {
+                      dengue: 'Sốt xuất huyết',
+                      covid19: 'COVID-19',
+                      tcm: 'Tay chân miệng',
+                      ari: 'Nhiễm khuẩn hô hấp',
+                      hfmd: 'Tay chân miệng',
+                      h1n1: 'Cúm H1N1',
+                      malaria: 'Sốt rét'
+                    }
+                    return names[code] || code
+                  }
+
+                  return (
+                    <div key={alert.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: getDiseaseColor(alert.disease_code) }}
+                        />
+                        <Badge 
+                          variant={alert.status === 'open' ? 'destructive' : 'secondary'}
+                          className="text-xs"
+                        >
+                          {alert.status === 'open' ? 'Mở' : 'Đóng'}
+                        </Badge>
+                        <span className="text-sm font-medium">
+                          {getDiseaseName(alert.disease_code)} - {alert.cases} ca
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(alert.day).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(alert.created_at).toLocaleTimeString('vi-VN')}
                       </span>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(alert.created_at).toLocaleTimeString('vi-VN')}
-                    </span>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
           </CardContent>
