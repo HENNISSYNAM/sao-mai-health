@@ -247,7 +247,7 @@ export default function Dashboard() {
         <DashboardChart
           title="Xu hướng ca bệnh (7 ngày)"
           data={trendData}
-          type="line"
+          type="area"
           multiSeries={false}
         />
         <Card className="rounded-2xl shadow-sm">
