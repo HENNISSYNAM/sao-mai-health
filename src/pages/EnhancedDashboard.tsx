@@ -150,17 +150,19 @@ export default function EnhancedDashboard() {
         </div>
         
         <div className="flex items-center gap-3">
-          {/* System Status - Consolidated */}
+          {/* Connection Status */}
           <div className="flex items-center gap-2">
-            <Badge 
-              variant={isOnline ? "default" : "destructive"}
-              className={isOnline ? "bg-success text-white" : "bg-danger text-white"}
-            >
-              {isOnline ? "Online" : "Offline"}
-            </Badge>
-            <span className="text-xs text-muted-foreground">
-              Cập nhật: {new Date().toLocaleTimeString('vi-VN')}
-            </span>
+            {isOnline ? (
+              <>
+                <Wifi className="h-4 w-4 text-success" />
+                <span className="text-sm text-success">Online</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-4 w-4 text-danger" />
+                <span className="text-sm text-danger">Offline</span>
+              </>
+            )}
             
             {pendingSync > 0 && (
               <Badge variant="outline" className="bg-warning text-white">
@@ -226,21 +228,21 @@ export default function EnhancedDashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KpiCard
-          title="Ca bệnh hôm nay"
+          title="Ca mới hôm nay"
           value={getMetricValue('Ca mới hôm nay')}
           change={getMetricTrend('Ca mới hôm nay')}
           icon={Users}
-          variant="info"
+          variant="default"
         />
         <KpiCard
-          title="Chỉ số lây nhiễm (Rt)"
+          title="Rt 7 ngày"
           value={getMetricValue('Rt 7 ngày')}
           change={getMetricTrend('Rt 7 ngày')}
           icon={TrendingUp}
-          variant="warning"
+          variant="info"
         />
         <KpiCard
-          title="Công suất giường bệnh"
+          title="Công suất giường"
           value={getMetricValue('Công suất giường')}
           change={getMetricTrend('Công suất giường')}
           icon={Bed}
@@ -318,7 +320,7 @@ export default function EnhancedDashboard() {
                   {getPriorityBadge(alert.priority)}
                   <Badge variant="outline" className="text-xs">
                     <Clock className="h-3 w-3 mr-1" />
-                    {new Date(alert.created_at).toLocaleDateString('vi-VN')} {new Date(alert.created_at).toLocaleTimeString('vi-VN')}
+                    {new Date(alert.created_at).toLocaleString('vi-VN')}
                   </Badge>
                 </div>
               </div>

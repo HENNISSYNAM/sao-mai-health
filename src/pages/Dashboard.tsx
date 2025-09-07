@@ -162,11 +162,11 @@ export default function Dashboard() {
         variant: openAlerts > 5 ? 'danger' as const : 'warning' as const
       },
       {
-        title: "Số bệnh có ca trong 7 ngày",
+        title: "Bệnh (7 ngày)",
         value: recentDiseases.toString(),
         change: { value: 1, type: 'increase' as const },
         icon: Activity,
-        variant: 'warning' as const
+        variant: 'success' as const
       },
       {
         title: "Tỷ lệ tiêm chủng",
@@ -222,14 +222,11 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Giám sát y tế công cộng TP. Hồ Chí Minh</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge 
-            variant={countsConnected && alertsConnected ? "default" : "destructive"}
-            className={countsConnected && alertsConnected ? "bg-success text-white" : "bg-danger text-white"}
-          >
-            {countsConnected && alertsConnected ? "Online" : "Offline"}
+          <Badge variant={countsConnected && alertsConnected ? "default" : "secondary"}>
+            {countsConnected && alertsConnected ? "Live" : "Offline"}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            Cập nhật: {nowTs.toLocaleTimeString('vi-VN')}
+            {nowTs.toLocaleTimeString('vi-VN')}
           </span>
         </div>
       </div>
@@ -264,29 +261,18 @@ export default function Dashboard() {
                 alerts.slice(0, 5).map((alert) => (
                   <div key={alert.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
-                     <Badge 
-                        variant={
-                          alert.status === 'open' ? 'destructive' : 
-                          alert.status === 'investigating' ? 'secondary' : 
-                          'outline'
-                        }
-                        className={
-                          alert.status === 'open' ? 'bg-danger text-white' :
-                          alert.status === 'investigating' ? 'bg-warning text-white' :
-                          'bg-muted text-muted-foreground'
-                        }
+                      <Badge 
+                        variant={alert.status === 'open' ? 'destructive' : 'secondary'}
                       >
-                        {alert.status === 'open' ? 'Mở' : 
-                         alert.status === 'investigating' ? 'Đang theo dõi' : 
-                         'Đóng'}
+                        {alert.status === 'open' ? 'Mở' : 'Đóng'}
                       </Badge>
                       <span className="text-sm">
                         {alert.disease_code} - {alert.cases} ca tại {alert.day}
                       </span>
                     </div>
-                     <span className="text-xs text-muted-foreground">
-                        {new Date(alert.created_at).toLocaleDateString('vi-VN')} {new Date(alert.created_at).toLocaleTimeString('vi-VN')}
-                      </span>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(alert.created_at).toLocaleTimeString('vi-VN')}
+                    </span>
                   </div>
                 ))
               )}
