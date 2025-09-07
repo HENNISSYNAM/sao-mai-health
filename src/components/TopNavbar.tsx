@@ -181,15 +181,21 @@ export function TopNavbar() {
           className={`h-2 w-2 rounded-full ${realtimeStatus.connected ? 'bg-green-500' : 'bg-red-500'}`}
           title={realtimeStatus.connected ? 'Kết nối realtime' : 'Mất kết nối'}
         />
-        {realtimeStatus.connected ? (
-          <Wifi className="h-4 w-4 text-green-600" />
-        ) : (
-          <WifiOff className="h-4 w-4 text-red-600" />
-        )}
-      </div>
-      <span className="text-xs text-muted-foreground hidden sm:inline">
-        {realtimeStatus.connected ? 'Online' : 'Offline'}
-      </span>
+            {realtimeStatus.connected ? (
+              <Wifi className="h-4 w-4 text-success" />
+            ) : (
+              <WifiOff className="h-4 w-4 text-danger" />
+            )}
+          </div>
+          <Badge 
+            variant={realtimeStatus.connected ? "default" : "destructive"}
+            className={`text-xs hidden sm:inline-flex ${realtimeStatus.connected ? "bg-success text-white" : "bg-danger text-white"}`}
+          >
+            {realtimeStatus.connected ? 'Online' : 'Offline'}
+          </Badge>
+          <span className="text-xs text-muted-foreground hidden sm:inline">
+            Cập nhật: {new Date().toLocaleTimeString('vi-VN')}
+          </span>
     </div>
   );
 

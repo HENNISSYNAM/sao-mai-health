@@ -44,6 +44,23 @@ export function KpiCard({ title, value, change, icon: Icon, variant = 'default' 
     }
   }
 
+  const getChangeColor = () => {
+    if (!change) return ''
+    
+    // For disease/case related metrics, increase is bad (red), decrease is good (green)
+    if (title.toLowerCase().includes('ca bệnh') || title.toLowerCase().includes('cảnh báo')) {
+      return change.type === 'increase' ? 'text-danger' : 'text-success'
+    }
+    
+    // For positive metrics like vaccination rate, increase is good (green), decrease is bad (red)
+    if (title.toLowerCase().includes('tiêm chủng') || title.toLowerCase().includes('khỏi bệnh')) {
+      return change.type === 'increase' ? 'text-success' : 'text-danger'
+    }
+    
+    // Default: increase good, decrease bad
+    return change.type === 'increase' ? 'text-success' : 'text-danger'
+  }
+
   return (
     <Card className={cn("transition-all hover:shadow-md", getVariantStyles())}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -53,11 +70,11 @@ export function KpiCard({ title, value, change, icon: Icon, variant = 'default' 
         <Icon className={cn("h-4 w-4", getIconColor())} />
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+        <div className="text-2xl font-bold">{typeof value === 'number' ? value.toLocaleString('vi-VN') : value}</div>
         {change && (
           <p className={cn(
             "text-xs flex items-center gap-1 mt-1",
-            change.type === 'increase' ? 'text-success' : 'text-danger'
+            getChangeColor()
           )}>
             <span>{change.type === 'increase' ? '↗' : '↘'}</span>
             {Math.abs(change.value)}% so với tuần trước

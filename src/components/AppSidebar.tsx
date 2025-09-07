@@ -139,8 +139,8 @@ export function AppSidebar() {
                         className={getNavCls}
                         onMouseEnter={() => handleMouseEnter(item.url)}
                       >
-                        <item.icon className={`h-5 w-5 flex-shrink-0 ${item.color}`} />
-                        {!collapsed && <span className={`font-medium text-sm ${item.color}`}>{item.title}</span>}
+                        <item.icon className="h-5 w-5 flex-shrink-0" />
+                        {!collapsed && <span className="font-medium text-sm">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
