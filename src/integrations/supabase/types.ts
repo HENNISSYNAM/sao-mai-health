@@ -532,6 +532,109 @@ export type Database = {
           },
         ]
       }
+      coupon_usage: {
+        Row: {
+          coupon_id: string
+          id: string
+          points_saved: number
+          reward_id: string | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          coupon_id: string
+          id?: string
+          points_saved: number
+          reward_id?: string | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          coupon_id?: string
+          id?: string
+          points_saved?: number
+          reward_id?: string | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usage_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "rewards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usage_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "user_reward_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          min_points_required: number | null
+          title: string
+          updated_at: string | null
+          used_count: number | null
+          valid_from: string | null
+          valid_until: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          min_points_required?: number | null
+          title: string
+          updated_at?: string | null
+          used_count?: number | null
+          valid_from?: string | null
+          valid_until: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          min_points_required?: number | null
+          title?: string
+          updated_at?: string | null
+          used_count?: number | null
+          valid_from?: string | null
+          valid_until?: string
+        }
+        Relationships: []
+      }
       daily_counts: {
         Row: {
           cases: number
@@ -1127,6 +1230,24 @@ export type Database = {
         }
         Relationships: []
       }
+      idempotency_keys: {
+        Row: {
+          created_at: string
+          key: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           category: string
@@ -1243,6 +1364,30 @@ export type Database = {
           },
         ]
       }
+      ledger: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delta: number
+          id?: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       map_overlays: {
         Row: {
           id: string
@@ -1315,6 +1460,7 @@ export type Database = {
           customer_name: string | null
           email: string
           id: string
+          idea_summary: string | null
           name: string
           notes: string | null
           order_code: string | null
@@ -1346,6 +1492,7 @@ export type Database = {
           customer_name?: string | null
           email: string
           id?: string
+          idea_summary?: string | null
           name: string
           notes?: string | null
           order_code?: string | null
@@ -1377,6 +1524,7 @@ export type Database = {
           customer_name?: string | null
           email?: string
           id?: string
+          idea_summary?: string | null
           name?: string
           notes?: string | null
           order_code?: string | null
@@ -1556,22 +1704,82 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           email: string | null
           email_norm: string | null
+          full_name: string | null
           user_id: string
+          username: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           email_norm?: string | null
+          full_name?: string | null
           user_id: string
+          username?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           email?: string | null
           email_norm?: string | null
+          full_name?: string | null
           user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      quotes: {
+        Row: {
+          contest_name: string | null
+          coupon_code: string | null
+          created_at: string
+          customer_name: string
+          email: string
+          email_verified: boolean | null
+          id: string
+          idea_summary: string | null
+          organization: string | null
+          pricing_config: Json
+          student_mode: boolean | null
+          total_amount: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          contest_name?: string | null
+          coupon_code?: string | null
+          created_at?: string
+          customer_name: string
+          email: string
+          email_verified?: boolean | null
+          id?: string
+          idea_summary?: string | null
+          organization?: string | null
+          pricing_config?: Json
+          student_mode?: boolean | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          contest_name?: string | null
+          coupon_code?: string | null
+          created_at?: string
+          customer_name?: string
+          email?: string
+          email_verified?: boolean | null
+          id?: string
+          idea_summary?: string | null
+          organization?: string | null
+          pricing_config?: Json
+          student_mode?: boolean | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2245,6 +2453,7 @@ export type Database = {
       }
       wallets: {
         Row: {
+          balance: number
           credit_balance: number | null
           gp_balance: number | null
           updated_at: string | null
@@ -2252,6 +2461,7 @@ export type Database = {
           vnd_balance: number | null
         }
         Insert: {
+          balance?: number
           credit_balance?: number | null
           gp_balance?: number | null
           updated_at?: string | null
@@ -2259,6 +2469,7 @@ export type Database = {
           vnd_balance?: number | null
         }
         Update: {
+          balance?: number
           credit_balance?: number | null
           gp_balance?: number | null
           updated_at?: string | null
@@ -2525,6 +2736,12 @@ export type Database = {
         Args: { geom1: unknown; geom2: unknown }
         Returns: boolean
       }
+      add_points: {
+        Args:
+          | { p_amount: number; p_note?: string }
+          | { points_amount: number; user_id: string }
+        Returns: undefined
+      }
       addauth: {
         Args: { "": string }
         Returns: boolean
@@ -2559,6 +2776,28 @@ export type Database = {
               use_typmod?: boolean
             }
         Returns: string
+      }
+      alltime_leaderboard: {
+        Args: { limit_count?: number; offset_count?: number }
+        Returns: {
+          avatar_url: string
+          co2_saved: number
+          display_name: string
+          last_activity: string
+          points: number
+          rank: number
+          user_id: string
+        }[]
+      }
+      apply_coupon: {
+        Args: { p_coupon_code: string; p_reward_id?: string; p_user_id: string }
+        Returns: {
+          discount_type: string
+          discount_value: number
+          final_points: number
+          message: string
+          success: boolean
+        }[]
       }
       box: {
         Args: { "": unknown } | { "": unknown }
@@ -2653,6 +2892,10 @@ export type Database = {
           | { catalog_name: string; schema_name: string; table_name: string }
           | { schema_name: string; table_name: string }
           | { table_name: string }
+        Returns: string
+      }
+      email_to_userid: {
+        Args: { p_email: string }
         Returns: string
       }
       enablelongtransactions: {
@@ -2921,6 +3164,19 @@ export type Database = {
         Args: { "": string }
         Returns: unknown
       }
+      get_available_coupons: {
+        Args: { p_user_id: string }
+        Returns: {
+          code: string
+          description: string
+          discount_type: string
+          discount_value: number
+          id: string
+          min_points_required: number
+          title: string
+          valid_until: string
+        }[]
+      }
       get_leaderboard: {
         Args: { limit_n?: number }
         Returns: {
@@ -2930,6 +3186,10 @@ export type Database = {
           rank: number
           score: number
         }[]
+      }
+      get_my_balance: {
+        Args: Record<PropertyKey, never> | { user_id?: string }
+        Returns: number
       }
       get_points_available: {
         Args: { p_user: string }
@@ -3019,6 +3279,23 @@ export type Database = {
       metrics_json: {
         Args: { in_date: string; in_metric: string }
         Returns: Json
+      }
+      monthly_leaderboard: {
+        Args: {
+          end_ts?: string
+          limit_count?: number
+          offset_count?: number
+          start_ts?: string
+        }
+        Returns: {
+          avatar_url: string
+          co2_saved: number
+          display_name: string
+          last_activity: string
+          points: number
+          rank: number
+          user_id: string
+        }[]
       }
       normalize_email: {
         Args: { raw: string }
@@ -3234,6 +3511,15 @@ export type Database = {
       refresh_baseline: {
         Args: { in_date: string }
         Returns: undefined
+      }
+      send_points_simple: {
+        Args: {
+          p_amount: number
+          p_idempotency_key?: string
+          p_note?: string
+          p_recipient_email: string
+        }
+        Returns: Json
       }
       set_limit: {
         Args: { "": number }
@@ -4349,6 +4635,18 @@ export type Database = {
       user_has_redeemed_reward: {
         Args: { reward_id: string; user_id: string }
         Returns: boolean
+      }
+      weekly_leaderboard: {
+        Args: { limit_count?: number; offset_count?: number }
+        Returns: {
+          avatar_url: string
+          co2_saved: number
+          display_name: string
+          last_activity: string
+          points: number
+          rank: number
+          user_id: string
+        }[]
       }
     }
     Enums: {
