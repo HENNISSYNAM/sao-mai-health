@@ -80,6 +80,67 @@ export default function Campaigns() {
   const [showQRCheckIn, setShowQRCheckIn] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
 
+  // Rich demo data for campaigns
+  const demoCampaigns: Campaign[] = [
+    {
+      id: "demo-1",
+      name: "Chiến dịch Tiêm vaccine COVID-19 Q1",
+      description: "Tiêm vaccine COVID-19 cho người dân Quận 1 - đợt 1",
+      start_date: "2024-01-15",
+      end_date: "2024-01-25", 
+      target_participants: 5000,
+      priority_groups: ["Người cao tuổi", "Người có bệnh nền"],
+      status: 'completed' as const,
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString()
+    },
+    {
+      id: "demo-2", 
+      name: "Sàng lọc Sức khỏe Cộng đồng Q5",
+      description: "Khám sức khỏe miễn phí cho người dân Quận 5",
+      start_date: "2024-02-01",
+      end_date: "2024-02-10",
+      target_participants: 2000,
+      priority_groups: ["Trẻ em dưới 5 tuổi", "Phụ nữ mang thai"],
+      status: 'ongoing' as const,
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString()
+    },
+    {
+      id: "demo-3",
+      name: "Phòng chống Sốt xuất huyết TPHCM",
+      description: "Diệt muỗi và tuyên truyền phòng chống sốt xuất huyết",
+      start_date: "2024-02-15", 
+      end_date: "2024-03-15",
+      target_participants: 10000,
+      priority_groups: ["Khu vực có ca bệnh", "Trường học"],
+      status: 'scheduled' as const,
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString()
+    },
+    {
+      id: "demo-4",
+      name: "Tiêm vaccine Viêm gan B trẻ em",
+      description: "Chiến dịch tiêm vaccine Viêm gan B cho trẻ em dưới 1 tuổi",
+      start_date: "2024-03-01",
+      end_date: "2024-03-31",
+      target_participants: 1500,
+      priority_groups: ["Trẻ sơ sinh", "Trẻ dưới 1 tuổi"],
+      status: 'scheduled' as const,
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString()
+    }
+  ];
+
+  const demoSlots: CampaignSlot[] = [
+    { id: "slot-1", campaign_id: "demo-1", ward: "Phường Bến Nghé", total_slots: 500, allocated_slots: 480, capacity_constraint: 500 },
+    { id: "slot-2", campaign_id: "demo-1", ward: "Phường Bến Thành", total_slots: 400, allocated_slots: 395, capacity_constraint: 400 },
+    { id: "slot-3", campaign_id: "demo-2", ward: "Phường 1", total_slots: 300, allocated_slots: 250, capacity_constraint: 300 },
+    { id: "slot-4", campaign_id: "demo-3", ward: "Phường Tân Định", total_slots: 800, allocated_slots: 200, capacity_constraint: 800 }
+  ];
+
+  const demoCheckins: CampaignCheckIn[] = [
+    { id: "checkin-1", campaign_id: "demo-2", participant_name: "Nguyễn Văn A", ward: "Phường 1", phone: "0901234567", check_in_time: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
+    { id: "checkin-2", campaign_id: "demo-2", participant_name: "Trần Thị B", ward: "Phường 1", phone: "0901234568", check_in_time: new Date(Date.now() - 1000 * 60 * 45).toISOString() },
+    { id: "checkin-3", campaign_id: "demo-2", participant_name: "Lê Văn C", ward: "Phường 1", phone: "0901234569", check_in_time: new Date(Date.now() - 1000 * 60 * 15).toISOString() }
+  ];
+
   useEffect(() => {
     fetchCampaigns();
     fetchSlots();
@@ -122,17 +183,20 @@ export default function Campaigns() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setCampaigns((data || []).map(campaign => ({
+      // Combine demo data with real data
+      setCampaigns([...demoCampaigns, ...(data || []).map(campaign => ({
         ...campaign,
         priority_groups: Array.isArray(campaign.priority_groups) ? campaign.priority_groups : [],
         status: campaign.status as 'scheduled' | 'ongoing' | 'completed' | 'cancelled',
         description: campaign.description || ''
-      })));
+      }))]);
     } catch (error) {
       console.error('Error fetching campaigns:', error);
+      // Use only demo data if database fails
+      setCampaigns(demoCampaigns);
       toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách chiến dịch",
+        title: "Lỗi", 
+        description: "Không thể tải từ database, hiển thị dữ liệu demo",
         variant: "destructive",
       });
     } finally {

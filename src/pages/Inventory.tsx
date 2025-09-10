@@ -60,8 +60,9 @@ const Inventory = () => {
     schema: 'public'
   });
 
-  // Mock inventory data
+  // Rich mock inventory data
   const mockItems: InventoryItem[] = [
+    // Vaccines
     {
       id: "1",
       code: "VAC001",
@@ -81,6 +82,41 @@ const Inventory = () => {
     },
     {
       id: "2",
+      code: "VAC002", 
+      name: "Vaccine Hepatitis B",
+      category: "vaccine",
+      unit: "doses",
+      storage_type: "refrigerated",
+      min_temp: 2,
+      max_temp: 8,
+      reorder_point: 50,
+      max_stock: 500,
+      total_stock: 80,
+      available_stock: 65,
+      reserved_stock: 15,
+      expiring_soon: 5,
+      stock_status: 'adequate'
+    },
+    {
+      id: "3",
+      code: "VAC003",
+      name: "Vaccine Sởi - Rubella",
+      category: "vaccine", 
+      unit: "doses",
+      storage_type: "refrigerated",
+      min_temp: 2,
+      max_temp: 8,
+      reorder_point: 30,
+      max_stock: 300,
+      total_stock: 25,
+      available_stock: 20,
+      reserved_stock: 5,
+      expiring_soon: 3,
+      stock_status: 'critical'
+    },
+    // Medications
+    {
+      id: "4",
       code: "MED001",
       name: "Paracetamol 500mg",
       category: "medication",
@@ -95,36 +131,133 @@ const Inventory = () => {
       stock_status: 'critical'
     },
     {
-      id: "3",
+      id: "5",
+      code: "MED002",
+      name: "Amoxicillin 250mg",
+      category: "medication",
+      unit: "capsules",
+      storage_type: "normal",
+      reorder_point: 200,
+      max_stock: 2000,
+      total_stock: 450,
+      available_stock: 420,
+      reserved_stock: 30,
+      expiring_soon: 15,
+      stock_status: 'adequate'
+    },
+    {
+      id: "6",
+      code: "MED003",
+      name: "Insulin Human",
+      category: "medication",
+      unit: "vials",
+      storage_type: "refrigerated",
+      min_temp: 2,
+      max_temp: 8,
+      reorder_point: 20,
+      max_stock: 100,
+      total_stock: 5,
+      available_stock: 3,
+      reserved_stock: 2,
+      expiring_soon: 1,
+      stock_status: 'critical'
+    },
+    // Supplies
+    {
+      id: "7",
       code: "SUP001",
       name: "Surgical Mask N95",
-      category: "medical_supply",
+      category: "supplies",
       unit: "pieces",
       storage_type: "normal",
       reorder_point: 1000,
       max_stock: 10000,
-      total_stock: 800,
-      available_stock: 750,
-      reserved_stock: 50,
+      total_stock: 2500,
+      available_stock: 2200,
+      reserved_stock: 300,
       expiring_soon: 0,
-      stock_status: 'low'
+      stock_status: 'adequate'
     },
     {
-      id: "4",
-      code: "VAC002",
-      name: "Vaccine Hepatitis B",
-      category: "vaccine",
-      unit: "doses",
-      storage_type: "cold_chain",
-      min_temp: 2,
-      max_temp: 8,
-      reorder_point: 50,
-      max_stock: 500,
-      total_stock: 80,
-      available_stock: 75,
-      reserved_stock: 5,
-      expiring_soon: 10,
+      id: "8",
+      code: "SUP002",
+      name: "Disposable Gloves",
+      category: "supplies",
+      unit: "pairs",
+      storage_type: "normal",
+      reorder_point: 500,
+      max_stock: 5000,
+      total_stock: 150,
+      available_stock: 120,
+      reserved_stock: 30,
+      expiring_soon: 0,
+      stock_status: 'critical'
+    },
+    {
+      id: "9",
+      code: "SUP003",
+      name: "Syringes 5ml",
+      category: "supplies",
+      unit: "pieces",
+      storage_type: "normal",
+      reorder_point: 200,
+      max_stock: 2000,
+      total_stock: 350,
+      available_stock: 320,
+      reserved_stock: 30,
+      expiring_soon: 0,
       stock_status: 'adequate'
+    },
+    // Emergency supplies
+    {
+      id: "10",
+      code: "EMG001",
+      name: "Blood Bag O+",
+      category: "blood_products",
+      unit: "bags",
+      storage_type: "refrigerated",
+      min_temp: 1,
+      max_temp: 6,
+      reorder_point: 10,
+      max_stock: 50,
+      total_stock: 8,
+      available_stock: 6,
+      reserved_stock: 2,
+      expiring_soon: 3,
+      stock_status: 'critical'
+    },
+    {
+      id: "11",
+      code: "EMG002",
+      name: "Plasma AB",
+      category: "blood_products",
+      unit: "bags",
+      storage_type: "frozen",
+      min_temp: -18,
+      max_temp: -12,
+      reorder_point: 5,
+      max_stock: 25,
+      total_stock: 12,
+      available_stock: 10,
+      reserved_stock: 2,
+      expiring_soon: 1,
+      stock_status: 'adequate'
+    },
+    // Test kits
+    {
+      id: "12",
+      code: "TEST001",
+      name: "COVID-19 Rapid Test",
+      category: "test_kits",
+      unit: "kits",
+      storage_type: "normal",
+      reorder_point: 100,
+      max_stock: 1000,
+      total_stock: 50,
+      available_stock: 45,
+      reserved_stock: 5,
+      expiring_soon: 20,
+      stock_status: 'low'
     }
   ];
 

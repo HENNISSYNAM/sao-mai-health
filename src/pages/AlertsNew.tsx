@@ -46,28 +46,134 @@ export default function AlertsNew() {
 
   const fetchAlerts = async () => {
     try {
-      // Use mock data since alerts table structure doesn't match
+      // Rich mock data with HCMC disease alerts
       const mockAlerts: Alert[] = [
         {
-          id: 'mock-1',
-          disease_code: 'dengue',
-          day: new Date().toISOString().split('T')[0],
-          cases: 25,
-          status: 'open',
-          created_at: new Date().toISOString(),
-          rule: 'Vượt ngưỡng hàng ngày'
+          id: "alert-1",
+          disease_code: "dengue",
+          day: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString().split('T')[0],
+          cases: 15,
+          status: "open",
+          rule: "Vượt ngưỡng 10 ca/ngày",
+          district_id: "District_01", 
+          ward_id: "Ward_BenThanh",
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
         },
         {
-          id: 'mock-2',
-          disease_code: 'covid19',
-          day: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          id: "alert-2",
+          disease_code: "covid",
+          day: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString().split('T')[0],
+          cases: 45,
+          status: "acknowledged",
+          rule: "Tăng 50% so với tuần trước",
+          district_id: "District_05",
+          ward_id: "Ward_12_Q5", 
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString()
+        },
+        {
+          id: "alert-3",
+          disease_code: "influenza",
+          day: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString().split('T')[0],
+          cases: 28,
+          status: "open",
+          rule: "Vượt ngưỡng mùa (25 ca)",
+          district_id: "District_03",
+          ward_id: "Ward_01_Q3",
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString()
+        },
+        {
+          id: "alert-4",
+          disease_code: "dengue",
+          day: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString().split('T')[0],
           cases: 12,
-          status: 'closed',
-          created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-          closed_at: new Date().toISOString()
+          status: "closed",
+          rule: "Vượt ngưỡng 10 ca/ngày",
+          district_id: "District_07",
+          ward_id: "Ward_TanBinh",
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
+          closed_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString()
+        },
+        {
+          id: "alert-5",
+          disease_code: "hand_foot_mouth",
+          day: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString().split('T')[0],
+          cases: 8,
+          status: "open",
+          rule: "Cụm ca bệnh trong trường học",
+          district_id: "District_10",
+          ward_id: "Ward_02_Q10",
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString()
+        },
+        {
+          id: "alert-6",
+          disease_code: "tuberculosis",
+          day: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString().split('T')[0],
+          cases: 3,
+          status: "acknowledged",
+          rule: "Ca bệnh tại khu dân cư đông đúc",
+          district_id: "District_08",
+          ward_id: "Ward_15_Q8",
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString()
+        },
+        {
+          id: "alert-7", 
+          disease_code: "malaria",
+          day: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString().split('T')[0],
+          cases: 2,
+          status: "open",
+          rule: "Ca bệnh nhập cảnh",
+          district_id: "District_12",
+          ward_id: "Ward_AnPhu",
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 18).toISOString()
+        },
+        {
+          id: "alert-8",
+          disease_code: "food_poisoning",
+          day: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString().split('T')[0],
+          cases: 22,
+          status: "open",
+          rule: "Ngộ độc thực phẩm tập thể",
+          district_id: "District_06",
+          ward_id: "Ward_05_Q6",
+          created_at: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString()
         }
-      ]
-      setAlerts(mockAlerts)
+      ];
+
+      const mockCandidates: AlertCandidate[] = [
+        {
+          disease_code: "dengue",
+          day: new Date().toISOString().split('T')[0],
+          cases: 9,
+          rule: "Gần đạt ngưỡng (10 ca/ngày)",
+          district_id: "District_02",
+          ward_id: "Ward_DaKao",
+          avg7: 6.2,
+          threshold_daily: 10
+        },
+        {
+          disease_code: "covid",
+          day: new Date().toISOString().split('T')[0], 
+          cases: 35,
+          rule: "Tăng 40% so với tuần trước",
+          district_id: "District_04",
+          ward_id: "Ward_06_Q4",
+          avg7: 25.1,
+          threshold_growth: 1.5
+        },
+        {
+          disease_code: "influenza",
+          day: new Date().toISOString().split('T')[0],
+          cases: 18,
+          rule: "Xu hướng tăng liên tục",
+          district_id: "District_09",
+          ward_id: "Ward_HinhChinh",
+          avg7: 15.8,
+          threshold_daily: 25
+        }
+      ];
+      
+      setAlerts(mockAlerts);
+      setCandidates(mockCandidates);
     } catch (error) {
       console.error('Error fetching alerts:', error)
     }
