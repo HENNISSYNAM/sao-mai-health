@@ -23,7 +23,7 @@ interface Encounter {
   ended_at?: string;
 }
 
-// Mock data for encounters
+// Enhanced mock data for encounters
 const mockEncounters: Encounter[] = [
   {
     id: '1',
@@ -35,7 +35,8 @@ const mockEncounters: Encounter[] = [
     status: 'arrived',
     triage_level: 2,
     chief_complaint: 'Đau ngực, khó thở',
-    started_at: new Date().toISOString()
+    diagnosis: 'Đánh giá cần thiết',
+    started_at: '2025-01-18T10:33:15.000Z'
   },
   {
     id: '2',
@@ -47,7 +48,59 @@ const mockEncounters: Encounter[] = [
     status: 'in-progress',
     triage_level: 4,
     chief_complaint: 'Khám định kỳ',
-    started_at: new Date(Date.now() - 60000).toISOString()
+    diagnosis: 'Khám định kỳ định kỳ',
+    started_at: '2025-01-18T10:32:15.000Z'
+  },
+  {
+    id: '3',
+    patient_id: 'p3',
+    patient_name: 'Lê Minh C',
+    facility_id: 'f1',
+    facility_name: 'Bệnh viện Chợ Rẫy',
+    encounter_type: 'emergency',
+    status: 'planned',
+    triage_level: 1,
+    chief_complaint: 'Tai nạn giao thông, chấn thương nặng',
+    started_at: '2025-01-18T11:00:00.000Z'
+  },
+  {
+    id: '4',
+    patient_id: 'p4',
+    patient_name: 'Phạm Thị D',
+    facility_id: 'f3',
+    facility_name: 'Bệnh viện Đại học Y Dược',
+    encounter_type: 'outpatient',
+    status: 'finished',
+    triage_level: 3,
+    chief_complaint: 'Đau bụng, buồn nôn',
+    diagnosis: 'Viêm dạ dày',
+    started_at: '2025-01-18T09:15:00.000Z',
+    ended_at: '2025-01-18T10:30:00.000Z'
+  },
+  {
+    id: '5',
+    patient_id: 'p5',
+    patient_name: 'Võ Văn E',
+    facility_id: 'f2',
+    facility_name: 'Phòng khám Đa khoa',
+    encounter_type: 'outpatient',
+    status: 'arrived',
+    triage_level: 5,
+    chief_complaint: 'Khám sức khỏe định kỳ',
+    started_at: '2025-01-18T10:45:00.000Z'
+  },
+  {
+    id: '6',
+    patient_id: 'p6',
+    patient_name: 'Hoàng Thị F',
+    facility_id: 'f1',
+    facility_name: 'Bệnh viện Bạch Mai',
+    encounter_type: 'inpatient',
+    status: 'in-progress',
+    triage_level: 2,
+    chief_complaint: 'Sốt cao, ho khan',
+    diagnosis: 'Nhiễm trúng đường hô hấp',
+    started_at: '2025-01-18T08:30:00.000Z'
   }
 ];
 
@@ -57,6 +110,10 @@ export default function Encounters() {
   const [triageNote, setTriageNote] = useState("");
   const [encounters, setEncounters] = useState<Encounter[]>(mockEncounters);
   const [isConnected] = useState(true); // Mock connection status
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newPatientName, setNewPatientName] = useState("");
+  const [newChiefComplaint, setNewChiefComplaint] = useState("");
+  const [newEncounterType, setNewEncounterType] = useState<'inpatient' | 'outpatient' | 'emergency'>('outpatient');
   const { toast } = useToast();
 
   const filteredEncounters = encounters.filter(encounter => {
@@ -70,11 +127,11 @@ export default function Encounters() {
 
   const getTriageColor = (level?: number) => {
     const colors = {
-      1: "bg-danger text-danger-foreground", // Resuscitation
-      2: "bg-warning text-warning-foreground", // Emergent
-      3: "bg-info text-info-foreground", // Urgent
-      4: "bg-secondary text-secondary-foreground", // Less urgent
-      5: "bg-success text-success-foreground" // Non-urgent
+      1: "bg-red-100 text-red-800 border-red-200", // Resuscitation - Red
+      2: "bg-orange-100 text-orange-800 border-orange-200", // Emergent - Orange  
+      3: "bg-blue-100 text-blue-800 border-blue-200", // Urgent - Blue
+      4: "bg-blue-50 text-blue-600 border-blue-200", // Less urgent - Light Blue
+      5: "bg-green-100 text-green-800 border-green-200" // Non-urgent - Green
     };
     return colors[level as keyof typeof colors] || "bg-muted text-muted-foreground";
   };
@@ -121,10 +178,48 @@ export default function Encounters() {
   };
 
   const handleStartEncounter = async (encounterId: string) => {
-    // In real implementation, call API
+    setEncounters(prev => prev.map(encounter => 
+      encounter.id === encounterId 
+        ? { ...encounter, status: 'in-progress' as const }
+        : encounter
+    ));
     toast({
       title: "Đã bắt đầu khám",
       description: "Trạng thái đã được cập nhật",
+    });
+  };
+
+  const handleCreateAppointment = async () => {
+    if (!newPatientName.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập tên bệnh nhân",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const newEncounter: Encounter = {
+      id: `new_${Date.now()}`,
+      patient_id: `p_${Date.now()}`,
+      patient_name: newPatientName,
+      facility_id: 'f1',
+      facility_name: 'Bệnh viện Bạch Mai',
+      encounter_type: newEncounterType,
+      status: 'planned',
+      chief_complaint: newChiefComplaint || undefined,
+      started_at: new Date().toISOString()
+    };
+
+    setEncounters(prev => [newEncounter, ...prev]);
+    setShowCreateDialog(false);
+    setNewPatientName("");
+    setNewChiefComplaint("");
+    setNewEncounterType('outpatient');
+    
+    toast({
+      title: "Đã tạo cuộc hẹn",
+      description: `Cuộc hẹn cho ${newPatientName} đã được tạo thành công`,
     });
   };
 
@@ -152,10 +247,73 @@ export default function Encounters() {
           <span className="text-sm text-text-500">
             {isConnected ? 'Realtime' : 'Offline'}
           </span>
-          <Button className="gap-2 focus-ring">
-            <Plus className="h-4 w-4" />
-            Tạo cuộc hẹn
-          </Button>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button className="gap-2 focus-ring bg-emerald-600 hover:bg-emerald-700">
+                <Plus className="h-4 w-4" />
+                Tạo cuộc hẹn
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Tạo cuộc hẹn mới</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-text-700 mb-2 block">
+                    Tên bệnh nhân *
+                  </label>
+                  <Input
+                    placeholder="Nhập tên bệnh nhân"
+                    value={newPatientName}
+                    onChange={(e) => setNewPatientName(e.target.value)}
+                    className="focus-ring"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-text-700 mb-2 block">
+                    Loại khám
+                  </label>
+                  <select 
+                    value={newEncounterType}
+                    onChange={(e) => setNewEncounterType(e.target.value as any)}
+                    className="w-full p-2 border border-border rounded-md focus-ring bg-card"
+                  >
+                    <option value="outpatient">Ngoại trú</option>
+                    <option value="inpatient">Nội trú</option>
+                    <option value="emergency">Cấp cứu</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-text-700 mb-2 block">
+                    Triệu chứng chính
+                  </label>
+                  <Textarea
+                    placeholder="Mô tả triệu chứng (tùy chọn)"
+                    value={newChiefComplaint}
+                    onChange={(e) => setNewChiefComplaint(e.target.value)}
+                    className="focus-ring"
+                    rows={3}
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    onClick={handleCreateAppointment}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    Tạo cuộc hẹn
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowCreateDialog(false)}
+                    className="flex-1"
+                  >
+                    Hủy
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -196,23 +354,40 @@ export default function Encounters() {
 
       {/* Triage Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {[1, 2, 3, 4, 5].map((level) => (
-          <Card key={level}>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${getTriageColor(level)}`}>
-                  <AlertTriangle className="h-5 w-5" />
+        {[1, 2, 3, 4, 5].map((level) => {
+          const count = encounters.filter(e => e.triage_level === level).length;
+          const colors = {
+            1: "border-red-200 bg-red-50",
+            2: "border-orange-200 bg-orange-50", 
+            3: "border-blue-200 bg-blue-50",
+            4: "border-blue-100 bg-blue-25",
+            5: "border-green-200 bg-green-50"
+          };
+          const iconColors = {
+            1: "bg-red-500",
+            2: "bg-orange-500",
+            3: "bg-blue-500", 
+            4: "bg-blue-400",
+            5: "bg-green-500"
+          };
+          return (
+            <Card key={level} className={`border ${colors[level as keyof typeof colors]}`}>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${iconColors[level as keyof typeof iconColors]} text-white`}>
+                    <AlertTriangle className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-text-500">ESI {level}</p>
+                    <p className="text-3xl font-bold text-text-900">
+                      {count}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-text-500">ESI {level}</p>
-                  <p className="text-2xl font-bold text-text-900">
-                    {encounters.filter(e => e.triage_level === level).length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       {/* Encounters Table */}
@@ -252,7 +427,7 @@ export default function Encounters() {
                     </td>
                     <td className="p-3">
                       {encounter.triage_level ? (
-                        <Badge className={getTriageColor(encounter.triage_level)}>
+                        <Badge variant="outline" className={`border ${getTriageColor(encounter.triage_level)}`}>
                           ESI {encounter.triage_level}
                         </Badge>
                       ) : (
@@ -276,7 +451,7 @@ export default function Encounters() {
                           <Button
                             size="sm"
                             onClick={() => handleStartEncounter(encounter.id)}
-                            className="focus-ring"
+                            className="focus-ring bg-emerald-600 hover:bg-emerald-700 text-white"
                           >
                             Bắt đầu khám
                           </Button>
