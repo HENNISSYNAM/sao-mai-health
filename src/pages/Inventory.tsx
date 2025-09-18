@@ -4,11 +4,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { DataTable } from "@/components/DataTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeHealth } from "@/hooks/useRealtimeHealth";
 import { ColumnDef } from "@tanstack/react-table";
-import { Package, AlertTriangle, TrendingDown, TrendingUp, Thermometer } from "lucide-react";
+import { Package, AlertTriangle, TrendingDown, TrendingUp, Thermometer, Plus, Download, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 interface InventoryItem {
@@ -46,6 +48,16 @@ const Inventory = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStorageType, setSelectedStorageType] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [stockInModalOpen, setStockInModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [stockInForm, setStockInForm] = useState({
+    quantity: "",
+    batchNumber: "",
+    expiryDate: "",
+    unitCost: "",
+    supplier: "",
+    notes: ""
+  });
 
   // Use realtime hooks
   const { data: realtimeStock } = useRealtimeHealth({
@@ -303,12 +315,84 @@ const Inventory = () => {
   }, [realtimeAlerts]);
 
   const handleStockIn = async (itemId: string) => {
+    const item = items.find(i => i.id === itemId);
+    if (item) {
+      setSelectedItem(item);
+      setStockInModalOpen(true);
+      setStockInForm({
+        quantity: "",
+        batchNumber: "",
+        expiryDate: "",
+        unitCost: "",
+        supplier: "",
+        notes: ""
+      });
+    }
+  };
+
+  const handleStockInSubmit = async () => {
+    if (!selectedItem || !stockInForm.quantity) {
+      toast.error("Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+
     try {
-      // TODO: Open stock in dialog
-      toast.success("Mở form nhập kho");
+      const quantity = parseFloat(stockInForm.quantity);
+      
+      // Update local state
+      setItems(prevItems => 
+        prevItems.map(item => 
+          item.id === selectedItem.id 
+            ? {
+                ...item,
+                total_stock: item.total_stock + quantity,
+                available_stock: item.available_stock + quantity,
+                stock_status: item.available_stock + quantity > item.reorder_point ? 'adequate' : item.stock_status
+              }
+            : item
+        )
+      );
+
+      setStockInModalOpen(false);
+      toast.success(`Đã nhập kho ${quantity} ${selectedItem.unit} - ${selectedItem.name}`);
     } catch (error) {
-      console.error('Error opening stock in:', error);
-      toast.error("Lỗi mở form nhập kho");
+      console.error('Error processing stock in:', error);
+      toast.error("Lỗi xử lý nhập kho");
+    }
+  };
+
+  const handleExportReport = () => {
+    try {
+      // Create CSV content
+      const headers = ["Mã", "Tên vật tư", "Loại", "Bảo quản", "Tồn kho", "Trạng thái", "Sắp hết hạn"];
+      const csvContent = [
+        headers.join(","),
+        ...filteredItems.map(item => [
+          item.code,
+          `"${item.name}"`,
+          item.category,
+          item.storage_type,
+          `${item.available_stock} ${item.unit}`,
+          item.stock_status,
+          item.expiring_soon > 0 ? `${item.expiring_soon} ${item.unit}` : "0"
+        ].join(","))
+      ].join("\n");
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `bao-cao-kho-ton-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success("Đã xuất báo cáo thành công");
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      toast.error("Lỗi xuất báo cáo");
     }
   };
 
@@ -506,11 +590,99 @@ const Inventory = () => {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button>
-            <Package className="h-4 w-4 mr-2" />
-            Nhập kho
-          </Button>
-          <Button variant="outline">
+          <Dialog open={stockInModalOpen} onOpenChange={setStockInModalOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Nhập kho
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Nhập kho vật tư</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                {selectedItem && (
+                  <div className="bg-muted p-3 rounded-lg">
+                    <p className="font-medium">{selectedItem.name}</p>
+                    <p className="text-sm text-muted-foreground">Mã: {selectedItem.code}</p>
+                    <p className="text-sm text-muted-foreground">Tồn kho hiện tại: {selectedItem.available_stock} {selectedItem.unit}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="quantity">Số lượng nhập *</Label>
+                    <Input
+                      id="quantity"
+                      type="number"
+                      placeholder="0"
+                      value={stockInForm.quantity}
+                      onChange={(e) => setStockInForm(prev => ({ ...prev, quantity: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="unitCost">Đơn giá</Label>
+                    <Input
+                      id="unitCost"
+                      type="number"
+                      placeholder="0"
+                      value={stockInForm.unitCost}
+                      onChange={(e) => setStockInForm(prev => ({ ...prev, unitCost: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="batchNumber">Số lô</Label>
+                    <Input
+                      id="batchNumber"
+                      placeholder="LOT001"
+                      value={stockInForm.batchNumber}
+                      onChange={(e) => setStockInForm(prev => ({ ...prev, batchNumber: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="expiryDate">Hạn sử dụng</Label>
+                    <Input
+                      id="expiryDate"
+                      type="date"
+                      value={stockInForm.expiryDate}
+                      onChange={(e) => setStockInForm(prev => ({ ...prev, expiryDate: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="supplier">Nhà cung cấp</Label>
+                  <Input
+                    id="supplier"
+                    placeholder="Tên nhà cung cấp"
+                    value={stockInForm.supplier}
+                    onChange={(e) => setStockInForm(prev => ({ ...prev, supplier: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="notes">Ghi chú</Label>
+                  <Input
+                    id="notes"
+                    placeholder="Ghi chú thêm..."
+                    value={stockInForm.notes}
+                    onChange={(e) => setStockInForm(prev => ({ ...prev, notes: e.target.value }))}
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleStockInSubmit} className="flex-1">
+                    <Package className="h-4 w-4 mr-2" />
+                    Xác nhận nhập kho
+                  </Button>
+                  <Button variant="outline" onClick={() => setStockInModalOpen(false)}>
+                    Hủy
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          <Button variant="outline" onClick={handleExportReport}>
+            <Download className="h-4 w-4 mr-2" />
             Xuất báo cáo
           </Button>
         </div>
