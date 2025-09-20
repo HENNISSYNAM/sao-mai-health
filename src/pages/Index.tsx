@@ -3,6 +3,7 @@ import { Activity, AlertTriangle, Building2, Heart, Users, TrendingUp, BarChart3
 import { KpiCard } from "@/components/KpiCard"
 import { DashboardChart } from "@/components/DashboardChart"
 import { DiseaseStreamChart } from "@/components/DiseaseStreamChart"
+import { AIAssistant } from "@/components/AIAssistant"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -455,6 +456,9 @@ const Index = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* AI Assistant */}
+      <AIAssistant position="corner" />
     </div>
   )
 };
