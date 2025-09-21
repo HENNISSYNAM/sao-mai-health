@@ -37,6 +37,59 @@ export type Database = {
           },
         ]
       }
+      ai_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: number
+          role: string
+          session_id: string | null
+          tokens: number | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: number
+          role: string
+          session_id?: string | null
+          tokens?: number | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: number
+          role?: string
+          session_id?: string | null
+          tokens?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       alerts: {
         Row: {
           avg7: number | null
@@ -844,6 +897,63 @@ export type Database = {
           rule_type?: string
           severity?: string | null
           table_name?: string
+        }
+        Relationships: []
+      }
+      edu_discount_usage: {
+        Row: {
+          applied_at: string
+          discount_amount: number
+          domain: string
+          email: string
+          expires_at: string
+          id: string
+        }
+        Insert: {
+          applied_at?: string
+          discount_amount?: number
+          domain: string
+          email: string
+          expires_at?: string
+          id?: string
+        }
+        Update: {
+          applied_at?: string
+          discount_amount?: number
+          domain?: string
+          email?: string
+          expires_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      edu_discounts: {
+        Row: {
+          applied_at: string
+          discount_amount: number
+          domain: string
+          eligible: boolean
+          email: string
+          expires_at: string
+          id: number
+        }
+        Insert: {
+          applied_at?: string
+          discount_amount?: number
+          domain: string
+          eligible?: boolean
+          email: string
+          expires_at: string
+          id?: number
+        }
+        Update: {
+          applied_at?: string
+          discount_amount?: number
+          domain?: string
+          eligible?: boolean
+          email?: string
+          expires_at?: string
+          id?: number
         }
         Relationships: []
       }
@@ -1729,6 +1839,24 @@ export type Database = {
           full_name?: string | null
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      promo_email_uses: {
+        Row: {
+          id: number
+          used_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          id?: number
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          id?: number
+          used_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2799,6 +2927,16 @@ export type Database = {
           success: boolean
         }[]
       }
+      apply_edu_discount: {
+        Args:
+          | { p_amount?: number; p_cooldown?: unknown; p_email: string }
+          | { p_email: string }
+        Returns: Json
+      }
+      apply_email_discount: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       box: {
         Args: { "": unknown } | { "": unknown }
         Returns: unknown
@@ -3361,7 +3499,7 @@ export type Database = {
         Args:
           | { tbl_oid: unknown; use_typmod?: boolean }
           | { use_typmod?: boolean }
-        Returns: string
+        Returns: number
       }
       postgis_addbbox: {
         Args: { "": unknown }
