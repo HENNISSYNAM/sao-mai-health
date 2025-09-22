@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Search, Filter, Download, Eye, Loader2, RefreshCcw } from "lucide-react"
+import { Search, Filter, Download, Eye, Loader2, RefreshCcw, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/pagination"
 import { useSurveillanceSearch } from "@/hooks/useSurveillanceSearch"
 import { useRealtime } from "@/hooks/useRealtime"
+import { CaseDetailModal } from "@/components/CaseDetailModal"
+import { AddCaseModal } from "@/components/AddCaseModal"
 import { toast } from "sonner"
 
 export default function Surveillance() {
@@ -36,6 +38,9 @@ export default function Surveillance() {
   const [diseaseFilter, setDiseaseFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
+  const [selectedCase, setSelectedCase] = useState(null)
+  const [showCaseModal, setShowCaseModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const pageSize = 20
 
   const {
@@ -51,6 +56,12 @@ export default function Surveillance() {
     pageSize,
     currentPage
   })
+
+  const handleCaseAdded = () => {
+    // Refresh data by resetting the page
+    setCurrentPage(1)
+    window.location.reload()
+  }
 
   // Real-time updates - using cases table (closest available)
   const { isConnected, data: realtimeData } = useRealtime({
@@ -135,16 +146,26 @@ export default function Surveillance() {
                 </div>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.location.reload()}
-              disabled={loading}
-              className="hover:bg-primary/10 transition-all duration-200"
-            >
-              <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Làm mới
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => window.location.reload()}
+                disabled={loading}
+                className="hover:bg-primary/10 transition-all duration-200"
+              >
+                <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                Làm mới
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setShowAddModal(true)}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Thêm ca mới
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -331,6 +352,10 @@ export default function Surveillance() {
                           <Button 
                             variant="ghost" 
                             size="icon"
+                            onClick={() => {
+                              setSelectedCase(case_)
+                              setShowCaseModal(true)
+                            }}
                             className="hover:bg-primary/10 hover:text-primary transition-colors duration-200"
                           >
                             <Eye className="h-4 w-4" />
@@ -418,6 +443,20 @@ export default function Surveillance() {
             )}
           </CardContent>
         </Card>
+
+        {/* Case Detail Modal */}
+        <CaseDetailModal 
+          case_={selectedCase}
+          open={showCaseModal}
+          onOpenChange={setShowCaseModal}
+        />
+
+        {/* Add Case Modal */}
+        <AddCaseModal 
+          open={showAddModal}
+          onOpenChange={setShowAddModal}
+          onCaseAdded={handleCaseAdded}
+        />
       </div>
     </div>
   )
