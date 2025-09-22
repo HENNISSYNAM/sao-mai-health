@@ -87,28 +87,26 @@ export default function Surveillance() {
 
   const getDiseaseBadge = (disease: string) => {
     const diseaseMap: Record<string, { label: string; className: string }> = {
-      'dengue': { label: 'Sốt xuất huyết', className: 'bg-dengue text-white' },
-      'covid19': { label: 'COVID-19', className: 'bg-covid text-white' },
-      'tcm': { label: 'Tay chân miệng', className: 'bg-tcm text-white' },
-      'ari': { label: 'Nhiễm khuẩn hô hấp', className: 'bg-ari text-white' },
-      'hfmd': { label: 'Bệnh tay chân miệng', className: 'bg-hfmd text-white' },
-      'h1n1': { label: 'Cúm A/H1N1', className: 'bg-h1n1 text-white' },
-      'malaria': { label: 'Sốt rét', className: 'bg-malaria text-white' }
+      'D01': { label: 'Sốt xuất huyết', className: 'bg-red-500 text-white' },
+      'D02': { label: 'Tay chân miệng', className: 'bg-orange-500 text-white' },
+      'D03': { label: 'COVID-19', className: 'bg-blue-500 text-white' },
+      'D04': { label: 'Nhiễm khuẩn hô hấp', className: 'bg-green-500 text-white' },
+      'D05': { label: 'Sốt rét', className: 'bg-purple-500 text-white' },
+      'D06': { label: 'Cúm A/H1N1', className: 'bg-pink-500 text-white' }
     }
     
-    const diseaseInfo = diseaseMap[disease.toLowerCase()] || { label: disease, className: 'bg-gray-500 text-white' }
+    const diseaseInfo = diseaseMap[disease] || { label: disease, className: 'bg-muted-foreground text-white' }
     return <Badge className={diseaseInfo.className}>{diseaseInfo.label}</Badge>
   }
 
   const getDiseaseOptions = () => [
     { value: 'all', label: 'Tất cả bệnh' },
-    { value: 'dengue', label: 'Sốt xuất huyết' },
-    { value: 'covid19', label: 'COVID-19' },
-    { value: 'tcm', label: 'Tay chân miệng' },
-    { value: 'ari', label: 'Nhiễm khuẩn hô hấp' },
-    { value: 'hfmd', label: 'Bệnh tay chân miệng' },
-    { value: 'h1n1', label: 'Cúm A/H1N1' },
-    { value: 'malaria', label: 'Sốt rét' }
+    { value: 'D01', label: 'Sốt xuất huyết' },
+    { value: 'D02', label: 'Tay chân miệng' },
+    { value: 'D03', label: 'COVID-19' },
+    { value: 'D04', label: 'Nhiễm khuẩn hô hấp' },
+    { value: 'D05', label: 'Sốt rét' },
+    { value: 'D06', label: 'Cúm A/H1N1' }
   ]
 
   return (
