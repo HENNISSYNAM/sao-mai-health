@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavbar } from "@/components/TopNavbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { GlobalAIAssistant } from "@/components/GlobalAIAssistant";
 import Dashboard from "./pages/Dashboard";
 import Surveillance from "./pages/Surveillance";
 import CaseIntake from "./pages/CaseIntake";
@@ -55,9 +56,9 @@ const App = () => (
         <AuthProvider>
           <Routes>
             {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/facilities" element={<Facilities />} />
+            <Route path="/login" element={<><Login /><GlobalAIAssistant /></>} />
+            <Route path="/signup" element={<><Signup /><GlobalAIAssistant /></>} />
+            <Route path="/facilities" element={<><Facilities /><GlobalAIAssistant /></>} />
             
             {/* Protected routes */}
             <Route path="/*" element={
@@ -95,6 +96,7 @@ const App = () => (
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                         <EnhancedCommandPalette />
+                        <GlobalAIAssistant />
                       </main>
                     </div>
                   </div>

@@ -31,7 +31,6 @@ import { useSurveillanceSearch } from "@/hooks/useSurveillanceSearch"
 import { useRealtime } from "@/hooks/useRealtime"
 import { CaseDetailModal } from "@/components/CaseDetailModal"
 import { AddCaseModal } from "@/components/AddCaseModal"
-import { SurveillanceAIAssistant } from "@/components/SurveillanceAIAssistant"
 import { toast } from "sonner"
 
 export default function Surveillance() {
@@ -458,9 +457,6 @@ export default function Surveillance() {
           onOpenChange={setShowAddModal}
           onCaseAdded={handleCaseAdded}
         />
-
-        {/* AI Assistant */}
-        <SurveillanceAIAssistant />
       </div>
     </div>
   )
