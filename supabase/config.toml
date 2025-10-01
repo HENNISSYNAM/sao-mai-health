@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.fetch-hcmc-data]
 verify_jwt = false
+
+[functions.surveillance-ai]
+verify_jwt = false
