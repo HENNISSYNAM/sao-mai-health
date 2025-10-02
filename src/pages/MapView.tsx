@@ -12,16 +12,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Map, MapPin, Activity, Clock } from 'lucide-react';
 import * as h3 from 'h3-js';
 
-// MapLibre GL imports (conditional)
-let maplibregl: any = null;
-const loadMapLibre = async () => {
-  if (!maplibregl) {
-    const module = await import('maplibre-gl');
-    await import('maplibre-gl/dist/maplibre-gl.css');
-    maplibregl = module.default;
-  }
-  return maplibregl;
-};
+// Mapbox GL imports
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+
+// Mapbox access token
+mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
 interface Prediction {
   h3: string;
@@ -197,11 +193,9 @@ export default function MapView() {
 
   const initializeMap = async () => {
     try {
-      await loadMapLibre();
-      
-      map.current = new maplibregl.Map({
+      map.current = new mapboxgl.Map({
         container: mapContainer.current!,
-        style: 'https://demotiles.maplibre.org/style.json',
+        style: 'mapbox://styles/mapbox/light-v11',
         center: [106.7009, 10.7756], // Central HCMC
         zoom: 11.5 // Adjusted for better HCMC coverage
       });
