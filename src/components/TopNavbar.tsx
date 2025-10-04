@@ -175,19 +175,27 @@ export function TopNavbar() {
   };
 
   const ConnectionStatus = () => (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1">
-        <div 
-          className={`h-2 w-2 rounded-full ${realtimeStatus.connected ? 'bg-green-500' : 'bg-red-500'}`}
-          title={realtimeStatus.connected ? 'Kết nối realtime' : 'Mất kết nối'}
-        />
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-background border">
+      <div className="flex items-center gap-1.5">
         {realtimeStatus.connected ? (
-          <Wifi className="h-4 w-4 text-green-600" />
+          <>
+            <Wifi className="h-4 w-4 text-emerald-600" />
+            <div 
+              className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"
+              title="Kết nối realtime"
+            />
+          </>
         ) : (
-          <WifiOff className="h-4 w-4 text-red-600" />
+          <>
+            <WifiOff className="h-4 w-4 text-muted-foreground" />
+            <div 
+              className="h-2 w-2 rounded-full bg-muted-foreground"
+              title="Mất kết nối"
+            />
+          </>
         )}
       </div>
-      <span className="text-xs text-muted-foreground hidden sm:inline">
+      <span className={`text-sm font-medium ${realtimeStatus.connected ? 'text-foreground' : 'text-muted-foreground'}`}>
         {realtimeStatus.connected ? 'Online' : 'Offline'}
       </span>
     </div>
