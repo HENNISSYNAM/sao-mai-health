@@ -109,8 +109,8 @@ const getDistrictName = (lat: number, lon: number): string => {
 export default function MapView() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [formData, setFormData] = useState<FormData>({
-  lat: '10.7756', // More central HCMC coordinates
-  lon: '106.7009',
+    lat: '10.7756',
+    lon: '106.7009',
     owner_id: '',
     features: '{}'
   });
@@ -118,6 +118,7 @@ export default function MapView() {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [predictionResult, setPredictionResult] = useState<any>(null);
   
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
@@ -275,71 +276,69 @@ export default function MapView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
+    setPredictionResult(null);
 
     try {
       // Validate inputs
       const lat = parseFloat(formData.lat);
       const lon = parseFloat(formData.lon);
       if (isNaN(lat) || isNaN(lon)) {
-        throw new Error('Tọa độ không hợp lệ');
+        throw new Error('Tọa độ GPS không hợp lệ');
       }
 
-      let features;
-      try {
-        features = JSON.parse(formData.features);
-      } catch {
-        throw new Error('Features JSON không hợp lệ');
+      // Validate GPS range for HCMC
+      if (lat < 10.3 || lat > 11.2 || lon < 106.3 || lon > 107.1) {
+        toast({
+          title: "Cảnh báo",
+          description: "Tọa độ nằm ngoài khu vực TP.HCM",
+          variant: "default"
+        });
       }
 
-      // Hash owner_id
-      const hashed_owner_id = await sha256Hex(formData.owner_id);
-      
-      // Calculate H3 and district
+      console.log('Calling AI prediction for:', { lat, lon });
+
+      // Call AI prediction API
+      const { data, error } = await supabase.functions.invoke('predict-disease-risk', {
+        body: { lat, lon }
+      });
+
+      if (error) throw error;
+
+      console.log('Prediction result:', data);
+
+      setPredictionResult(data);
+
+      // Create prediction object for map
       const h3Cell = h3.latLngToCell(lat, lon, 8);
       const district = getDistrictName(lat, lon);
       
-      // Prepare event
-      const event = {
-        lat,
-        lon,
-        observed_at: new Date().toISOString(),
-        features: {
-          ...features,
-          hashed_owner_id
-        }
-      };
-
-      // Mock prediction (since no backend specified)
-      const mockPredicted = Math.floor(Math.random() * 45) + 55; // 55-99
-      const mockPrediction: Prediction = {
+      const newPrediction: Prediction = {
         h3: h3Cell,
-        predicted: mockPredicted,
-        label: getLabelForPrediction(mockPredicted),
+        predicted: data.riskScore || 50,
+        label: data.riskLevel === 'CAO' ? 'high' : data.riskLevel === 'TRUNG BÌNH' ? 'medium' : 'low',
         lat,
         lon,
         district,
         created_at: new Date().toISOString(),
-        model_version: 'hcmc-mock'
+        model_version: 'ai-regression-v1'
       };
 
-      // Add to local state (simulating realtime)
-      setPredictions(prev => [mockPrediction, ...prev.slice(0, 199)]);
+      // Add to predictions
+      setPredictions(prev => [newPrediction, ...prev.slice(0, 199)]);
       setLastUpdate(new Date());
 
       // Update map if visible
       if (showMap && mapSource.current) {
-        updateMapData([mockPrediction, ...predictions]);
+        updateMapData([newPrediction, ...predictions]);
       }
 
       toast({
-        title: "Đã gửi dự đoán",
-        description: `${district} | H3: ${h3Cell.slice(0, 6)}... | Predicted: ${mockPredicted}`,
+        title: "Dự đoán hoàn tất ✅",
+        description: `${district} | Nguy cơ: ${data.riskLevel} (${data.riskScore}/100)`,
       });
 
-      // Reset form
-      setFormData(prev => ({ ...prev, owner_id: '', features: '{}' }));
-
     } catch (error) {
+      console.error('Prediction error:', error);
       toast({
         title: "Lỗi",
         description: error instanceof Error ? error.message : "Có lỗi xảy ra",
@@ -391,19 +390,24 @@ export default function MapView() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column: Control & Hotspots */}
           <div className="space-y-6">
-            {/* Event Input Form */}
-            <Card className="rounded-2xl shadow-lg">
-              <CardHeader>
+            {/* AI Prediction Form - Simplified */}
+            <Card className="rounded-2xl shadow-lg border-2 border-primary/20">
+              <CardHeader className="bg-gradient-to-br from-primary/5 to-primary/10">
                 <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
-                  Nhập Sự Kiện
+                  <MapPin className="h-5 w-5 text-primary" />
+                  Dự Đoán Nguy Cơ Dịch Bệnh (AI)
                 </CardTitle>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Chỉ cần nhập tọa độ GPS, AI sẽ phân tích dữ liệu lịch sử và dự đoán nguy cơ
+                </p>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="lat">Latitude</Label>
+                      <Label htmlFor="lat" className="text-sm font-semibold">
+                        Latitude <span className="text-destructive">*</span>
+                      </Label>
                       <Input
                         id="lat"
                         type="number"
@@ -411,10 +415,14 @@ export default function MapView() {
                         value={formData.lat}
                         onChange={(e) => setFormData(prev => ({ ...prev, lat: e.target.value }))}
                         required
+                        className="font-mono"
+                        placeholder="10.7756"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="lon">Longitude</Label>
+                      <Label htmlFor="lon" className="text-sm font-semibold">
+                        Longitude <span className="text-destructive">*</span>
+                      </Label>
                       <Input
                         id="lon"
                         type="number"
@@ -422,35 +430,81 @@ export default function MapView() {
                         value={formData.lon}
                         onChange={(e) => setFormData(prev => ({ ...prev, lon: e.target.value }))}
                         required
+                        className="font-mono"
+                        placeholder="106.7009"
                       />
                     </div>
                   </div>
                   
-                  <div>
-                    <Label htmlFor="owner_id">Owner ID</Label>
-                    <Input
-                      id="owner_id"
-                      value={formData.owner_id}
-                      onChange={(e) => setFormData(prev => ({ ...prev, owner_id: e.target.value }))}
-                      placeholder="Sẽ được hash bằng SHA256"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="features">Features (JSON)</Label>
-                    <Textarea
-                      id="features"
-                      value={formData.features}
-                      onChange={(e) => setFormData(prev => ({ ...prev, features: e.target.value }))}
-                      placeholder='{"key": "value"}'
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <Button type="submit" disabled={submitting} className="w-full">
-                    {submitting ? 'Đang gửi...' : 'Dự đoán & Ghi'}
+                  <Button 
+                    type="submit" 
+                    disabled={submitting} 
+                    className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                  >
+                    {submitting ? (
+                      <>
+                        <Activity className="h-4 w-4 mr-2 animate-spin" />
+                        Đang phân tích...
+                      </>
+                    ) : (
+                      <>
+                        <Activity className="h-4 w-4 mr-2" />
+                        Dự đoán & Ghi
+                      </>
+                    )}
                   </Button>
+
+                  {/* Prediction Result */}
+                  {predictionResult && (
+                    <div className={`mt-4 p-4 rounded-lg border-2 ${
+                      predictionResult.riskLevel === 'CAO' 
+                        ? 'bg-destructive/5 border-destructive' 
+                        : predictionResult.riskLevel === 'TRUNG BÌNH'
+                        ? 'bg-yellow-500/5 border-yellow-500'
+                        : 'bg-green-500/5 border-green-500'
+                    }`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold">Kết quả dự đoán</h4>
+                        <Badge variant={
+                          predictionResult.riskLevel === 'CAO' ? 'destructive' :
+                          predictionResult.riskLevel === 'TRUNG BÌNH' ? 'default' : 'secondary'
+                        } className="text-sm">
+                          {predictionResult.riskLevel}
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Điểm nguy cơ:</span>
+                          <span className="font-bold">{predictionResult.riskScore}/100</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Ca bệnh xung quanh:</span>
+                          <span className="font-semibold">{predictionResult.nearbyCases} ca</span>
+                        </div>
+                      </div>
+
+                      {predictionResult.topDiseases?.length > 0 && (
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs font-semibold mb-2">Bệnh phổ biến:</p>
+                          <div className="space-y-1">
+                            {predictionResult.topDiseases.map((d: any) => (
+                              <div key={d.disease} className="flex justify-between text-xs">
+                                <span>{d.disease}</span>
+                                <span className="font-semibold">{d.count} ca ({d.recent} mới)</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="mt-3 pt-3 border-t">
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                          {predictionResult.prediction}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </form>
               </CardContent>
             </Card>
