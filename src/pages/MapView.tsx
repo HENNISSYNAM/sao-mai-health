@@ -9,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Map, MapPin, Activity, Clock } from 'lucide-react';
+import { Map, MapPin, Activity, Clock, AlertTriangle, TrendingUp } from 'lucide-react';
 import * as h3 from 'h3-js';
+import { GlobalAIAssistant } from '@/components/GlobalAIAssistant';
 
 // Mapbox GL imports
 import mapboxgl from 'mapbox-gl';
@@ -564,31 +565,163 @@ export default function MapView() {
             {/* Stats Card */}
             <Card className="rounded-2xl shadow-lg">
               <CardHeader>
-                <CardTitle>Thống Kê</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Thống Kê Dịch Bệnh
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">
-                      {predictions.length}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Tổng dự đoán
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">
-                      {new Set(predictions.map(p => p.h3)).size}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      H3 cells
-                    </div>
-                  </div>
-                </div>
+                <DiseaseStatsPanel />
               </CardContent>
             </Card>
           </div>
         </div>
+      </div>
+      
+      {/* Global AI Assistant */}
+      <GlobalAIAssistant />
+    </div>
+  );
+}
+
+// New Component for Disease Statistics
+function DiseaseStatsPanel() {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data: caseEvents } = await supabase
+          .from('case_events')
+          .select('*')
+          .order('occurred_at', { ascending: false })
+          .limit(200);
+
+        const { data: alerts } = await supabase
+          .from('alerts')
+          .select('*')
+          .eq('status', 'open');
+
+        // Calculate statistics
+        const totalCases = caseEvents?.length || 0;
+        const todayCases = caseEvents?.filter(c => {
+          const today = new Date().toISOString().split('T')[0];
+          return c.occurred_at?.startsWith(today);
+        }).length || 0;
+
+        // Group by disease
+        const diseaseStats: Record<string, number> = {};
+        caseEvents?.forEach(c => {
+          if (c.disease_code) {
+            diseaseStats[c.disease_code] = (diseaseStats[c.disease_code] || 0) + 1;
+          }
+        });
+
+        // Top diseases
+        const topDiseases = Object.entries(diseaseStats)
+          .sort(([,a], [,b]) => b - a)
+          .slice(0, 3);
+
+        // Group by district
+        const districtStats: Record<string, number> = {};
+        caseEvents?.forEach(c => {
+          if (c.district_id) {
+            districtStats[c.district_id] = (districtStats[c.district_id] || 0) + 1;
+          }
+        });
+
+        const topDistricts = Object.entries(districtStats)
+          .sort(([,a], [,b]) => b - a)
+          .slice(0, 3);
+
+        setStats({
+          totalCases,
+          todayCases,
+          openAlerts: alerts?.length || 0,
+          topDiseases,
+          topDistricts
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel('stats-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'case_events' }, () => {
+        fetchStats();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return <div className="text-center text-muted-foreground">Không có dữ liệu</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Overview Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="text-center p-3 bg-primary/5 rounded-lg">
+          <div className="text-2xl font-bold text-primary">{stats.totalCases}</div>
+          <div className="text-xs text-muted-foreground">Tổng ca</div>
+        </div>
+        <div className="text-center p-3 bg-blue-500/5 rounded-lg">
+          <div className="text-2xl font-bold text-blue-600">{stats.todayCases}</div>
+          <div className="text-xs text-muted-foreground">Hôm nay</div>
+        </div>
+        <div className="text-center p-3 bg-destructive/5 rounded-lg">
+          <div className="text-2xl font-bold text-destructive">{stats.openAlerts}</div>
+          <div className="text-xs text-muted-foreground">Cảnh báo</div>
+        </div>
+      </div>
+
+      {/* Top Diseases */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <AlertTriangle className="h-4 w-4" />
+          Bệnh phổ biến nhất:
+        </div>
+        {stats.topDiseases.map(([disease, count]: [string, number]) => (
+          <div key={disease} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+            <span className="text-sm font-medium">{disease}</span>
+            <Badge variant="secondary">{count} ca</Badge>
+          </div>
+        ))}
+      </div>
+
+      {/* Top Districts */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <TrendingUp className="h-4 w-4" />
+          Ổ bệnh chính:
+        </div>
+        {stats.topDistricts.map(([district, count]: [string, number]) => (
+          <div key={district} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+            <span className="text-sm font-medium">{district}</span>
+            <Badge variant="destructive">{count} ca</Badge>
+          </div>
+        ))}
       </div>
     </div>
   );
