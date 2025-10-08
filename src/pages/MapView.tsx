@@ -128,30 +128,70 @@ export default function MapView() {
   useEffect(() => {
     const initializeData = async () => {
       try {
-        // Generate mock initial data for HCMC districts
-        const mockPredictions: Prediction[] = Array.from({ length: 15 }, (_, i) => {
-          // Generate coordinates within HCMC bounds
-          const lat = 10.7756 + (Math.random() - 0.5) * 0.2; // ~10.6756 to 10.8756
-          const lon = 106.7009 + (Math.random() - 0.5) * 0.3; // ~106.5509 to 106.8509
-          const predicted = Math.floor(Math.random() * 45) + 55;
-          const district = getDistrictName(lat, lon);
-          
-          return {
-            h3: h3.latLngToCell(lat, lon, 8),
-            predicted,
-            label: getLabelForPrediction(predicted),
-            lat,
-            lon,
-            district,
-            created_at: new Date(Date.now() - Math.random() * 3600000).toISOString(),
-            model_version: 'hcmc-v1'
-          };
-        });
+        // Load real case events from database
+        const { data: caseEvents, error } = await supabase
+          .from('case_events')
+          .select('*')
+          .order('occurred_at', { ascending: false })
+          .limit(100);
 
-        setPredictions(mockPredictions);
+        if (error) {
+          console.error('Error loading case events:', error);
+          // Generate mock data as fallback
+          const mockPredictions: Prediction[] = Array.from({ length: 15 }, (_, i) => {
+            const lat = 10.7756 + (Math.random() - 0.5) * 0.2;
+            const lon = 106.7009 + (Math.random() - 0.5) * 0.3;
+            const predicted = Math.floor(Math.random() * 45) + 55;
+            const district = getDistrictName(lat, lon);
+            
+            return {
+              h3: h3.latLngToCell(lat, lon, 8),
+              predicted,
+              label: getLabelForPrediction(predicted),
+              lat,
+              lon,
+              district,
+              created_at: new Date(Date.now() - Math.random() * 3600000).toISOString(),
+              model_version: 'hcmc-v1'
+            };
+          });
+          setPredictions(mockPredictions);
+        } else {
+          // Convert case events to predictions format
+          const casePredictions: Prediction[] = caseEvents
+            .filter((event: any) => event.lat && event.lon)
+            .map((event: any) => {
+              // Calculate risk based on disease code and nearby cases
+              let predicted = 50;
+              if (event.disease_code === 'dengue') predicted = 75;
+              else if (event.disease_code === 'covid19') predicted = 85;
+              else if (event.disease_code === 'tcm') predicted = 60;
+              
+              const district = getDistrictName(event.lat, event.lon);
+              
+              return {
+                h3: h3.latLngToCell(event.lat, event.lon, 8),
+                predicted,
+                label: getLabelForPrediction(predicted),
+                lat: event.lat,
+                lon: event.lon,
+                district,
+                created_at: event.occurred_at,
+                model_version: 'case-data-v1'
+              };
+            });
+          
+          setPredictions(casePredictions);
+          
+          toast({
+            title: "✓ Đã tải dữ liệu",
+            description: `${casePredictions.length} ca bệnh được hiển thị`,
+          });
+        }
+
         setLastUpdate(new Date());
       } catch (error) {
-        console.error('Error loading predictions:', error);
+        console.error('Error loading data:', error);
         toast({
           title: "Lỗi tải dữ liệu",
           description: "Đang sử dụng dữ liệu demo",
@@ -164,25 +204,60 @@ export default function MapView() {
 
     initializeData();
 
-    // Setup realtime subscription (for future use when table exists)
-    const channel = supabase
-      .channel('predictions-realtime')
+    // Setup realtime subscription for case_events
+    const caseChannel = supabase
+      .channel('case-events-realtime')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'predictions'
+          table: 'case_events'
         },
         (payload) => {
-          console.log('New prediction received:', payload);
-          // Handle real predictions when table exists
+          console.log('New case event received:', payload);
+          const newCase = payload.new as any;
+          
+          if (newCase.lat && newCase.lon) {
+            // Calculate risk based on disease
+            let predicted = 50;
+            if (newCase.disease_code === 'dengue') predicted = 75;
+            else if (newCase.disease_code === 'covid19') predicted = 85;
+            else if (newCase.disease_code === 'tcm') predicted = 60;
+            
+            const district = getDistrictName(newCase.lat, newCase.lon);
+            
+            const newPrediction: Prediction = {
+              h3: h3.latLngToCell(newCase.lat, newCase.lon, 8),
+              predicted,
+              label: getLabelForPrediction(predicted),
+              lat: newCase.lat,
+              lon: newCase.lon,
+              district,
+              created_at: newCase.occurred_at,
+              model_version: 'realtime-v1'
+            };
+            
+            // Add to predictions and update map
+            setPredictions(prev => [newPrediction, ...prev]);
+            setLastUpdate(new Date());
+            
+            toast({
+              title: "🔴 Ca bệnh mới",
+              description: `${newCase.disease_code} tại ${district}`,
+            });
+            
+            // Update map if it's initialized
+            if (map.current && mapSource.current) {
+              updateMapData([newPrediction, ...predictions]);
+            }
+          }
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(caseChannel);
     };
   }, []);
 

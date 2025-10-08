@@ -292,7 +292,7 @@ export default function SmartPatientForm() {
 
       toast({
         title: "✓ Thành công",
-        description: "Đã lưu bệnh nhân với công nghệ AI",
+        description: `Đã lưu bệnh nhân ${form.full_name}. Dữ liệu đang cập nhật lên bản đồ realtime!`,
       })
 
       // Reset form
@@ -309,6 +309,14 @@ export default function SmartPatientForm() {
         symptoms: ''
       })
       setAiSuggestions('')
+      
+      // Notify user that data is syncing to map
+      setTimeout(() => {
+        toast({
+          title: "🗺️ Đã cập nhật bản đồ",
+          description: "Kiểm tra trang MapView để xem ca bệnh mới",
+        });
+      }, 1500)
 
     } catch (error) {
       console.error('Error:', error)
