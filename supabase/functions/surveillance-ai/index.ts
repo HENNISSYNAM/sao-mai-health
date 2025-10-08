@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    const { query, image } = await req.json();
     
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
@@ -97,18 +97,26 @@ ${alerts?.slice(0, 3).map(a =>
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: `Bạn là trợ lý AI chuyên về giám sát dịch bệnh tại TP.HCM. 
+    // Build messages for AI
+    const messages: any[] = [
+      {
+        role: 'system',
+        content: image 
+          ? `Bạn là bác sĩ giàu kinh nghiệm chuyên phân tích hình ảnh y tế.
+
+Nhiệm vụ:
+- Phân tích ảnh y tế một cách chuyên nghiệp
+- Nhận diện bất thường, dấu hiệu bệnh lý
+- Giải thích bằng ngôn ngữ CỰC KỲ ĐƠN GIẢN, dễ hiểu
+- Sử dụng ví dụ và so sánh để trẻ con cũng hiểu được
+- Luôn khuyến cáo gặp bác sĩ khi cần thiết
+
+Lưu ý:
+- Trả lời bằng tiếng Việt
+- Dùng emoji để dễ hiểu
+- Tránh thuật ngữ y học phức tạp
+- Giải thích như đang nói chuyện với trẻ nhỏ`
+          : `Bạn là trợ lý AI chuyên về giám sát dịch bệnh tại TP.HCM. 
             
 Nhiệm vụ:
 - Phân tích dữ liệu dịch bệnh real-time
@@ -122,14 +130,44 @@ Lưu ý:
 - Tập trung vào những con số quan trọng
 - Đưa ra khuyến nghị cụ thể khi được hỏi
 - Giải thích rõ ràng, dễ hiểu`
+      }
+    ];
+
+    // Add user message with image if provided
+    if (image) {
+      messages.push({
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: query
           },
           {
-            role: 'user',
-            content: `${context}\n\nCâu hỏi: ${query}`
+            type: 'image_url',
+            image_url: {
+              url: image
+            }
           }
-        ],
+        ]
+      });
+    } else {
+      messages.push({
+        role: 'user',
+        content: `${context}\n\nCâu hỏi: ${query}`
+      });
+    }
+
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages,
         temperature: 0.7,
-        max_tokens: 800
+        max_tokens: 1000
       }),
     });
 
