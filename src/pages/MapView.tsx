@@ -9,9 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Map, MapPin, Activity, Clock, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Map, MapPin, Activity, Clock, AlertTriangle, TrendingUp, FileText, User, Stethoscope } from 'lucide-react';
 import * as h3 from 'h3-js';
 import { GlobalAIAssistant } from '@/components/GlobalAIAssistant';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 // Mapbox GL imports
 import mapboxgl from 'mapbox-gl';
@@ -29,6 +30,7 @@ interface Prediction {
   created_at: string;
   model_version: string;
   district?: string;
+  caseData?: any; // Store full case event data
 }
 
 interface FormData {
@@ -119,6 +121,9 @@ export default function MapView() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [predictionResult, setPredictionResult] = useState<any>(null);
+  const [selectedCase, setSelectedCase] = useState<any>(null);
+  const [aiAnalysis, setAiAnalysis] = useState<string>('');
+  const [analyzingCase, setAnalyzingCase] = useState(false);
   
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
@@ -177,7 +182,8 @@ export default function MapView() {
                 lon: event.lon,
                 district,
                 created_at: event.occurred_at,
-                model_version: 'case-data-v1'
+                model_version: 'case-data-v1',
+                caseData: event // Store full case data
               };
             });
           
@@ -235,7 +241,8 @@ export default function MapView() {
               lon: newCase.lon,
               district,
               created_at: newCase.occurred_at,
-              model_version: 'realtime-v1'
+              model_version: 'realtime-v1',
+              caseData: newCase
             };
             
             // Add to predictions and update map
@@ -312,6 +319,30 @@ export default function MapView() {
           }
         });
 
+        // Add click handler for markers
+        map.current.on('click', 'prediction-circles', (e: any) => {
+          const features = e.features;
+          if (features && features.length > 0) {
+            const clickedFeature = features[0];
+            const h3Id = clickedFeature.properties.h3;
+            
+            // Find the full prediction data
+            const prediction = predictions.find(p => p.h3 === h3Id);
+            if (prediction?.caseData) {
+              handleCaseClick(prediction.caseData);
+            }
+          }
+        });
+
+        // Change cursor on hover
+        map.current.on('mouseenter', 'prediction-circles', () => {
+          map.current.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.current.on('mouseleave', 'prediction-circles', () => {
+          map.current.getCanvas().style.cursor = '';
+        });
+
         mapSource.current = map.current.getSource('predictions');
         updateMapData(predictions);
       });
@@ -346,6 +377,53 @@ export default function MapView() {
       type: 'FeatureCollection',
       features
     });
+  };
+
+  const handleCaseClick = async (caseData: any) => {
+    setSelectedCase(caseData);
+    setAiAnalysis('');
+    setAnalyzingCase(true);
+
+    try {
+      // Prepare case information for AI analysis
+      const caseInfo = {
+        disease: caseData.disease_code,
+        symptoms: caseData.symptoms,
+        age: caseData.patient_age_bucket,
+        gender: caseData.patient_gender,
+        date: caseData.occurred_at
+      };
+
+      // Call AI for medical analysis
+      const { data, error } = await supabase.functions.invoke('surveillance-ai', {
+        body: {
+          messages: [{
+            role: 'user',
+            content: `Bạn là một bác sĩ có kinh nghiệm. Hãy phân tích ca bệnh sau và đưa ra đề xuất bằng ngôn ngữ đơn giản, dễ hiểu:
+
+Bệnh: ${caseInfo.disease}
+Triệu chứng: ${JSON.stringify(caseInfo.symptoms)}
+Tuổi: ${caseInfo.age || 'Không rõ'}
+Giới tính: ${caseInfo.gender || 'Không rõ'}
+
+Hãy cung cấp:
+1. Phân tích tình trạng bệnh (giải thích đơn giản)
+2. Mức độ nghiêm trọng
+3. Lời khuyên chăm sóc
+4. Dấu hiệu cần đến bệnh viện ngay`
+          }]
+        }
+      });
+
+      if (error) throw error;
+
+      setAiAnalysis(data.reply || 'Không thể phân tích ca bệnh này.');
+    } catch (error) {
+      console.error('AI analysis error:', error);
+      setAiAnalysis('Lỗi khi phân tích ca bệnh. Vui lòng thử lại.');
+    } finally {
+      setAnalyzingCase(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -707,6 +785,103 @@ export default function MapView() {
         </div>
       </div>
       
+      {/* Case Detail Modal */}
+      {selectedCase && (
+        <Dialog open={!!selectedCase} onOpenChange={() => setSelectedCase(null)}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3 text-xl">
+                <FileText className="h-6 w-6 text-primary" />
+                Chi tiết ca bệnh & Phân tích AI
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-6">
+              {/* Basic Case Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Thông tin ca bệnh
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">Mã bệnh:</span>
+                      <Badge className="ml-2">{selectedCase.disease_code}</Badge>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">Ngày báo cáo:</span>
+                      <span className="ml-2">{new Date(selectedCase.occurred_at).toLocaleDateString('vi-VN')}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">Tuổi/Giới:</span>
+                      <span className="ml-2">{selectedCase.patient_age_bucket || 'N/A'} / {selectedCase.patient_gender || 'N/A'}</span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground">Khu vực:</span>
+                      <span className="ml-2">{selectedCase.ward_id}, {selectedCase.district_id}</span>
+                    </div>
+                  </div>
+
+                  {selectedCase.symptoms && (
+                    <div className="mt-4">
+                      <span className="text-sm font-medium text-muted-foreground block mb-2">Triệu chứng:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(selectedCase.symptoms)
+                          .filter(([_, value]) => value === true)
+                          .map(([key]) => (
+                            <Badge key={key} variant="secondary">{key}</Badge>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* AI Analysis */}
+              <Card className="border-2 border-primary/20">
+                <CardHeader className="bg-gradient-to-br from-primary/5 to-primary/10">
+                  <CardTitle className="flex items-center gap-2">
+                    <Stethoscope className="h-5 w-5 text-primary" />
+                    Phân tích & Đề xuất từ AI
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  {analyzingCase ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-5/6" />
+                      <Skeleton className="h-4 w-4/6" />
+                      <div className="text-center text-sm text-muted-foreground mt-4">
+                        Bác sĩ AI đang phân tích ca bệnh...
+                      </div>
+                    </div>
+                  ) : aiAnalysis ? (
+                    <div className="prose prose-sm max-w-none">
+                      <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                        {aiAnalysis}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground italic text-center py-4">
+                      Chưa có phân tích
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button variant="outline" onClick={() => setSelectedCase(null)}>
+                Đóng
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Global AI Assistant */}
       <GlobalAIAssistant />
     </div>
