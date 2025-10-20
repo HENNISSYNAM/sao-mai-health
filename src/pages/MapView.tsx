@@ -124,10 +124,14 @@ export default function MapView() {
   const [selectedCase, setSelectedCase] = useState<any>(null);
   const [aiAnalysis, setAiAnalysis] = useState<string>('');
   const [analyzingCase, setAnalyzingCase] = useState(false);
+  const [mapPrompt, setMapPrompt] = useState('');
+  const [processingMapCommand, setProcessingMapCommand] = useState(false);
   
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
   const mapSource = useRef<any>(null);
+  const mapMarkers = useRef<any[]>([]);
+  const mapLayers = useRef<any[]>([]);
 
   // Initialize data and realtime subscription
   useEffect(() => {
@@ -502,6 +506,187 @@ Hãy cung cấp:
     }
   };
 
+  // Handle map agent commands
+  const handleMapPrompt = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mapPrompt.trim()) return;
+
+    setProcessingMapCommand(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('map-agent', {
+        body: { prompt: mapPrompt }
+      });
+
+      if (error) throw error;
+
+      if (data?.commands) {
+        executeMapCommands(data.commands);
+        toast({
+          title: "✓ Đã xử lý lệnh",
+          description: `${data.commands.length} thao tác bản đồ được thực hiện`,
+        });
+      }
+
+      setMapPrompt('');
+    } catch (error: any) {
+      console.error('Map agent error:', error);
+      toast({
+        title: "Lỗi",
+        description: error.message || "Không thể xử lý yêu cầu",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingMapCommand(false);
+    }
+  };
+
+  // Execute map commands from AI
+  const executeMapCommands = (commands: any[]) => {
+    if (!map.current) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng bật bản đồ trước",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    commands.forEach((cmd) => {
+      try {
+        switch (cmd.cmd) {
+          case 'add-marker':
+            const marker = new mapboxgl.Marker({ color: cmd.color || 'red' })
+              .setLngLat([cmd.lng, cmd.lat])
+              .setPopup(new mapboxgl.Popup().setHTML(`<strong>${cmd.label || 'Marker'}</strong>`))
+              .addTo(map.current);
+            mapMarkers.current.push(marker);
+            break;
+
+          case 'add-circle':
+            const circleId = `circle-${Date.now()}-${Math.random()}`;
+            const radiusInMeters = (cmd.radius_km || 1) * 1000;
+            
+            map.current.addSource(circleId, {
+              type: 'geojson',
+              data: {
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: [cmd.lng, cmd.lat]
+                },
+                properties: {}
+              }
+            });
+
+            map.current.addLayer({
+              id: circleId,
+              type: 'circle',
+              source: circleId,
+              paint: {
+                'circle-radius': radiusInMeters / Math.cos(cmd.lat * Math.PI / 180) / 0.075,
+                'circle-color': cmd.color || 'red',
+                'circle-opacity': 0.3,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': cmd.color || 'red',
+                'circle-stroke-opacity': 0.8
+              }
+            });
+            mapLayers.current.push(circleId);
+            break;
+
+          case 'add-heatmap':
+            if (cmd.points && cmd.points.length > 0) {
+              const heatmapId = `heatmap-${Date.now()}`;
+              map.current.addSource(heatmapId, {
+                type: 'geojson',
+                data: {
+                  type: 'FeatureCollection',
+                  features: cmd.points.map((p: any) => ({
+                    type: 'Feature',
+                    geometry: {
+                      type: 'Point',
+                      coordinates: [p.lng, p.lat]
+                    },
+                    properties: {
+                      intensity: p.intensity || 1
+                    }
+                  }))
+                }
+              });
+
+              map.current.addLayer({
+                id: heatmapId,
+                type: 'heatmap',
+                source: heatmapId,
+                paint: {
+                  'heatmap-weight': ['get', 'intensity'],
+                  'heatmap-intensity': 1,
+                  'heatmap-radius': 30,
+                  'heatmap-opacity': 0.7
+                }
+              });
+              mapLayers.current.push(heatmapId);
+            }
+            break;
+
+          case 'add-route':
+            if (cmd.points && cmd.points.length > 1) {
+              const routeId = `route-${Date.now()}`;
+              map.current.addSource(routeId, {
+                type: 'geojson',
+                data: {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'LineString',
+                    coordinates: cmd.points.map((p: any) => [p.lng, p.lat])
+                  },
+                  properties: {}
+                }
+              });
+
+              map.current.addLayer({
+                id: routeId,
+                type: 'line',
+                source: routeId,
+                paint: {
+                  'line-color': cmd.color || 'blue',
+                  'line-width': 4,
+                  'line-opacity': 0.8
+                }
+              });
+              mapLayers.current.push(routeId);
+            }
+            break;
+
+          case 'clear':
+            // Remove all markers
+            mapMarkers.current.forEach(m => m.remove());
+            mapMarkers.current = [];
+            
+            // Remove all layers
+            mapLayers.current.forEach(layerId => {
+              if (map.current.getLayer(layerId)) {
+                map.current.removeLayer(layerId);
+              }
+              if (map.current.getSource(layerId)) {
+                map.current.removeSource(layerId);
+              }
+            });
+            mapLayers.current = [];
+            break;
+
+          case 'fit-bounds':
+            if (cmd.bounds) {
+              map.current.fitBounds(cmd.bounds, { padding: 50 });
+            }
+            break;
+        }
+      } catch (error) {
+        console.error('Error executing command:', cmd, error);
+      }
+    });
+  };
+
   // Get top hotspots (grouped by h3, latest per h3)
   const topHotspots = React.useMemo(() => {
     const grouped = predictions.reduce((acc, pred) => {
@@ -543,6 +728,56 @@ Hãy cung cấp:
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column: Control & Hotspots */}
           <div className="space-y-6">
+            {/* AI Map Agent */}
+            <Card className="rounded-2xl shadow-lg border-2 border-purple-500/20">
+              <CardHeader className="bg-gradient-to-br from-purple-500/5 to-purple-500/10">
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-purple-500" />
+                  AI Map Agent
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Điều khiển bản đồ bằng ngôn ngữ tự nhiên (tiếng Việt hoặc tiếng Anh)
+                </p>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <form onSubmit={handleMapPrompt} className="space-y-4">
+                  <div>
+                    <Label htmlFor="mapPrompt" className="text-sm font-semibold">
+                      Yêu cầu của bạn
+                    </Label>
+                    <Textarea
+                      id="mapPrompt"
+                      value={mapPrompt}
+                      onChange={(e) => setMapPrompt(e.target.value)}
+                      placeholder="VD: Hiển thị heatmap ca sốt xuất huyết và buffer 2km quanh quận Bình Tân"
+                      className="min-h-[80px]"
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Ví dụ: "Đánh dấu 3 điểm nóng tại Thủ Đức" hoặc "Vẽ tuyến từ Bình Chánh về BV Nhiệt đới"
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    disabled={processingMapCommand || !mapPrompt.trim()} 
+                    className="w-full h-12 text-base font-semibold bg-purple-500 hover:bg-purple-600"
+                  >
+                    {processingMapCommand ? (
+                      <>
+                        <Activity className="h-4 w-4 mr-2 animate-spin" />
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      <>
+                        <Map className="h-4 w-4 mr-2" />
+                        Thực hiện
+                      </>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
             {/* AI Prediction Form - Simplified */}
             <Card className="rounded-2xl shadow-lg border-2 border-primary/20">
               <CardHeader className="bg-gradient-to-br from-primary/5 to-primary/10">

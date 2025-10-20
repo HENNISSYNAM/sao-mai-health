@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.surveillance-ai]
 verify_jwt = false
+
+[functions.map-agent]
+verify_jwt = false
