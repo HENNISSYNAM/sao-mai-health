@@ -540,7 +540,7 @@ Hãy cung cấp:
     }
   };
 
-  // Execute map commands from AI with smart styling
+  // Execute map commands from AI
   const executeMapCommands = (commands: any[]) => {
     if (!map.current) {
       toast({
@@ -555,36 +555,9 @@ Hãy cung cấp:
       try {
         switch (cmd.cmd) {
           case 'add-marker':
-            // Create custom styled marker element
-            const markerEl = document.createElement('div');
-            markerEl.className = 'custom-map-marker';
-            const size = cmd.size === 'small' ? 8 : cmd.size === 'large' ? 16 : cmd.size === 'xlarge' ? 20 : 12;
-            markerEl.style.cssText = `
-              width: ${size}px;
-              height: ${size}px;
-              background-color: ${cmd.color || '#ef4444'};
-              border: 2px solid white;
-              border-radius: 50%;
-              opacity: ${cmd.opacity || 1.0};
-              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-              cursor: pointer;
-              transition: all 0.2s;
-            `;
-            markerEl.addEventListener('mouseenter', () => {
-              markerEl.style.transform = 'scale(1.3)';
-            });
-            markerEl.addEventListener('mouseleave', () => {
-              markerEl.style.transform = 'scale(1)';
-            });
-
-            const marker = new mapboxgl.Marker({ element: markerEl })
+            const marker = new mapboxgl.Marker({ color: cmd.color || 'red' })
               .setLngLat([cmd.lng, cmd.lat])
-              .setPopup(new mapboxgl.Popup().setHTML(`
-                <div class="p-3">
-                  <strong class="text-sm">${cmd.label || 'Marker'}</strong>
-                  ${cmd.icon ? `<div class="text-xs text-gray-500 mt-1">${cmd.icon}</div>` : ''}
-                </div>
-              `))
+              .setPopup(new mapboxgl.Popup().setHTML(`<strong>${cmd.label || 'Marker'}</strong>`))
               .addTo(map.current);
             mapMarkers.current.push(marker);
             break;
@@ -611,34 +584,13 @@ Hãy cung cấp:
               source: circleId,
               paint: {
                 'circle-radius': radiusInMeters / Math.cos(cmd.lat * Math.PI / 180) / 0.075,
-                'circle-color': cmd.fillColor || cmd.color || '#ef4444',
-                'circle-opacity': cmd.fillOpacity || 0.2,
-                'circle-stroke-width': cmd.strokeWidth || 2,
-                'circle-stroke-color': cmd.color || '#ef4444',
+                'circle-color': cmd.color || 'red',
+                'circle-opacity': 0.3,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': cmd.color || 'red',
                 'circle-stroke-opacity': 0.8
               }
             });
-            
-            // Add label marker for circle
-            if (cmd.label) {
-              const labelEl = document.createElement('div');
-              labelEl.style.cssText = `
-                background: white;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 11px;
-                font-weight: 600;
-                color: ${cmd.color || '#ef4444'};
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-                white-space: nowrap;
-              `;
-              labelEl.textContent = cmd.label;
-              const labelMarker = new mapboxgl.Marker({ element: labelEl, anchor: 'bottom' })
-                .setLngLat([cmd.lng, cmd.lat])
-                .addTo(map.current);
-              mapMarkers.current.push(labelMarker);
-            }
-            
             mapLayers.current.push(circleId);
             break;
 
@@ -662,30 +614,15 @@ Hãy cung cấp:
                 }
               });
 
-              // Smart gradient based on cmd or default
-              const gradient = cmd.gradient || {
-                '0.0': '#3b82f6',
-                '0.3': '#10b981',
-                '0.5': '#f59e0b',
-                '0.7': '#ef4444',
-                '1.0': '#dc2626'
-              };
-
               map.current.addLayer({
                 id: heatmapId,
                 type: 'heatmap',
                 source: heatmapId,
                 paint: {
-                  'heatmap-weight': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0, 1, 1],
-                  'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 0, 1, 14, 3],
-                  'heatmap-color': [
-                    'interpolate',
-                    ['linear'],
-                    ['heatmap-density'],
-                    ...Object.entries(gradient).flatMap(([stop, color]) => [parseFloat(stop), color])
-                  ],
-                  'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 0, 20, 14, 40],
-                  'heatmap-opacity': 0.8
+                  'heatmap-weight': ['get', 'intensity'],
+                  'heatmap-intensity': 1,
+                  'heatmap-radius': 30,
+                  'heatmap-opacity': 0.7
                 }
               });
               mapLayers.current.push(heatmapId);
@@ -712,85 +649,13 @@ Hãy cung cấp:
                 type: 'line',
                 source: routeId,
                 paint: {
-                  'line-color': cmd.color || '#3b82f6',
-                  'line-width': cmd.width || 4,
-                  'line-opacity': 0.8,
-                  'line-dasharray': cmd.dashArray || [1, 0]
+                  'line-color': cmd.color || 'blue',
+                  'line-width': 4,
+                  'line-opacity': 0.8
                 }
               });
-              
-              // Add route endpoints
-              const startPoint = cmd.points[0];
-              const endPoint = cmd.points[cmd.points.length - 1];
-              
-              [startPoint, endPoint].forEach((point, idx) => {
-                const markerEl = document.createElement('div');
-                markerEl.style.cssText = `
-                  width: 12px;
-                  height: 12px;
-                  background-color: ${cmd.color || '#3b82f6'};
-                  border: 3px solid white;
-                  border-radius: 50%;
-                  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-                `;
-                const endMarker = new mapboxgl.Marker({ element: markerEl })
-                  .setLngLat([point.lng, point.lat])
-                  .addTo(map.current);
-                mapMarkers.current.push(endMarker);
-              });
-              
               mapLayers.current.push(routeId);
             }
-            break;
-
-          case 'add-cluster':
-            const clusterId = `cluster-${Date.now()}`;
-            map.current.addSource(clusterId, {
-              type: 'geojson',
-              data: {
-                type: 'FeatureCollection',
-                features: cmd.points.map((p: any) => ({
-                  type: 'Feature',
-                  geometry: {
-                    type: 'Point',
-                    coordinates: [p.lng, p.lat]
-                  },
-                  properties: p
-                }))
-              },
-              cluster: true,
-              clusterMaxZoom: cmd.clusterMaxZoom || 14,
-              clusterRadius: 50
-            });
-            
-            // Cluster circles
-            map.current.addLayer({
-              id: `${clusterId}-clusters`,
-              type: 'circle',
-              source: clusterId,
-              filter: ['has', 'point_count'],
-              paint: {
-                'circle-color': cmd.color || '#3b82f6',
-                'circle-radius': ['step', ['get', 'point_count'], 20, 10, 30, 50, 40]
-              }
-            });
-            
-            // Cluster count
-            map.current.addLayer({
-              id: `${clusterId}-count`,
-              type: 'symbol',
-              source: clusterId,
-              filter: ['has', 'point_count'],
-              layout: {
-                'text-field': '{point_count_abbreviated}',
-                'text-size': 12
-              },
-              paint: {
-                'text-color': '#ffffff'
-              }
-            });
-            
-            mapLayers.current.push(`${clusterId}-clusters`, `${clusterId}-count`);
             break;
 
           case 'clear':
@@ -812,7 +677,7 @@ Hãy cung cấp:
 
           case 'fit-bounds':
             if (cmd.bounds) {
-              map.current.fitBounds(cmd.bounds, { padding: 50, duration: 1000 });
+              map.current.fitBounds(cmd.bounds, { padding: 50 });
             }
             break;
         }
