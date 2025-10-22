@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.map-agent]
 verify_jwt = false
+
+[functions.analyze-case]
+verify_jwt = false
