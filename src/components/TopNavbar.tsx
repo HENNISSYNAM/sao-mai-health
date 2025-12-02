@@ -13,10 +13,7 @@ import {
   CheckCircle,
   X,
   AlertCircle,
-  Bell,
-  LogOut,
-  Settings,
-  User
+  Bell
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -30,7 +27,6 @@ import { useSmartSearch } from "@/hooks/useSmartSearch";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAuthContext } from "@/components/AuthProvider";
 import {
   CommandDialog,
   CommandEmpty,
@@ -52,7 +48,6 @@ interface OfflineStatus {
 }
 
 export function TopNavbar() {
-  const { user, signOut } = useAuthContext();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>({ connected: false });
@@ -164,10 +159,6 @@ export function TopNavbar() {
       default:
         break;
     }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
   };
 
   const handleDismissOfflineBanner = () => {
@@ -335,41 +326,6 @@ export function TopNavbar() {
                     Xem tất cả cảnh báo
                   </Button>
                 </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* User Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <User className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {user?.email?.split('@')[0] || 'User'}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      {user?.email}
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Thông tin cá nhân</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Cài đặt</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-danger" onClick={handleSignOut}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Đăng xuất</span>
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

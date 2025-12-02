@@ -56,17 +56,8 @@ const menuItems = [
     title: "Quản lý",
     items: [
       { title: "Bệnh nhân", url: "/patients", icon: UserCheck, color: "text-purple-600" },
-      { title: "Khám bệnh", url: "/encounters", icon: ClipboardList, color: "text-cyan-600" },
       { title: "Lịch hẹn", url: "/appointments", icon: CalendarCheck, color: "text-emerald-600" },
       { title: "Chiến dịch", url: "/campaigns", icon: Target, color: "text-pink-600" },
-    ]
-  },
-  {
-    title: "Chuẩn y tế & Tích hợp",
-    items: [
-      { title: "HL7, FHIR, DICOM", url: "/health-standards", icon: Activity, color: "text-blue-600" },
-      { title: "VNeID & BHYT", url: "/health-standards", icon: UserCheck, color: "text-green-600" },
-      { title: "HIS/LIS/PACS", url: "/health-standards", icon: Building2, color: "text-purple-600" },
     ]
   },
   {
@@ -74,19 +65,6 @@ const menuItems = [
     items: [
       { title: "Cơ sở y tế", url: "/facilities", icon: Hospital, color: "text-slate-600" },
       { title: "Kho tồn", url: "/stocks", icon: Package, color: "text-amber-600" },
-    ]
-  },
-  {
-    title: "Dữ liệu",
-    items: [
-      { title: "Chất lượng dữ liệu", url: "/data-quality", icon: FileCheck, color: "text-indigo-600" },
-      { title: "Bảo mật", url: "/security", icon: Lock, color: "text-gray-700" },
-    ]
-  },
-  {
-    title: "Tài khoản",
-    items: [
-      { title: "Gói đăng ký", url: "/subscription", icon: Crown, color: "text-purple-600" },
     ]
   }
 ]
