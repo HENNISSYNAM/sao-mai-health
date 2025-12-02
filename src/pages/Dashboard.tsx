@@ -1,12 +1,14 @@
 import { useEffect, useState, useMemo } from "react"
-import { Activity, AlertTriangle, Building2, Heart, Users } from "lucide-react"
+import { Activity, AlertTriangle, Building2, Heart, Users, RefreshCw, Newspaper } from "lucide-react"
 import { KpiCard } from "@/components/KpiCard"
 import { DashboardChart } from "@/components/DashboardChart"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
 import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHealth"
 import { supabase } from "@/integrations/supabase/client"
+import { toast } from "sonner"
 
 interface DailyCount {
   id: string
@@ -31,6 +33,7 @@ export default function Dashboard() {
   const [dailyCounts, setDailyCounts] = useState<DailyCount[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchingNews, setFetchingNews] = useState(false)
 
   // Realtime subscriptions
   const { isConnected: countsConnected, nowTs } = useRealtimeDailyCounts((payload) => {
@@ -117,6 +120,31 @@ export default function Dashboard() {
     return 'unknown'
   }
 
+  const fetchNewsData = async () => {
+    setFetchingNews(true)
+    toast.info('🔍 Đang thu thập tin tức mới nhất...')
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-disease-news')
+      
+      if (error) throw error
+      
+      if (data?.success) {
+        toast.success(`✅ Đã phân tích ${data.articlesFound} tin tức, cập nhật ${data.casesInserted} ca bệnh, tạo ${data.alertsCreated} cảnh báo`)
+        
+        // Refresh data
+        await Promise.all([fetchInitialData(), fetchAlerts()])
+      } else {
+        toast.error('❌ Không thể thu thập tin tức')
+      }
+    } catch (error: any) {
+      console.error('Error fetching news:', error)
+      toast.error('❌ Lỗi khi thu thập tin tức')
+    } finally {
+      setFetchingNews(false)
+    }
+  }
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
@@ -198,6 +226,32 @@ export default function Dashboard() {
     return last7Days
   }, [dailyCounts])
 
+  // Disease distribution data
+  const diseaseData = useMemo(() => {
+    const diseaseMap: Record<string, number> = {}
+    dailyCounts.forEach(count => {
+      diseaseMap[count.disease_code] = (diseaseMap[count.disease_code] || 0) + count.cases
+    })
+    
+    return Object.entries(diseaseMap)
+      .map(([name, value]) => ({ name: name.toUpperCase(), value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5)
+  }, [dailyCounts])
+
+  // District distribution data
+  const districtData = useMemo(() => {
+    const districtMap: Record<string, number> = {}
+    dailyCounts.forEach(count => {
+      districtMap[count.district_id] = (districtMap[count.district_id] || 0) + count.cases
+    })
+    
+    return Object.entries(districtMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8)
+  }, [dailyCounts])
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -221,7 +275,26 @@ export default function Dashboard() {
           <h1 className="text-3xl font-bold text-foreground">Tổng quan hệ thống</h1>
           <p className="text-muted-foreground">Giám sát y tế công cộng TP. Hồ Chí Minh</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={fetchNewsData}
+            disabled={fetchingNews}
+            size="sm"
+            variant="outline"
+            className="gap-2"
+          >
+            {fetchingNews ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Đang cập nhật...
+              </>
+            ) : (
+              <>
+                <Newspaper className="h-4 w-4" />
+                Thu thập tin tức
+              </>
+            )}
+          </Button>
           <Badge variant={countsConnected && alertsConnected ? "default" : "secondary"}>
             {countsConnected && alertsConnected ? "Live" : "Offline"}
           </Badge>
@@ -246,6 +319,21 @@ export default function Dashboard() {
           type="line"
           multiSeries={false}
         />
+        <DashboardChart
+          title="Phân bố theo loại bệnh"
+          data={diseaseData}
+          type="bar"
+          multiSeries={false}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <DashboardChart
+          title="Phân bố theo quận/huyện"
+          data={districtData}
+          type="bar"
+          multiSeries={false}
+        />
         <Card className="rounded-2xl shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -263,8 +351,9 @@ export default function Dashboard() {
                     <div className="flex items-center gap-3">
                       <Badge 
                         variant={alert.status === 'open' ? 'destructive' : 'secondary'}
+                        className="min-w-[50px] justify-center"
                       >
-                        {alert.status === 'open' ? 'Mở' : 'Đóng'}
+                        {alert.status === 'open' ? 'Đông' : 'Đóng'}
                       </Badge>
                       <span className="text-sm">
                         {alert.disease_code} - {alert.cases} ca tại {alert.day}

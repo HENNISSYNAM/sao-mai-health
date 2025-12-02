@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.analyze-case]
 verify_jwt = false
+
+[functions.fetch-disease-news]
+verify_jwt = false
