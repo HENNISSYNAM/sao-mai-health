@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -6,47 +6,116 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { UserPlus, MapPin, Shield, Mic, MicOff, Navigation, Sparkles, Camera, Loader2 } from "lucide-react"
+import { UserPlus, Search, Navigation, Loader2, CreditCard, CheckCircle } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { sha256Hex } from "@/lib/crypto"
 
 interface PatientForm {
+  vnid: string
   full_name: string
-  mpi: string
   birth_year: string
   gender: string
   phone: string
+  address: string
   disease_code: string
-  facility_id: string
   lat: string
   lon: string
   symptoms: string
 }
 
+// Mock VNID database - replace with real API
+const VNID_DATABASE: Record<string, Omit<PatientForm, 'vnid' | 'disease_code' | 'symptoms' | 'lat' | 'lon'>> = {
+  "001234567890": {
+    full_name: "Nguyễn Văn An",
+    birth_year: "1985",
+    gender: "male",
+    phone: "0901234567",
+    address: "123 Nguyễn Thái Học, Phường 1, Quận 1, TP.HCM"
+  },
+  "001234567891": {
+    full_name: "Trần Thị Bình",
+    birth_year: "1990",
+    gender: "female",
+    phone: "0912345678",
+    address: "456 Lê Lợi, Phường 3, Quận 3, TP.HCM"
+  },
+  "001234567892": {
+    full_name: "Lê Minh Cường",
+    birth_year: "1978",
+    gender: "male",
+    phone: "0923456789",
+    address: "789 Trần Hưng Đạo, Phường 5, Quận 5, TP.HCM"
+  }
+}
+
 export default function SmartPatientForm() {
   const [form, setForm] = useState<PatientForm>({
+    vnid: '',
     full_name: '',
-    mpi: '',
     birth_year: '',
     gender: '',
     phone: '',
+    address: '',
     disease_code: '',
-    facility_id: '',
     lat: '',
     lon: '',
     symptoms: ''
   })
   const [loading, setLoading] = useState(false)
-  const [isListening, setIsListening] = useState(false)
-  const [activeField, setActiveField] = useState<string | null>(null)
+  const [searching, setSearching] = useState(false)
   const [gettingLocation, setGettingLocation] = useState(false)
-  const [analyzingImage, setAnalyzingImage] = useState(false)
-  const [aiSuggestions, setAiSuggestions] = useState<string>('')
+  const [vnidVerified, setVnidVerified] = useState(false)
   const { toast } = useToast()
 
   const handleInputChange = (field: keyof PatientForm, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
+    if (field === 'vnid') {
+      setVnidVerified(false)
+    }
+  }
+
+  // Look up patient info by VNID
+  const lookupVNID = async () => {
+    if (!form.vnid || form.vnid.length < 9) {
+      toast({
+        title: "CCCD không hợp lệ",
+        description: "Vui lòng nhập số CCCD (ít nhất 9 ký tự)",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setSearching(true)
+
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000))
+
+    const patientData = VNID_DATABASE[form.vnid]
+    
+    if (patientData) {
+      setForm(prev => ({
+        ...prev,
+        full_name: patientData.full_name,
+        birth_year: patientData.birth_year,
+        gender: patientData.gender,
+        phone: patientData.phone,
+        address: patientData.address
+      }))
+      setVnidVerified(true)
+      toast({
+        title: "✓ Đã tìm thấy thông tin",
+        description: `Bệnh nhân: ${patientData.full_name}`
+      })
+    } else {
+      toast({
+        title: "Không tìm thấy",
+        description: "Không có thông tin cho CCCD này. Vui lòng nhập thủ công.",
+        variant: "destructive"
+      })
+    }
+
+    setSearching(false)
   }
 
   // Auto-get GPS location
@@ -66,7 +135,7 @@ export default function SmartPatientForm() {
             description: "Tọa độ GPS đã được tự động điền"
           })
         },
-        (error) => {
+        () => {
           setGettingLocation(false)
           toast({
             title: "Không thể lấy vị trí",
@@ -78,185 +147,30 @@ export default function SmartPatientForm() {
     }
   }
 
-  // Voice input for any field
-  const startVoiceInput = (field: string) => {
-    if (!('webkitSpeechRecognition' in window)) {
-      toast({
-        title: "Không hỗ trợ",
-        description: "Trình duyệt không hỗ trợ nhập liệu bằng giọng nói",
-        variant: "destructive"
-      })
-      return
-    }
-
-    const recognition = new (window as any).webkitSpeechRecognition()
-    recognition.lang = 'vi-VN'
-    recognition.continuous = false
-    recognition.interimResults = false
-
-    setIsListening(true)
-    setActiveField(field)
-
-    recognition.onresult = (event: any) => {
-      const transcript = event.results[0][0].transcript
-      handleInputChange(field as keyof PatientForm, transcript)
-      setIsListening(false)
-      setActiveField(null)
-    }
-
-    recognition.onerror = () => {
-      setIsListening(false)
-      setActiveField(null)
-      toast({
-        title: "Lỗi nhận dạng giọng nói",
-        description: "Vui lòng thử lại",
-        variant: "destructive"
-      })
-    }
-
-    recognition.onend = () => {
-      setIsListening(false)
-      setActiveField(null)
-    }
-
-    recognition.start()
-  }
-
-  // AI-powered image analysis
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    setAnalyzingImage(true)
-
-    try {
-      const reader = new FileReader()
-      reader.onloadend = async () => {
-        const base64 = reader.result as string
-
-        const { data, error } = await supabase.functions.invoke('surveillance-ai', {
-          body: {
-            message: "Phân tích hình ảnh này và trích xuất thông tin bệnh nhân: tên, năm sinh, giới tính, số điện thoại, triệu chứng. Trả lời bằng tiếng Việt dưới dạng: Tên: ..., Năm sinh: ..., Giới tính: ..., SĐT: ..., Triệu chứng: ...",
-            image: base64.split(',')[1]
-          }
-        })
-
-        if (error) throw error
-
-        const aiResponse = data.response
-        
-        // Parse AI response and auto-fill form
-        const nameMatch = aiResponse.match(/Tên:\s*(.+?)(?:,|\n|$)/i)
-        const yearMatch = aiResponse.match(/Năm sinh:\s*(\d{4})/i)
-        const genderMatch = aiResponse.match(/Giới tính:\s*(.+?)(?:,|\n|$)/i)
-        const phoneMatch = aiResponse.match(/SĐT:\s*(.+?)(?:,|\n|$)/i)
-        const symptomsMatch = aiResponse.match(/Triệu chứng:\s*(.+?)(?:\n|$)/i)
-
-        if (nameMatch) setForm(prev => ({ ...prev, full_name: nameMatch[1].trim() }))
-        if (yearMatch) setForm(prev => ({ ...prev, birth_year: yearMatch[1] }))
-        if (genderMatch) {
-          const gender = genderMatch[1].toLowerCase()
-          setForm(prev => ({ 
-            ...prev, 
-            gender: gender.includes('nam') ? 'male' : gender.includes('nữ') ? 'female' : 'other'
-          }))
-        }
-        if (phoneMatch) setForm(prev => ({ ...prev, phone: phoneMatch[1].trim() }))
-        if (symptomsMatch) setForm(prev => ({ ...prev, symptoms: symptomsMatch[1].trim() }))
-
-        setAiSuggestions(aiResponse)
-        
-        toast({
-          title: "✓ Đã phân tích ảnh",
-          description: "Thông tin đã được tự động điền từ hình ảnh"
-        })
-      }
-      reader.readAsDataURL(file)
-    } catch (error) {
-      console.error('Image analysis error:', error)
-      toast({
-        title: "Lỗi phân tích ảnh",
-        description: "Không thể phân tích hình ảnh",
-        variant: "destructive"
-      })
-    } finally {
-      setAnalyzingImage(false)
-    }
-  }
-
-  // AI-powered disease code suggestions
-  const getSuggestedDiseaseCode = async () => {
-    if (!form.symptoms) return
-
-    try {
-      const { data, error } = await supabase.functions.invoke('surveillance-ai', {
-        body: {
-          message: `Dựa vào triệu chứng sau, gợi ý 3 mã bệnh có thể: "${form.symptoms}". Chỉ trả lời danh sách mã bệnh (dengue, covid19, tcm, ari, etc.) ngắn gọn.`
-        }
-      })
-
-      if (!error && data?.response) {
-        toast({
-          title: "💡 Gợi ý từ AI",
-          description: data.response
-        })
-      }
-    } catch (error) {
-      console.error('AI suggestion error:', error)
-    }
-  }
-
   const handleSubmit = async () => {
     try {
       setLoading(true)
 
       // Validate required fields
-      if (!form.full_name || !form.mpi || !form.disease_code || !form.lat || !form.lon) {
+      if (!form.vnid || !form.full_name || !form.disease_code) {
         toast({
           title: "Thiếu thông tin",
-          description: "Vui lòng điền đầy đủ thông tin bắt buộc",
+          description: "Vui lòng điền CCCD, họ tên và mã bệnh",
           variant: "destructive"
         })
         return
       }
 
-      const lat = parseFloat(form.lat)
-      const lon = parseFloat(form.lon)
-      if (isNaN(lat) || isNaN(lon)) {
-        toast({
-          title: "Tọa độ không hợp lệ",
-          variant: "destructive"
-        })
-        return
-      }
+      const lat = parseFloat(form.lat) || 10.7769
+      const lon = parseFloat(form.lon) || 106.7009
 
-      // Auto-convert natural language symptoms to JSON
+      // Parse symptoms
       let symptomsJson: any = {}
       if (form.symptoms) {
-        try {
-          symptomsJson = JSON.parse(form.symptoms)
-        } catch {
-          // Use AI to convert natural language to JSON
-          const { data } = await supabase.functions.invoke('surveillance-ai', {
-            body: {
-              message: `Chuyển đổi triệu chứng sau sang JSON: "${form.symptoms}". Chỉ trả về JSON object với các key tiếng Anh.`
-            }
-          })
-          
-          if (data?.response) {
-            try {
-              const jsonMatch = data.response.match(/\{.*\}/s)
-              if (jsonMatch) {
-                symptomsJson = JSON.parse(jsonMatch[0])
-              }
-            } catch {
-              symptomsJson = { description: form.symptoms }
-            }
-          }
-        }
+        symptomsJson = { description: form.symptoms }
       }
 
-      const mpiHash = await sha256Hex(form.mpi)
+      const mpiHash = await sha256Hex(form.vnid)
 
       const { data: patientData, error: patientError } = await supabase
         .from('patients')
@@ -266,7 +180,6 @@ export default function SmartPatientForm() {
           birth_year: parseInt(form.birth_year) || null,
           gender: form.gender || null,
           phone: form.phone || null,
-          facility_id: form.facility_id || null,
         })
         .select()
         .single()
@@ -278,51 +191,42 @@ export default function SmartPatientForm() {
         .insert({
           patient_id: patientData.id,
           disease_code: form.disease_code,
-          facility_id: form.facility_id || null,
           lat: lat,
           lon: lon,
           symptoms: symptomsJson,
           patient_hash: mpiHash,
           patient_gender: form.gender || null,
           patient_age_bucket: form.birth_year ? `${Math.floor((new Date().getFullYear() - parseInt(form.birth_year)) / 10) * 10}-${Math.floor((new Date().getFullYear() - parseInt(form.birth_year)) / 10) * 10 + 9}` : null,
-          source: 'smart_entry'
+          source: 'vnid_entry'
         })
 
       if (caseError) throw caseError
 
       toast({
         title: "✓ Thành công",
-        description: `Đã lưu bệnh nhân ${form.full_name}. Dữ liệu đang cập nhật lên bản đồ realtime!`,
+        description: `Đã lưu bệnh nhân ${form.full_name}`
       })
 
       // Reset form
       setForm({
+        vnid: '',
         full_name: '',
-        mpi: '',
         birth_year: '',
         gender: '',
         phone: '',
+        address: '',
         disease_code: '',
-        facility_id: '',
         lat: '',
         lon: '',
         symptoms: ''
       })
-      setAiSuggestions('')
-      
-      // Notify user that data is syncing to map
-      setTimeout(() => {
-        toast({
-          title: "🗺️ Đã cập nhật bản đồ",
-          description: "Kiểm tra trang MapView để xem ca bệnh mới",
-        });
-      }, 1500)
+      setVnidVerified(false)
 
     } catch (error) {
       console.error('Error:', error)
       toast({
         title: "Lỗi",
-        description: "Có lỗi xảy ra",
+        description: "Có lỗi xảy ra khi lưu dữ liệu",
         variant: "destructive"
       })
     } finally {
@@ -334,282 +238,221 @@ export default function SmartPatientForm() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-          <Sparkles className="h-8 w-8 text-primary" />
-          Nhập liệu thông minh
+          <CreditCard className="h-8 w-8 text-primary" />
+          Nhập bệnh nhân bằng CCCD
         </h1>
-        <p className="text-muted-foreground">AI-powered • Voice • GPS • Image Analysis</p>
+        <p className="text-muted-foreground">Chỉ cần nhập số CCCD để tự động điền thông tin</p>
       </div>
 
-      {/* Quick Actions */}
+      {/* VNID Lookup Card */}
       <Card className="rounded-2xl shadow-sm border-primary/20">
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Search className="h-5 w-5" />
+            Tra cứu CCCD
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <Input
+                value={form.vnid}
+                onChange={(e) => handleInputChange('vnid', e.target.value)}
+                placeholder="Nhập số CCCD (12 số)"
+                className="text-lg h-12"
+                maxLength={12}
+              />
+              {vnidVerified && (
+                <CheckCircle className="absolute right-3 top-3 h-6 w-6 text-green-500" />
+              )}
+            </div>
             <Button
-              variant="outline"
-              onClick={getLocation}
-              disabled={gettingLocation}
-              className="h-auto py-4 flex-col gap-2"
+              onClick={lookupVNID}
+              disabled={searching || !form.vnid}
+              size="lg"
+              className="h-12 px-6"
             >
-              {gettingLocation ? <Loader2 className="h-5 w-5 animate-spin" /> : <Navigation className="h-5 w-5" />}
-              <span className="text-xs">Lấy GPS</span>
-            </Button>
-            
-            <Button
-              variant="outline"
-              onClick={() => document.getElementById('image-upload')?.click()}
-              disabled={analyzingImage}
-              className="h-auto py-4 flex-col gap-2"
-            >
-              {analyzingImage ? <Loader2 className="h-5 w-5 animate-spin" /> : <Camera className="h-5 w-5" />}
-              <span className="text-xs">Tải ảnh</span>
-            </Button>
-            <input
-              id="image-upload"
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-
-            <Button
-              variant="outline"
-              onClick={getSuggestedDiseaseCode}
-              disabled={!form.symptoms}
-              className="h-auto py-4 flex-col gap-2"
-            >
-              <Sparkles className="h-5 w-5" />
-              <span className="text-xs">Gợi ý AI</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => setForm({
-                full_name: '',
-                mpi: '',
-                birth_year: '',
-                gender: '',
-                phone: '',
-                disease_code: '',
-                facility_id: '',
-                lat: '',
-                lon: '',
-                symptoms: ''
-              })}
-              className="h-auto py-4 flex-col gap-2"
-            >
-              <span className="text-xs">Xóa hết</span>
+              {searching ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <Search className="h-5 w-5 mr-2" />
+                  Tra cứu
+                </>
+              )}
             </Button>
           </div>
+          <p className="text-sm text-muted-foreground mt-2">
+            Demo: thử 001234567890, 001234567891, hoặc 001234567892
+          </p>
         </CardContent>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Patient Form */}
+        {/* Patient Info Card */}
         <Card className="rounded-2xl shadow-sm">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5" />
               Thông tin bệnh nhân
+              {vnidVerified && (
+                <Badge variant="outline" className="text-green-600 border-green-600">
+                  Đã xác thực
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-4">
+            <div>
+              <Label htmlFor="full_name">Họ và tên *</Label>
+              <Input
+                id="full_name"
+                value={form.full_name}
+                onChange={(e) => handleInputChange('full_name', e.target.value)}
+                placeholder="Nguyễn Văn A"
+                disabled={vnidVerified}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="full_name">Họ và tên *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="full_name"
-                    value={form.full_name}
-                    onChange={(e) => handleInputChange('full_name', e.target.value)}
-                    placeholder="Nguyễn Văn A"
-                  />
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    onClick={() => startVoiceInput('full_name')}
-                    disabled={isListening}
-                  >
-                    {isListening && activeField === 'full_name' ? 
-                      <MicOff className="h-4 w-4 text-destructive" /> : 
-                      <Mic className="h-4 w-4" />
-                    }
-                  </Button>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="mpi">MPI/ID *</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="mpi"
-                    value={form.mpi}
-                    onChange={(e) => handleInputChange('mpi', e.target.value)}
-                    placeholder="ID bệnh nhân"
-                  />
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="birth_year">Năm sinh</Label>
-                  <Input
-                    id="birth_year"
-                    value={form.birth_year}
-                    onChange={(e) => handleInputChange('birth_year', e.target.value)}
-                    placeholder="1990"
-                    type="number"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="gender">Giới tính</Label>
-                  <Select value={form.gender} onValueChange={(value) => handleInputChange('gender', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Nam</SelectItem>
-                      <SelectItem value="female">Nữ</SelectItem>
-                      <SelectItem value="other">Khác</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="phone">Số điện thoại</Label>
+                <Label htmlFor="birth_year">Năm sinh</Label>
                 <Input
-                  id="phone"
-                  value={form.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="0901234567"
+                  id="birth_year"
+                  value={form.birth_year}
+                  onChange={(e) => handleInputChange('birth_year', e.target.value)}
+                  placeholder="1990"
+                  type="number"
+                  disabled={vnidVerified}
                 />
               </div>
 
               <div>
-                <Label htmlFor="disease_code">Mã bệnh *</Label>
-                <Input
-                  id="disease_code"
-                  value={form.disease_code}
-                  onChange={(e) => handleInputChange('disease_code', e.target.value)}
-                  placeholder="dengue, covid19, tcm..."
-                />
+                <Label htmlFor="gender">Giới tính</Label>
+                <Select 
+                  value={form.gender} 
+                  onValueChange={(value) => handleInputChange('gender', value)}
+                  disabled={vnidVerified}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Nam</SelectItem>
+                    <SelectItem value="female">Nữ</SelectItem>
+                    <SelectItem value="other">Khác</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
 
-              <div>
-                <Label htmlFor="facility_id">Cơ sở y tế</Label>
-                <Input
-                  id="facility_id"
-                  value={form.facility_id}
-                  onChange={(e) => handleInputChange('facility_id', e.target.value)}
-                  placeholder="BV_CHORAY, BV_115..."
-                />
-              </div>
+            <div>
+              <Label htmlFor="phone">Số điện thoại</Label>
+              <Input
+                id="phone"
+                value={form.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="0901234567"
+                disabled={vnidVerified}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="address">Địa chỉ</Label>
+              <Input
+                id="address"
+                value={form.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                placeholder="Địa chỉ"
+                disabled={vnidVerified}
+              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Location & Symptoms */}
+        {/* Medical Info Card */}
         <Card className="rounded-2xl shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Vị trí & triệu chứng
+            <CardTitle className="flex items-center justify-between">
+              <span>Thông tin y tế</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={getLocation}
+                disabled={gettingLocation}
+              >
+                {gettingLocation ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Navigation className="h-4 w-4 mr-2" />
+                )}
+                Lấy GPS
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="disease_code">Mã bệnh *</Label>
+              <Select 
+                value={form.disease_code} 
+                onValueChange={(value) => handleInputChange('disease_code', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn bệnh" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="dengue">Sốt xuất huyết</SelectItem>
+                  <SelectItem value="tcm">Tay chân miệng</SelectItem>
+                  <SelectItem value="ari">Nhiễm khuẩn hô hấp</SelectItem>
+                  <SelectItem value="covid19">COVID-19</SelectItem>
+                  <SelectItem value="flu">Cúm</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="lat">Vĩ độ *</Label>
+                <Label htmlFor="lat">Vĩ độ</Label>
                 <Input
                   id="lat"
                   value={form.lat}
                   onChange={(e) => handleInputChange('lat', e.target.value)}
-                  placeholder="10.7756"
-                  type="number"
-                  step="any"
+                  placeholder="10.7769"
                 />
               </div>
-
               <div>
-                <Label htmlFor="lon">Kinh độ *</Label>
+                <Label htmlFor="lon">Kinh độ</Label>
                 <Input
                   id="lon"
                   value={form.lon}
                   onChange={(e) => handleInputChange('lon', e.target.value)}
                   placeholder="106.7009"
-                  type="number"
-                  step="any"
                 />
               </div>
             </div>
 
             <div>
               <Label htmlFor="symptoms">Triệu chứng</Label>
-              <div className="flex gap-2">
-                <Textarea
-                  id="symptoms"
-                  value={form.symptoms}
-                  onChange={(e) => handleInputChange('symptoms', e.target.value)}
-                  placeholder="Sốt cao, ho, đau đầu... (nhập tự nhiên hoặc JSON)"
-                  rows={4}
-                />
-                <Button
-                  size="icon"
-                  variant="outline"
-                  onClick={() => startVoiceInput('symptoms')}
-                  disabled={isListening}
-                >
-                  {isListening && activeField === 'symptoms' ? 
-                    <MicOff className="h-4 w-4 text-destructive" /> : 
-                    <Mic className="h-4 w-4" />
-                  }
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                💡 Nhập bằng ngôn ngữ tự nhiên, AI sẽ tự động chuyển đổi
-              </p>
+              <Textarea
+                id="symptoms"
+                value={form.symptoms}
+                onChange={(e) => handleInputChange('symptoms', e.target.value)}
+                placeholder="Mô tả triệu chứng..."
+                rows={3}
+              />
             </div>
 
-            {aiSuggestions && (
-              <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
-                <p className="text-xs font-medium mb-1 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" />
-                  Phân tích từ AI:
-                </p>
-                <p className="text-sm text-muted-foreground">{aiSuggestions}</p>
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Badge variant="outline" className="text-xs">
-                <Shield className="h-3 w-3 mr-1" />
-                MPI được mã hóa SHA256
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                <Sparkles className="h-3 w-3 mr-1" />
-                AI hỗ trợ nhập liệu
-              </Badge>
-            </div>
-
-            <Button 
-              onClick={handleSubmit} 
-              disabled={loading}
-              className="w-full"
-              size="lg"
+            <Button
+              onClick={handleSubmit}
+              disabled={loading || !form.vnid || !form.full_name || !form.disease_code}
+              className="w-full h-12 text-lg"
             >
               {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Đang xử lý...
-                </>
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
               ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Lưu bệnh nhân
-                </>
+                <UserPlus className="h-5 w-5 mr-2" />
               )}
+              Lưu bệnh nhân
             </Button>
           </CardContent>
         </Card>
