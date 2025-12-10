@@ -98,6 +98,11 @@ export default function Surveillance() {
 
   const getDiseaseBadge = (disease: string) => {
     const diseaseMap: Record<string, { label: string; className: string }> = {
+      'dengue': { label: 'Sốt xuất huyết', className: 'bg-red-500 text-white' },
+      'tcm': { label: 'Tay chân miệng', className: 'bg-orange-500 text-white' },
+      'covid19': { label: 'COVID-19', className: 'bg-blue-500 text-white' },
+      'ari': { label: 'Nhiễm khuẩn hô hấp', className: 'bg-green-500 text-white' },
+      'flu': { label: 'Cúm', className: 'bg-purple-500 text-white' },
       'D01': { label: 'Sốt xuất huyết', className: 'bg-red-500 text-white' },
       'D02': { label: 'Tay chân miệng', className: 'bg-orange-500 text-white' },
       'D03': { label: 'COVID-19', className: 'bg-blue-500 text-white' },
@@ -112,12 +117,11 @@ export default function Surveillance() {
 
   const getDiseaseOptions = () => [
     { value: 'all', label: 'Tất cả bệnh' },
-    { value: 'D01', label: 'Sốt xuất huyết' },
-    { value: 'D02', label: 'Tay chân miệng' },
-    { value: 'D03', label: 'COVID-19' },
-    { value: 'D04', label: 'Nhiễm khuẩn hô hấp' },
-    { value: 'D05', label: 'Sốt rét' },
-    { value: 'D06', label: 'Cúm A/H1N1' }
+    { value: 'dengue', label: 'Sốt xuất huyết' },
+    { value: 'tcm', label: 'Tay chân miệng' },
+    { value: 'covid19', label: 'COVID-19' },
+    { value: 'ari', label: 'Nhiễm khuẩn hô hấp' },
+    { value: 'flu', label: 'Cúm' }
   ]
 
   return (

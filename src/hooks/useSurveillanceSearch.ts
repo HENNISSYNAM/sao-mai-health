@@ -55,7 +55,7 @@ export function useSurveillanceSearch({
         ward_id,
         district_id,
         facility_id,
-        patients!inner(full_name, phone),
+        patients(full_name, phone),
         health_facilities(name)
       `, { count: 'exact' })
       .order('occurred_at', { ascending: false })
@@ -67,8 +67,7 @@ export function useSurveillanceSearch({
         patient_hash.ilike.%${debouncedSearchTerm}%,
         disease_code.ilike.%${debouncedSearchTerm}%,
         ward_id.ilike.%${debouncedSearchTerm}%,
-        district_id.ilike.%${debouncedSearchTerm}%,
-        patients.full_name.ilike.%${debouncedSearchTerm}%
+        district_id.ilike.%${debouncedSearchTerm}%
       `)
     }
 
@@ -119,9 +118,9 @@ export function useSurveillanceSearch({
           ward_id: caseEvent.ward_id,
           district_id: caseEvent.district_id,
           facility_id: caseEvent.facility_id,
-          patient_name: caseEvent.patients?.full_name || null,
-          patient_phone: caseEvent.patients?.phone || null,
-          facility_name: caseEvent.health_facilities?.name || null,
+          patient_name: (caseEvent.patients as any)?.full_name || null,
+          patient_phone: (caseEvent.patients as any)?.phone || null,
+          facility_name: (caseEvent.health_facilities as any)?.name || null,
           status: (caseEvent.symptoms as any)?.confirmed ? 'confirmed' : 
                  (caseEvent.symptoms as any)?.probable ? 'probable' : 'suspected'
         }))
