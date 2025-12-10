@@ -30,12 +30,11 @@ export function AddCaseModal({ open, onOpenChange, onCaseAdded }: AddCaseModalPr
   })
 
   const diseaseOptions = [
-    { value: 'D01', label: 'Sốt xuất huyết' },
-    { value: 'D02', label: 'Tay chân miệng' },
-    { value: 'D03', label: 'COVID-19' },
-    { value: 'D04', label: 'Nhiễm khuẩn hô hấp' },
-    { value: 'D05', label: 'Sốt rét' },
-    { value: 'D06', label: 'Cúm A/H1N1' }
+    { value: 'dengue', label: 'Sốt xuất huyết' },
+    { value: 'tcm', label: 'Tay chân miệng' },
+    { value: 'covid19', label: 'COVID-19' },
+    { value: 'ari', label: 'Nhiễm khuẩn hô hấp' },
+    { value: 'flu', label: 'Cúm' }
   ]
 
   const ageGroups = [
