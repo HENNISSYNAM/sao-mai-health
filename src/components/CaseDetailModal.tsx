@@ -83,6 +83,11 @@ export function CaseDetailModal({ case_, open, onOpenChange }: CaseDetailModalPr
 
   const getDiseaseName = (code: string) => {
     const diseaseMap: Record<string, string> = {
+      'dengue': 'Sốt xuất huyết',
+      'tcm': 'Tay chân miệng',
+      'covid19': 'COVID-19',
+      'ari': 'Nhiễm khuẩn hô hấp',
+      'flu': 'Cúm',
       'D01': 'Sốt xuất huyết',
       'D02': 'Tay chân miệng',
       'D03': 'COVID-19',

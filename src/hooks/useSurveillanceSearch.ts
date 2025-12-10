@@ -17,12 +17,18 @@ export interface SurveillanceCase {
   patient_phone: string | null
   facility_name: string | null
   status: string
+  source: string | null
 }
 
 interface UseSurveillanceSearchOptions {
   searchTerm: string
   diseaseFilter: string
   statusFilter: string
+  dateFrom?: string
+  dateTo?: string
+  districtFilter?: string
+  ageFilter?: string
+  genderFilter?: string
   pageSize: number
   currentPage: number
 }
@@ -31,6 +37,11 @@ export function useSurveillanceSearch({
   searchTerm,
   diseaseFilter, 
   statusFilter,
+  dateFrom,
+  dateTo,
+  districtFilter,
+  ageFilter,
+  genderFilter,
   pageSize,
   currentPage
 }: UseSurveillanceSearchOptions) {
@@ -38,6 +49,12 @@ export function useSurveillanceSearch({
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [stats, setStats] = useState({
+    total: 0,
+    confirmed: 0,
+    suspected: 0,
+    todayCases: 0
+  })
   
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
   
@@ -55,6 +72,7 @@ export function useSurveillanceSearch({
         ward_id,
         district_id,
         facility_id,
+        source,
         patients(full_name, phone),
         health_facilities(name)
       `, { count: 'exact' })
@@ -87,13 +105,36 @@ export function useSurveillanceSearch({
       }
     }
 
+    // Date range filter
+    if (dateFrom) {
+      query = query.gte('occurred_at', dateFrom)
+    }
+    if (dateTo) {
+      query = query.lte('occurred_at', dateTo + 'T23:59:59')
+    }
+
+    // District filter
+    if (districtFilter && districtFilter !== 'all') {
+      query = query.eq('district_id', districtFilter)
+    }
+
+    // Age filter
+    if (ageFilter && ageFilter !== 'all') {
+      query = query.eq('patient_age_bucket', ageFilter)
+    }
+
+    // Gender filter
+    if (genderFilter && genderFilter !== 'all') {
+      query = query.eq('patient_gender', genderFilter)
+    }
+
     // Pagination
     const from = (currentPage - 1) * pageSize
     const to = from + pageSize - 1
     query = query.range(from, to)
 
     return query
-  }, [debouncedSearchTerm, diseaseFilter, statusFilter, currentPage, pageSize])
+  }, [debouncedSearchTerm, diseaseFilter, statusFilter, dateFrom, dateTo, districtFilter, ageFilter, genderFilter, currentPage, pageSize])
 
   useEffect(() => {
     const fetchCases = async () => {
@@ -118,6 +159,7 @@ export function useSurveillanceSearch({
           ward_id: caseEvent.ward_id,
           district_id: caseEvent.district_id,
           facility_id: caseEvent.facility_id,
+          source: caseEvent.source,
           patient_name: (caseEvent.patients as any)?.full_name || null,
           patient_phone: (caseEvent.patients as any)?.phone || null,
           facility_name: (caseEvent.health_facilities as any)?.name || null,
@@ -127,6 +169,19 @@ export function useSurveillanceSearch({
 
         setCases(formattedCases)
         setTotalCount(count || 0)
+
+        // Calculate stats
+        const confirmed = formattedCases.filter(c => c.status === 'confirmed').length
+        const suspected = formattedCases.filter(c => c.status === 'suspected').length
+        const today = new Date().toISOString().split('T')[0]
+        const todayCases = formattedCases.filter(c => c.occurred_at.startsWith(today)).length
+
+        setStats({
+          total: count || 0,
+          confirmed,
+          suspected,
+          todayCases
+        })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
         setCases([])
@@ -148,6 +203,7 @@ export function useSurveillanceSearch({
       'Trạng thái',
       'Cơ sở y tế',
       'Địa điểm',
+      'Nguồn',
       'Ngày báo cáo'
     ]
     
@@ -160,6 +216,7 @@ export function useSurveillanceSearch({
       case_.status === 'probable' ? 'Có thể' : 'Nghi ngờ',
       case_.facility_name || 'N/A',
       `${case_.ward_id || 'N/A'}, ${case_.district_id || 'N/A'}`,
+      case_.source || 'N/A',
       new Date(case_.occurred_at).toLocaleDateString('vi-VN')
     ])
 
@@ -179,6 +236,7 @@ export function useSurveillanceSearch({
     totalCount,
     loading,
     error,
+    stats,
     exportToCSV
   }
 }

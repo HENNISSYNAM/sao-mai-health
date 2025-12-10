@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface UseRealtimeOptions {
-  table: 'cases' | 'lab_results' | 'alerts' | 'metrics_cases_daily'
+  table: 'cases' | 'case_events' | 'lab_results' | 'alerts' | 'metrics_cases_daily'
   event?: 'INSERT' | 'UPDATE' | 'DELETE' | '*'
   schema?: string
 }
