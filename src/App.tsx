@@ -22,6 +22,7 @@ import Campaigns from "./pages/Campaigns";
 import Appointments from "./pages/Appointments";
 import Inventory from "./pages/Inventory";
 import Facilities from "./pages/Facilities";
+import StrokeRisk from "./pages/StrokeRisk";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +62,7 @@ const App = () => (
                         <Route path="/facilities" element={<Facilities />} />
                         <Route path="/stocks" element={<Inventory />} />
                         <Route path="/inventory" element={<Inventory />} />
+                        <Route path="/stroke-risk" element={<StrokeRisk />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                       <EnhancedCommandPalette />

@@ -77,3 +77,12 @@ verify_jwt = false
 
 [functions.fetch-disease-news]
 verify_jwt = false
+
+[functions.predict-disease-risk]
+verify_jwt = false
+
+[functions.stroke-risk-agent]
+verify_jwt = false
+
+[functions.check-stroke-risk]
+verify_jwt = false
