@@ -3370,6 +3370,114 @@ export type Database = {
         }
         Relationships: []
       }
+      stroke_alert_subscribers: {
+        Row: {
+          created_at: string
+          district_id: string | null
+          id: string
+          is_active: boolean | null
+          last_alert_sent: string | null
+          lat: number | null
+          lon: number | null
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          district_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_alert_sent?: string | null
+          lat?: number | null
+          lon?: number | null
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          district_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_alert_sent?: string | null
+          lat?: number | null
+          lon?: number | null
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      stroke_risk_predictions: {
+        Row: {
+          ai_analysis: string | null
+          aqi: number | null
+          created_at: string
+          data_source: string | null
+          district_id: string | null
+          humidity: number | null
+          id: string
+          lat: number | null
+          lon: number | null
+          pm10: number | null
+          pm25: number | null
+          predicted_at: string
+          pressure: number | null
+          recommendations: Json | null
+          risk_factors: Json | null
+          risk_level: string
+          risk_score: number | null
+          temperature: number | null
+          valid_until: string | null
+          ward_id: string | null
+          weather_condition: string | null
+        }
+        Insert: {
+          ai_analysis?: string | null
+          aqi?: number | null
+          created_at?: string
+          data_source?: string | null
+          district_id?: string | null
+          humidity?: number | null
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          pm10?: number | null
+          pm25?: number | null
+          predicted_at?: string
+          pressure?: number | null
+          recommendations?: Json | null
+          risk_factors?: Json | null
+          risk_level: string
+          risk_score?: number | null
+          temperature?: number | null
+          valid_until?: string | null
+          ward_id?: string | null
+          weather_condition?: string | null
+        }
+        Update: {
+          ai_analysis?: string | null
+          aqi?: number | null
+          created_at?: string
+          data_source?: string | null
+          district_id?: string | null
+          humidity?: number | null
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          pm10?: number | null
+          pm25?: number | null
+          predicted_at?: string
+          pressure?: number | null
+          recommendations?: Json | null
+          risk_factors?: Json | null
+          risk_level?: string
+          risk_score?: number | null
+          temperature?: number | null
+          valid_until?: string | null
+          ward_id?: string | null
+          weather_condition?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           address: string
