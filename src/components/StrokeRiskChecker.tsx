@@ -19,10 +19,13 @@ import {
   RefreshCw,
   Bell,
   Brain,
-  Heart
+  Heart,
+  Navigation,
+  Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface RiskData {
   success: boolean;
@@ -73,7 +76,6 @@ const StrokeRiskChecker: React.FC = () => {
   const [predictions, setPredictions] = useState<StrokeRiskPrediction[]>([]);
   const [loadingPredictions, setLoadingPredictions] = useState(false);
 
-  // Fetch latest predictions on mount
   useEffect(() => {
     fetchLatestPredictions();
   }, []);
@@ -185,60 +187,53 @@ const StrokeRiskChecker: React.FC = () => {
     }
   };
 
-  const getRiskColor = (level: string) => {
+  const getRiskStyles = (level: string) => {
     switch (level) {
-      case 'LOW': return 'bg-green-500';
-      case 'MEDIUM': return 'bg-yellow-500';
-      case 'HIGH': return 'bg-orange-500';
-      case 'CRITICAL': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
-  };
-
-  const getRiskBadgeVariant = (level: string): "default" | "secondary" | "destructive" | "outline" => {
-    switch (level) {
-      case 'LOW': return 'secondary';
-      case 'MEDIUM': return 'outline';
-      case 'HIGH': return 'destructive';
-      case 'CRITICAL': return 'destructive';
-      default: return 'default';
+      case 'LOW': return { bg: 'bg-success/10', border: 'border-success/30', text: 'text-success' };
+      case 'MEDIUM': return { bg: 'bg-warning/10', border: 'border-warning/30', text: 'text-warning' };
+      case 'HIGH': return { bg: 'bg-danger/10', border: 'border-danger/30', text: 'text-danger' };
+      case 'CRITICAL': return { bg: 'bg-danger', border: 'border-danger', text: 'text-danger-foreground' };
+      default: return { bg: 'bg-muted', border: 'border-border', text: 'text-muted-foreground' };
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <Card className="border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-6 w-6 text-primary" />
-            AI Dự Báo Nguy Cơ Đột Quỵ
-          </CardTitle>
-          <CardDescription>
-            Hệ thống phân tích dữ liệu ô nhiễm và thời tiết để dự báo nguy cơ đột quỵ theo khu vực
-          </CardDescription>
+      {/* Input Card */}
+      <Card className="rounded-2xl border-border/50 overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-primary/5 to-info/5 border-b border-border/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-primary/10">
+              <Heart className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">Kiểm tra nguy cơ cá nhân</CardTitle>
+              <CardDescription>Nhập thông tin để nhận đánh giá nguy cơ đột quỵ tại vị trí của bạn</CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Phone Input */}
             <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
+              <Label htmlFor="phone" className="flex items-center gap-2 text-sm font-medium">
+                <Phone className="h-4 w-4 text-muted-foreground" />
                 Số điện thoại
               </Label>
               <Input
                 id="phone"
-                placeholder="0912345678"
+                placeholder="0912 345 678"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 type="tel"
+                className="h-11 rounded-xl"
               />
             </div>
 
             {/* GPS Location */}
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
+              <Label className="flex items-center gap-2 text-sm font-medium">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
                 Vị trí GPS
               </Label>
               <div className="flex gap-2">
@@ -246,17 +241,17 @@ const StrokeRiskChecker: React.FC = () => {
                   variant="outline" 
                   onClick={getLocation}
                   disabled={gettingLocation}
-                  className="flex-1"
+                  className="flex-1 h-11 rounded-xl gap-2"
                 >
                   {gettingLocation ? (
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    <RefreshCw className="h-4 w-4 animate-spin" />
                   ) : (
-                    <MapPin className="h-4 w-4 mr-2" />
+                    <Navigation className="h-4 w-4" />
                   )}
                   {location ? 'Cập nhật vị trí' : 'Lấy vị trí GPS'}
                 </Button>
                 {location && (
-                  <Badge variant="secondary" className="flex items-center">
+                  <Badge variant="secondary" className="flex items-center h-11 px-3 rounded-xl font-mono text-xs">
                     {location.lat.toFixed(4)}, {location.lon.toFixed(4)}
                   </Badge>
                 )}
@@ -265,29 +260,29 @@ const StrokeRiskChecker: React.FC = () => {
           </div>
 
           {/* Subscribe Option */}
-          <div className="flex items-center space-x-2 mt-4">
+          <div className="flex items-center gap-3 mt-6 p-4 rounded-xl bg-muted/30">
             <Switch 
               id="subscribe" 
               checked={subscribe} 
               onCheckedChange={setSubscribe}
             />
-            <Label htmlFor="subscribe" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              Đăng ký nhận cảnh báo qua SMS
+            <Label htmlFor="subscribe" className="flex items-center gap-2 cursor-pointer">
+              <Bell className="h-4 w-4 text-warning" />
+              <span className="text-sm">Đăng ký nhận cảnh báo qua SMS khi vào vùng nguy cơ cao</span>
             </Label>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-3 mt-6">
             <Button 
               onClick={checkRisk} 
               disabled={loading || !location}
-              className="flex-1"
+              className="flex-1 h-12 rounded-xl gap-2 text-base"
             >
               {loading ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                <RefreshCw className="h-5 w-5 animate-spin" />
               ) : (
-                <Heart className="h-4 w-4 mr-2" />
+                <Sparkles className="h-5 w-5" />
               )}
               Kiểm tra nguy cơ
             </Button>
@@ -295,8 +290,9 @@ const StrokeRiskChecker: React.FC = () => {
               variant="outline"
               onClick={generatePredictions}
               disabled={loading}
+              className="h-12 rounded-xl gap-2"
             >
-              <Activity className="h-4 w-4 mr-2" />
+              <Activity className="h-5 w-5" />
               Cập nhật dữ liệu
             </Button>
           </div>
@@ -305,162 +301,216 @@ const StrokeRiskChecker: React.FC = () => {
 
       {/* Risk Result */}
       {riskData && riskData.has_risk_data && (
-        <Card className={`border-2 ${riskData.risk_level === 'CRITICAL' || riskData.risk_level === 'HIGH' ? 'border-destructive' : 'border-primary/20'}`}>
-          <CardHeader>
+        <Card className={cn(
+          "rounded-2xl overflow-hidden animate-fade-up",
+          riskData.risk_level === 'CRITICAL' || riskData.risk_level === 'HIGH' 
+            ? 'border-danger/50' 
+            : 'border-border/50'
+        )}>
+          <CardHeader className={cn(
+            "border-b",
+            getRiskStyles(riskData.risk_level).bg,
+            getRiskStyles(riskData.risk_level).border
+          )}>
             <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 {riskData.risk_level === 'LOW' || riskData.risk_level === 'MEDIUM' ? (
-                  <CheckCircle className="h-6 w-6 text-green-500" />
+                  <div className="p-2.5 rounded-xl bg-success/20">
+                    <CheckCircle className="h-6 w-6 text-success" />
+                  </div>
                 ) : (
-                  <AlertTriangle className="h-6 w-6 text-destructive" />
+                  <div className="p-2.5 rounded-xl bg-danger/20 animate-pulse">
+                    <AlertTriangle className="h-6 w-6 text-danger" />
+                  </div>
                 )}
-                Kết quả đánh giá nguy cơ
-              </CardTitle>
-              <Badge variant={getRiskBadgeVariant(riskData.risk_level)} className="text-lg px-4 py-1">
+                <div>
+                  <CardTitle className="text-lg">Kết quả đánh giá</CardTitle>
+                  <CardDescription>Dựa trên dữ liệu môi trường real-time</CardDescription>
+                </div>
+              </div>
+              <Badge className={cn(
+                "text-base px-4 py-1.5 rounded-xl font-semibold",
+                getRiskStyles(riskData.risk_level).bg,
+                getRiskStyles(riskData.risk_level).text,
+                getRiskStyles(riskData.risk_level).border,
+                "border"
+              )}>
                 {riskData.risk_level_vi}
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="p-6 space-y-6">
             {/* Risk Score */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Điểm nguy cơ</span>
-                <span className="font-bold">{riskData.risk_score}/100</span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Điểm nguy cơ</span>
+                <span className="text-2xl font-bold">{riskData.risk_score}<span className="text-sm text-muted-foreground">/100</span></span>
               </div>
-              <Progress value={riskData.risk_score} className={getRiskColor(riskData.risk_level)} />
+              <Progress 
+                value={riskData.risk_score} 
+                className={cn("h-3 rounded-full", getRiskStyles(riskData.risk_level).bg)}
+              />
             </div>
 
             {/* Location Info */}
-            <Alert>
-              <MapPin className="h-4 w-4" />
-              <AlertTitle>Khu vực: {riskData.nearest_district}</AlertTitle>
-              <AlertDescription>
+            <Alert className="rounded-xl border-info/30 bg-info/5">
+              <MapPin className="h-4 w-4 text-info" />
+              <AlertTitle className="text-info">Khu vực: {riskData.nearest_district}</AlertTitle>
+              <AlertDescription className="text-muted-foreground">
                 Cách vị trí của bạn {riskData.distance_km} km
               </AlertDescription>
             </Alert>
 
             {/* Environmental Data */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-3 rounded-lg bg-muted/50 text-center">
-                <Wind className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="metric-card">
+                <Wind className="h-5 w-5 text-muted-foreground mb-2" />
                 <div className="text-2xl font-bold">{riskData.environmental_data.aqi}</div>
                 <div className="text-xs text-muted-foreground">AQI</div>
               </div>
-              <div className="p-3 rounded-lg bg-muted/50 text-center">
-                <Thermometer className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                <div className="text-2xl font-bold">{riskData.environmental_data.temperature}°C</div>
+              <div className="metric-card">
+                <Thermometer className="h-5 w-5 text-muted-foreground mb-2" />
+                <div className="text-2xl font-bold">{riskData.environmental_data.temperature}°</div>
                 <div className="text-xs text-muted-foreground">Nhiệt độ</div>
               </div>
-              <div className="p-3 rounded-lg bg-muted/50 text-center">
-                <Droplets className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+              <div className="metric-card">
+                <Droplets className="h-5 w-5 text-muted-foreground mb-2" />
                 <div className="text-2xl font-bold">{riskData.environmental_data.humidity}%</div>
                 <div className="text-xs text-muted-foreground">Độ ẩm</div>
               </div>
-              <div className="p-3 rounded-lg bg-muted/50 text-center">
-                <Activity className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+              <div className="metric-card">
+                <Activity className="h-5 w-5 text-muted-foreground mb-2" />
                 <div className="text-2xl font-bold">{riskData.environmental_data.pm25}</div>
                 <div className="text-xs text-muted-foreground">PM2.5</div>
               </div>
             </div>
 
             {/* AI Analysis */}
-            <Alert variant={riskData.risk_level === 'CRITICAL' || riskData.risk_level === 'HIGH' ? 'destructive' : 'default'}>
-              <Brain className="h-4 w-4" />
+            <Alert className={cn(
+              "rounded-xl",
+              riskData.risk_level === 'CRITICAL' || riskData.risk_level === 'HIGH' 
+                ? 'border-danger/30 bg-danger/5' 
+                : 'border-primary/30 bg-primary/5'
+            )}>
+              <Brain className={cn(
+                "h-4 w-4",
+                riskData.risk_level === 'CRITICAL' || riskData.risk_level === 'HIGH' 
+                  ? 'text-danger' 
+                  : 'text-primary'
+              )} />
               <AlertTitle>Phân tích AI</AlertTitle>
-              <AlertDescription>{riskData.ai_analysis}</AlertDescription>
+              <AlertDescription className="text-muted-foreground">{riskData.ai_analysis}</AlertDescription>
             </Alert>
 
-            {/* Risk Factors */}
-            {riskData.risk_factors && riskData.risk_factors.length > 0 && (
-              <div>
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-orange-500" />
-                  Yếu tố nguy cơ
-                </h4>
-                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                  {riskData.risk_factors.map((factor, idx) => (
-                    <li key={idx}>{factor}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+            {/* Risk Factors & Recommendations */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {riskData.risk_factors && riskData.risk_factors.length > 0 && (
+                <div className="p-4 rounded-xl bg-danger/5 border border-danger/20">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 text-danger">
+                    <AlertTriangle className="h-4 w-4" />
+                    Yếu tố nguy cơ
+                  </h4>
+                  <ul className="space-y-2">
+                    {riskData.risk_factors.map((factor, idx) => (
+                      <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-danger mt-1.5 flex-shrink-0" />
+                        {factor}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
-            {/* Recommendations */}
-            {riskData.recommendations && riskData.recommendations.length > 0 && (
-              <div>
-                <h4 className="font-semibold mb-2 flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                  Khuyến nghị
-                </h4>
-                <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                  {riskData.recommendations.map((rec, idx) => (
-                    <li key={idx}>{rec}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Timestamp */}
-            <div className="text-xs text-muted-foreground text-right">
-              Dữ liệu cập nhật: {new Date(riskData.predicted_at).toLocaleString('vi-VN')}
+              {riskData.recommendations && riskData.recommendations.length > 0 && (
+                <div className="p-4 rounded-xl bg-success/5 border border-success/20">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2 text-success">
+                    <CheckCircle className="h-4 w-4" />
+                    Khuyến nghị
+                  </h4>
+                  <ul className="space-y-2">
+                    {riskData.recommendations.map((rec, idx) => (
+                      <li key={idx} className="text-sm text-muted-foreground flex items-start gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-success mt-1.5 flex-shrink-0" />
+                        {rec}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
+
+            <p className="text-xs text-muted-foreground text-right">
+              Cập nhật: {new Date(riskData.predicted_at).toLocaleString('vi-VN')}
+            </p>
           </CardContent>
         </Card>
       )}
 
       {/* Predictions Overview */}
-      <Card>
+      <Card className="rounded-2xl border-border/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Dự báo theo khu vực
-          </CardTitle>
-          <CardDescription>
-            Tổng quan nguy cơ đột quỵ các quận tại TP.HCM
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-info/10">
+                <Activity className="h-5 w-5 text-info" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Dự báo theo khu vực</CardTitle>
+                <CardDescription>Nguy cơ đột quỵ các quận tại TP.HCM</CardDescription>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={fetchLatestPredictions} className="rounded-xl gap-2">
+              <RefreshCw className={cn("h-4 w-4", loadingPredictions && "animate-spin")} />
+              Làm mới
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loadingPredictions ? (
-            <div className="flex items-center justify-center py-8">
-              <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : predictions.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Brain className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>Chưa có dữ liệu dự báo</p>
-              <Button variant="outline" className="mt-2" onClick={generatePredictions} disabled={loading}>
+            <div className="text-center py-12 text-muted-foreground">
+              <Brain className="h-16 w-16 mx-auto mb-4 opacity-30" />
+              <p className="font-medium mb-2">Chưa có dữ liệu dự báo</p>
+              <p className="text-sm mb-4">Nhấn nút dưới để tạo dự báo mới từ dữ liệu môi trường</p>
+              <Button onClick={generatePredictions} disabled={loading} className="rounded-xl gap-2">
+                <Sparkles className="h-4 w-4" />
                 Tạo dự báo mới
               </Button>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {predictions.map((pred) => (
-                <div
-                  key={pred.id}
-                  className={`p-3 rounded-lg border ${
-                    pred.risk_level === 'CRITICAL' ? 'border-red-500 bg-red-50 dark:bg-red-950' :
-                    pred.risk_level === 'HIGH' ? 'border-orange-500 bg-orange-50 dark:bg-orange-950' :
-                    pred.risk_level === 'MEDIUM' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950' :
-                    'border-green-500 bg-green-50 dark:bg-green-950'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium text-sm capitalize">
-                      {pred.district_id?.replace(/-/g, ' ')}
-                    </span>
-                    <Badge variant={getRiskBadgeVariant(pred.risk_level)} className="text-xs">
-                      {pred.risk_score}
-                    </Badge>
+              {predictions.map((pred, idx) => {
+                const styles = getRiskStyles(pred.risk_level);
+                return (
+                  <div
+                    key={pred.id}
+                    className={cn(
+                      "p-4 rounded-xl border transition-all duration-200 hover:shadow-md cursor-pointer animate-fade-up",
+                      styles.bg,
+                      styles.border
+                    )}
+                    style={{ animationDelay: `${idx * 50}ms` }}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-semibold text-sm capitalize truncate">
+                        {pred.district_id?.replace(/-/g, ' ')}
+                      </span>
+                      <Badge className={cn("text-xs font-bold", styles.bg, styles.text, styles.border, "border")}>
+                        {pred.risk_score}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                      <span>AQI: {pred.aqi}</span>
+                      <span>{pred.temperature}°C</span>
+                      <span>PM2.5: {pred.pm25}</span>
+                      <span>{pred.humidity}%</span>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-                    <span>AQI: {pred.aqi}</span>
-                    <span>{pred.temperature}°C</span>
-                    <span>PM2.5: {pred.pm25}</span>
-                    <span>{pred.humidity}%</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

@@ -13,7 +13,8 @@ import {
   CheckCircle,
   X,
   AlertCircle,
-  Bell
+  Bell,
+  ChevronRight
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -36,6 +37,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 interface RealtimeStatus {
   connected: boolean;
@@ -55,7 +57,6 @@ export function TopNavbar() {
   const { suggestions, loading } = useSmartSearch(searchTerm);
   const queryClient = useQueryClient();
 
-  // Monitor realtime connection status
   useEffect(() => {
     let heartbeatInterval: NodeJS.Timeout;
     
@@ -71,11 +72,9 @@ export function TopNavbar() {
       }
     };
 
-    // Check connection every 30 seconds
     checkConnection();
     heartbeatInterval = setInterval(checkConnection, 30000);
 
-    // Listen to browser online/offline events
     const handleOnline = () => {
       setOfflineStatus(prev => ({ ...prev, isOffline: false }));
       checkConnection();
@@ -88,8 +87,6 @@ export function TopNavbar() {
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-
-    // Set initial offline status
     setOfflineStatus(prev => ({ ...prev, isOffline: !navigator.onLine }));
 
     return () => {
@@ -99,28 +96,6 @@ export function TopNavbar() {
     };
   }, []);
 
-  // Monitor IndexedDB for offline changes
-  useEffect(() => {
-    // Simulate checking for pending offline changes
-    const checkPendingChanges = () => {
-      // In real implementation, check IndexedDB for pending sync operations
-      const simulatedPendingChanges = offlineStatus.isOffline ? 
-        Math.floor(Math.random() * 5) : 0;
-      
-      setOfflineStatus(prev => ({
-        ...prev,
-        pendingChanges: simulatedPendingChanges
-      }));
-    };
-
-    if (offlineStatus.isOffline) {
-      checkPendingChanges();
-      const interval = setInterval(checkPendingChanges, 10000); // Check every 10s
-      return () => clearInterval(interval);
-    }
-  }, [offlineStatus.isOffline]);
-
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeydown = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -165,70 +140,38 @@ export function TopNavbar() {
     setOfflineStatus(prev => ({ ...prev, isOffline: false }));
   };
 
-  const ConnectionStatus = () => (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-background border">
-      <div className="flex items-center gap-1.5">
-        {realtimeStatus.connected ? (
-          <>
-            <Wifi className="h-4 w-4 text-emerald-600" />
-            <div 
-              className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"
-              title="Kết nối realtime"
-            />
-          </>
-        ) : (
-          <>
-            <WifiOff className="h-4 w-4 text-muted-foreground" />
-            <div 
-              className="h-2 w-2 rounded-full bg-muted-foreground"
-              title="Mất kết nối"
-            />
-          </>
-        )}
-      </div>
-      <span className={`text-sm font-medium ${realtimeStatus.connected ? 'text-foreground' : 'text-muted-foreground'}`}>
-        {realtimeStatus.connected ? 'Online' : 'Offline'}
-      </span>
-    </div>
-  );
-
-  const OfflineBanner = () => {
-    if (!offlineStatus.isOffline) return null;
-
-    return (
-      <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <span className="text-sm text-amber-800">
-              Đang offline – dữ liệu vẫn lưu tạm
-              {offlineStatus.pendingChanges > 0 && (
-                <Badge variant="secondary" className="ml-2">
-                  {offlineStatus.pendingChanges} thay đổi chưa đồng bộ
-                </Badge>
-              )}
-            </span>
-          </div>
-          <Button 
-            size="sm" 
-            variant="ghost"
-            onClick={handleDismissOfflineBanner}
-            className="h-6 w-6 p-0"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <>
-      <OfflineBanner />
+      {/* Offline Banner */}
+      {offlineStatus.isOffline && (
+        <div className="bg-warning/10 border-b border-warning/20 px-4 py-2">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-warning" />
+              <span className="text-sm text-warning font-medium">
+                Đang offline – dữ liệu vẫn lưu tạm
+                {offlineStatus.pendingChanges > 0 && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {offlineStatus.pendingChanges} chưa đồng bộ
+                  </Badge>
+                )}
+              </span>
+            </div>
+            <Button 
+              size="sm" 
+              variant="ghost"
+              onClick={handleDismissOfflineBanner}
+              className="h-6 w-6 p-0 text-warning hover:text-warning"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
       
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="flex h-14 items-center px-4 gap-4">
-          <SidebarTrigger />
+      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
+        <div className="flex h-16 items-center px-4 gap-4">
+          <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
           
           {/* Search */}
           <div className="flex-1 max-w-md relative">
@@ -237,83 +180,99 @@ export function TopNavbar() {
               placeholder="Tìm kiếm bệnh nhân, ca bệnh..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-9"
+              className="pl-10 h-10 bg-muted/30 border-0 focus:bg-card rounded-xl"
             />
             
-            {/* Search suggestions dropdown */}
             {searchTerm && suggestions.length > 0 && (
-              <div className="absolute top-full mt-1 w-full bg-background border rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+              <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-xl shadow-lg z-50 max-h-72 overflow-y-auto animate-fade-up">
                 {suggestions.map((suggestion) => (
                   <div
                     key={suggestion.id}
-                    className="px-3 py-2 hover:bg-muted cursor-pointer border-b last:border-b-0"
-                    onClick={() => {
-                      setSearchTerm('');
-                      // Handle suggestion selection
-                    }}
+                    className="px-4 py-3 hover:bg-accent cursor-pointer border-b last:border-b-0 flex items-center justify-between group"
+                    onClick={() => setSearchTerm('')}
                   >
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-xs font-normal">
                         {suggestion.type}
                       </Badge>
-                      <span className="text-sm">{suggestion.label}</span>
+                      <span className="text-sm font-medium">{suggestion.label}</span>
                     </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Command Palette Button */}
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsCommandOpen(true)}
-              className="gap-2"
+              className="gap-2 rounded-xl border-border/50 bg-muted/30 hover:bg-muted/50"
             >
               <Command className="h-4 w-4" />
-              <span className="hidden sm:inline">Command</span>
-              <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
-                <span className="text-xs">⌘</span>K
+              <span className="hidden sm:inline text-muted-foreground">Tìm lệnh</span>
+              <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded-md border bg-background px-1.5 font-mono text-[10px] font-medium opacity-100 sm:flex">
+                ⌘K
               </kbd>
             </Button>
 
             {/* Connection Status */}
-            <ConnectionStatus />
+            <div className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors",
+              realtimeStatus.connected 
+                ? "bg-success/10 text-success" 
+                : "bg-muted text-muted-foreground"
+            )}>
+              {realtimeStatus.connected ? (
+                <>
+                  <Wifi className="h-4 w-4" />
+                  <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                  <span className="hidden sm:inline">Online</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-4 w-4" />
+                  <span className="hidden sm:inline">Offline</span>
+                </>
+              )}
+            </div>
 
             {/* Notifications */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-4 w-4" />
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs animate-pulse"
-                  >
+                <Button variant="ghost" size="icon" className="relative rounded-xl">
+                  <Bell className="h-5 w-5 text-muted-foreground" />
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-danger text-danger-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
                     2
-                  </Badge>
+                  </span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>Cảnh báo mới</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-80 rounded-xl">
+                <DropdownMenuLabel className="flex items-center justify-between">
+                  <span>Thông báo</span>
+                  <Badge variant="secondary" className="text-xs">2 mới</Badge>
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <div className="max-h-96 overflow-y-auto">
-                  <div className="p-3 border-b hover:bg-accent cursor-pointer">
+                <div className="max-h-80 overflow-y-auto">
+                  <div className="p-3 hover:bg-accent cursor-pointer transition-colors">
                     <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-destructive rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Bất thường ca sốt xuất huyết</p>
-                        <p className="text-xs text-muted-foreground">Tăng đột biến 150% tại Quận 1</p>
+                      <div className="w-2 h-2 bg-danger rounded-full mt-2 animate-pulse" />
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-semibold">Cảnh báo SXH tăng đột biến</p>
+                        <p className="text-xs text-muted-foreground">Tăng 150% tại Quận 1</p>
                         <p className="text-xs text-muted-foreground">5 phút trước</p>
                       </div>
                     </div>
                   </div>
-                  <div className="p-3 border-b hover:bg-accent cursor-pointer">
+                  <DropdownMenuSeparator />
+                  <div className="p-3 hover:bg-accent cursor-pointer transition-colors">
                     <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-warning rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Vượt ngưỡng giường ICU</p>
+                      <div className="w-2 h-2 bg-warning rounded-full mt-2" />
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-semibold">Vượt ngưỡng giường ICU</p>
                         <p className="text-xs text-muted-foreground">Công suất 95% tại BV Chợ Rẫy</p>
                         <p className="text-xs text-muted-foreground">12 phút trước</p>
                       </div>
@@ -322,7 +281,7 @@ export function TopNavbar() {
                 </div>
                 <DropdownMenuSeparator />
                 <div className="p-2">
-                  <Button variant="ghost" size="sm" className="w-full" onClick={() => window.location.href = '/alerts'}>
+                  <Button variant="ghost" size="sm" className="w-full justify-center rounded-lg" onClick={() => window.location.href = '/alerts'}>
                     Xem tất cả cảnh báo
                   </Button>
                 </div>
@@ -332,22 +291,20 @@ export function TopNavbar() {
         </div>
       </header>
 
-      {/* Enhanced Command Palette */}
+      {/* Command Palette */}
       <CommandDialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
-        <CommandInput placeholder="Tìm lệnh nhanh..." />
+        <CommandInput placeholder="Nhập lệnh hoặc tìm kiếm..." className="border-0" />
         <CommandList>
           <CommandEmpty>Không tìm thấy lệnh nào.</CommandEmpty>
           
           <CommandGroup heading="Thêm mới">
-            <CommandItem onSelect={() => handleQuickAction('add-case')}>
-              <Plus className="mr-2 h-4 w-4" />
+            <CommandItem onSelect={() => handleQuickAction('add-case')} className="gap-3 py-3">
+              <Plus className="h-4 w-4 text-primary" />
               <span>Thêm ca bệnh mới</span>
-              <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                Ctrl+N
-              </kbd>
+              <kbd className="ml-auto text-xs bg-muted px-2 py-0.5 rounded">Ctrl+N</kbd>
             </CommandItem>
-            <CommandItem onSelect={() => handleQuickAction('add-appointment')}>
-              <Plus className="mr-2 h-4 w-4" />
+            <CommandItem onSelect={() => handleQuickAction('add-appointment')} className="gap-3 py-3">
+              <Plus className="h-4 w-4 text-primary" />
               <span>Thêm lịch hẹn</span>
             </CommandItem>
           </CommandGroup>
@@ -355,35 +312,19 @@ export function TopNavbar() {
           <CommandSeparator />
 
           <CommandGroup heading="Import & Export">
-            <CommandItem onSelect={() => handleQuickAction('import-csv')}>
-              <Upload className="mr-2 h-4 w-4" />
+            <CommandItem onSelect={() => handleQuickAction('import-csv')} className="gap-3 py-3">
+              <Upload className="h-4 w-4 text-info" />
               <span>Import CSV</span>
-              <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                Ctrl+I
-              </kbd>
+              <kbd className="ml-auto text-xs bg-muted px-2 py-0.5 rounded">Ctrl+I</kbd>
             </CommandItem>
           </CommandGroup>
 
           <CommandSeparator />
 
           <CommandGroup heading="Hành động nhanh">
-            <CommandItem onSelect={() => handleQuickAction('acknowledge-alerts')}>
-              <CheckCircle className="mr-2 h-4 w-4" />
+            <CommandItem onSelect={() => handleQuickAction('acknowledge-alerts')} className="gap-3 py-3">
+              <CheckCircle className="h-4 w-4 text-success" />
               <span>Xác nhận tất cả cảnh báo</span>
-              <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                Ctrl+A
-              </kbd>
-            </CommandItem>
-          </CommandGroup>
-
-          <CommandSeparator />
-
-          <CommandGroup heading="Điều hướng">
-            <CommandItem onSelect={() => handleQuickAction('view-dashboard')}>
-              <span>Về trang chủ</span>
-              <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                Ctrl+H
-              </kbd>
             </CommandItem>
           </CommandGroup>
         </CommandList>

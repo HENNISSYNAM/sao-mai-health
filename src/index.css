@@ -2,40 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
-/* HCMC Health Hub Design System - WCAG AA ≥4.5:1 */
+/* HCMC Health Hub Design System - Modern Medical UI */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    /* Core Color Palette */
-    --bg: 215 29% 97%; /* #F8FAFC */
-    --card: 0 0% 100%; /* #FFFFFF */
-    --border: 214 32% 91%; /* #E2E8F0 */
+    /* Core Color Palette - Teal Medical Theme */
+    --bg: 210 20% 98%;
+    --card: 0 0% 100%;
+    --border: 214 32% 91%;
     
     /* Text Colors - WCAG AA Compliant */
-    --text-900: 218 100% 10%; /* #0F172A - titles */
-    --text-700: 214 31% 23%; /* #1F2937 - primary text */
-    --text-500: 215 25% 37%; /* #475569 - secondary text */
-    --muted: 215 20% 55%; /* #64748B - muted text */
+    --text-900: 210 40% 10%;
+    --text-700: 214 31% 23%;
+    --text-500: 215 25% 37%;
+    --muted: 215 20% 55%;
     
-    /* Primary Colors */
-    --primary: 172 88% 27%; /* #0A7F6B */
-    --primary-50: 151 81% 95%; /* #E6FFF7 */
+    /* Primary - Vibrant Teal */
+    --primary: 172 66% 42%;
+    --primary-50: 172 66% 95%;
     --primary-foreground: 0 0% 100%;
     
     /* Semantic Colors */
-    --secondary: 221 83% 53%; /* #2563EB */
+    --secondary: 221 83% 53%;
     --secondary-foreground: 0 0% 100%;
     
-    --danger: 346 77% 49%; /* #E11D48 */
+    --danger: 0 84% 60%;
     --danger-foreground: 0 0% 100%;
     
-    --success: 142 71% 45%; /* #16A34A */
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
     
-    --warning: 32 95% 44%; /* #D97706 */
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
     
-    --info: 199 89% 48%; /* #0284C7 */
+    --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
     
     /* Disease Tracking Colors */
@@ -44,93 +45,62 @@
     --ari: 221 83% 53%;
 
     /* Component Tokens */
-    --background: 215 29% 97%;
-    --foreground: 218 100% 10%;
+    --background: 210 20% 98%;
+    --foreground: 210 40% 10%;
     --card-foreground: 214 31% 23%;
     --popover: 0 0% 100%;
     --popover-foreground: 214 31% 23%;
     --muted-foreground: 215 20% 55%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 346 77% 49%;
+    --accent: 172 30% 94%;
+    --accent-foreground: 172 66% 35%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --input: 214 32% 91%;
-    --ring: 172 88% 27%;
-    --radius: 0.875rem;
+    --ring: 172 66% 42%;
+    --radius: 0.75rem;
 
-    /* Sidebar */
+    /* Sidebar - Glass Effect */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 214 31% 23%;
-    --sidebar-primary: 172 88% 27%;
+    --sidebar-primary: 172 66% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 214 31% 23%;
+    --sidebar-accent: 172 30% 94%;
+    --sidebar-accent-foreground: 172 66% 35%;
     --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 172 88% 27%;
-}
-
-/* Enhanced focus rings and form styling */
-.focus-ring {
-  @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary;
-}
-
-/* Input focus styling */
-input:focus,
-textarea:focus,
-select:focus {
-  @apply outline-none ring-2 ring-primary/20 border-primary;
-  transition: all 0.2s ease-in-out;
-}
-
-/* Error state focus */
-input[aria-invalid="true"]:focus,
-textarea[aria-invalid="true"]:focus,
-select[aria-invalid="true"]:focus {
-  @apply ring-2 ring-destructive/20 border-destructive;
-}
-
-/* Button focus */
-button:focus-visible {
-  @apply outline-none ring-2 ring-primary/50 ring-offset-2;
-}
-
-/* Link focus */
-a:focus-visible {
-  @apply outline-none ring-2 ring-primary/50 ring-offset-2 rounded-sm;
-}
+    --sidebar-ring: 172 66% 42%;
+  }
 
   .dark {
-    --bg: 218 100% 10%;
-    --card: 216 34% 17%;
-    --border: 215 28% 25%;
+    --bg: 222 47% 8%;
+    --card: 222 47% 11%;
+    --border: 217 33% 17%;
     --text-900: 210 40% 98%;
     --text-700: 213 27% 84%;
     --text-500: 215 20% 65%;
     --muted: 215 16% 47%;
-    --primary-50: 172 88% 15%;
+    --primary-50: 172 66% 15%;
     
-    --background: 218 100% 10%;
+    --background: 222 47% 8%;
     --foreground: 210 40% 98%;
     --card-foreground: 213 27% 84%;
-    --popover: 216 34% 17%;
+    --popover: 222 47% 11%;
     --popover-foreground: 213 27% 84%;
     --muted-foreground: 215 20% 65%;
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 217 33% 17%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 346 77% 49%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 215 28% 25%;
-    --input: 215 28% 25%;
-    --ring: 172 88% 27%;
+    --input: 217 33% 17%;
+    --ring: 172 66% 42%;
     
-    --sidebar-background: 216 34% 17%;
+    --sidebar-background: 222 47% 11%;
     --sidebar-foreground: 213 27% 84%;
-    --sidebar-primary: 172 88% 27%;
+    --sidebar-primary: 172 66% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent: 217 33% 17%;
     --sidebar-accent-foreground: 213 27% 84%;
-    --sidebar-border: 215 28% 25%;
-    --sidebar-ring: 172 88% 27%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 172 66% 42%;
   }
 }
 
@@ -140,83 +110,119 @@ a:focus-visible {
   }
 
   body {
-    @apply bg-background text-foreground text-sm leading-relaxed;
-    background: hsl(var(--bg));
-    color: hsl(var(--text-700));
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight;
+    @apply tracking-tight font-semibold;
+    font-family: 'Space Grotesk', system-ui, sans-serif;
     color: hsl(var(--text-900));
   }
 }
 
 @layer components {
-  /* Sidebar Styling */
-  .sidebar {
-    background: hsl(var(--card));
-    color: hsl(var(--text-700));
+  /* Modern Glass Effect */
+  .glass {
+    @apply bg-card/70 backdrop-blur-xl border border-border/50 shadow-lg;
+  }
+
+  /* KPI Card */
+  .kpi-card {
+    @apply relative overflow-hidden rounded-2xl border bg-card p-6 transition-all duration-300;
+    @apply hover:shadow-lg hover:-translate-y-1;
+  }
+
+  /* Status Indicators */
+  .status-online {
+    @apply bg-success;
   }
   
-  .sidebar .group-label {
-    color: hsl(var(--text-500));
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    font-size: 0.875rem;
+  .status-offline {
+    @apply bg-muted;
+  }
+
+  /* Risk Level Badges */
+  .risk-low {
+    @apply bg-success/10 text-success border-success/30;
   }
   
-  .sidebar a {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    padding: 12px 16px;
-    border-radius: 12px;
-    color: hsl(var(--text-700));
-    font-size: 14px;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    margin: 2px 8px;
-    min-height: 44px;
+  .risk-medium {
+    @apply bg-warning/10 text-warning border-warning/30;
   }
   
-  .sidebar a:hover {
-    background: hsl(215 20% 95%);
-    color: hsl(var(--text-900));
-    transform: translateX(2px);
+  .risk-high {
+    @apply bg-danger/10 text-danger border-danger/30;
   }
   
-  .sidebar a.active {
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    font-weight: 600;
-    box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
+  .risk-critical {
+    @apply bg-danger text-danger-foreground;
   }
-  
-  .sidebar a[aria-disabled="true"] {
-    color: hsl(var(--text-500));
-    cursor: not-allowed;
+
+  /* Metric Card */
+  .metric-card {
+    @apply flex flex-col items-center justify-center p-4 rounded-xl bg-muted/30 transition-all duration-200 hover:bg-muted/50;
   }
-  
-  /* Card Styling */
-  .card {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    border-radius: 14px;
-  }
-  
-  /* Focus States - WCAG AA */
-  .focus-ring:focus-visible {
-    outline: 2px solid hsl(var(--primary));
-    outline-offset: 2px;
-  }
-  
-  /* Input & Button Focus */
-  input:focus-visible,
-  button:focus-visible,
-  select:focus-visible,
-  textarea:focus-visible {
-    outline: 2px solid hsl(var(--primary));
-    outline-offset: 2px;
-  }
+}
+
+/* Custom Animations */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted/50 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted;
+}
+
+/* Focus States */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary/30 ring-offset-2 ring-offset-background;
 }

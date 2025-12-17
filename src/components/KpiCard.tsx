@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { LucideIcon } from "lucide-react"
+import { Card, CardContent } from "@/components/ui/card"
+import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface KpiCardProps {
@@ -17,52 +17,71 @@ export function KpiCard({ title, value, change, icon: Icon, variant = 'default' 
   const getVariantStyles = () => {
     switch (variant) {
       case 'success':
-        return 'border-success/20 bg-success/5'
+        return 'border-success/20 bg-gradient-to-br from-success/5 to-success/10'
       case 'warning':
-        return 'border-warning/20 bg-warning/5'
+        return 'border-warning/20 bg-gradient-to-br from-warning/5 to-warning/10'
       case 'danger':
-        return 'border-danger/20 bg-danger/5'
+        return 'border-danger/20 bg-gradient-to-br from-danger/5 to-danger/10'
       case 'info':
-        return 'border-info/20 bg-info/5'
+        return 'border-info/20 bg-gradient-to-br from-info/5 to-info/10'
       default:
-        return ''
+        return 'border-border'
     }
   }
 
-  const getIconColor = () => {
+  const getIconStyles = () => {
     switch (variant) {
       case 'success':
-        return 'text-success'
+        return 'bg-success/10 text-success'
       case 'warning':
-        return 'text-warning'
+        return 'bg-warning/10 text-warning'
       case 'danger':
-        return 'text-danger'
+        return 'bg-danger/10 text-danger'
       case 'info':
-        return 'text-info'
+        return 'bg-info/10 text-info'
       default:
-        return 'text-primary'
+        return 'bg-primary/10 text-primary'
     }
   }
 
   return (
-    <Card className={cn("transition-all hover:shadow-md", getVariantStyles())}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <Icon className={cn("h-4 w-4", getIconColor())} />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {change && (
-          <p className={cn(
-            "text-xs flex items-center gap-1 mt-1",
-            change.type === 'increase' ? 'text-success' : 'text-danger'
+    <Card className={cn(
+      "relative overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 group",
+      getVariantStyles()
+    )}>
+      {/* Background decoration */}
+      <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-primary/5 to-primary/10 group-hover:scale-110 transition-transform duration-300" />
+      
+      <CardContent className="p-5 relative">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-muted-foreground">
+              {title}
+            </p>
+            <p className="text-3xl font-bold tracking-tight text-foreground">
+              {value}
+            </p>
+            {change && (
+              <div className={cn(
+                "flex items-center gap-1 text-xs font-medium",
+                change.type === 'increase' ? 'text-success' : 'text-danger'
+              )}>
+                {change.type === 'increase' ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                <span>{Math.abs(change.value)}% so với tuần trước</span>
+              </div>
+            )}
+          </div>
+          <div className={cn(
+            "p-3 rounded-xl transition-transform duration-300 group-hover:scale-110",
+            getIconStyles()
           )}>
-            <span>{change.type === 'increase' ? '↗' : '↘'}</span>
-            {Math.abs(change.value)}% so với tuần trước
-          </p>
-        )}
+            <Icon className="h-5 w-5" />
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
