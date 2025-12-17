@@ -1,14 +1,15 @@
 import { useEffect, useState, useMemo } from "react"
-import { Activity, AlertTriangle, Building2, Heart, Users, RefreshCw, Newspaper } from "lucide-react"
+import { Activity, AlertTriangle, Heart, Users, RefreshCw, Newspaper, ArrowRight } from "lucide-react"
 import { KpiCard } from "@/components/KpiCard"
 import { DashboardChart } from "@/components/DashboardChart"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHealth"
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 interface DailyCount {
   id: string
@@ -35,20 +36,16 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [fetchingNews, setFetchingNews] = useState(false)
 
-  // Realtime subscriptions
   const { isConnected: countsConnected, nowTs } = useRealtimeDailyCounts((payload) => {
-    // Refresh KPIs when daily_counts updates
     fetchInitialData()
   })
 
   const { isConnected: alertsConnected } = useRealtimeAlerts((payload) => {
-    // Refresh alerts when alerts table updates
     fetchAlerts()
   })
 
   const fetchInitialData = async () => {
     try {
-      // Fetch real data from HCMC API
       const { data, error } = await supabase.functions.invoke('fetch-hcmc-data', {
         body: { type: 'diseases' }
       })
@@ -59,7 +56,6 @@ export default function Dashboard() {
       }
       
       if (data?.success && data?.data) {
-        // Convert API data to DailyCount format
         const formattedData: DailyCount[] = data.data.map((item: any) => ({
           id: `${item.disease_code}-${item.district_id}-${item.date}`,
           day: item.date,
@@ -70,7 +66,6 @@ export default function Dashboard() {
         }))
         
         setDailyCounts(formattedData)
-        console.log(`Loaded ${formattedData.length} disease records from HCMC API`)
       }
     } catch (error) {
       console.error('Error fetching daily counts:', error)
@@ -79,7 +74,6 @@ export default function Dashboard() {
 
   const fetchAlerts = async () => {
     try {
-      // Fetch real alerts from HCMC API
       const { data, error } = await supabase.functions.invoke('fetch-hcmc-data', {
         body: { type: 'alerts' }
       })
@@ -90,7 +84,6 @@ export default function Dashboard() {
       }
       
       if (data?.success && data?.data) {
-        // Convert API data to Alert format
         const formattedAlerts: Alert[] = data.data.map((item: any) => ({
           id: item.id,
           disease_code: extractDiseaseFromTitle(item.title),
@@ -101,7 +94,6 @@ export default function Dashboard() {
         }))
         
         setAlerts(formattedAlerts)
-        console.log(`Loaded ${formattedAlerts.length} alerts from HCMC API`)
       }
     } catch (error) {
       console.error('Error fetching alerts:', error)
@@ -122,7 +114,7 @@ export default function Dashboard() {
 
   const fetchNewsData = async () => {
     setFetchingNews(true)
-    toast.info('🔍 Đang thu thập tin tức mới nhất...')
+    toast.info('Đang thu thập tin tức mới nhất...')
     
     try {
       const { data, error } = await supabase.functions.invoke('fetch-disease-news')
@@ -130,16 +122,14 @@ export default function Dashboard() {
       if (error) throw error
       
       if (data?.success) {
-        toast.success(`✅ Đã phân tích ${data.articlesFound} tin tức, cập nhật ${data.casesInserted} ca bệnh, tạo ${data.alertsCreated} cảnh báo`)
-        
-        // Refresh data
+        toast.success(`Đã cập nhật ${data.casesInserted} ca bệnh, ${data.alertsCreated} cảnh báo`)
         await Promise.all([fetchInitialData(), fetchAlerts()])
       } else {
-        toast.error('❌ Không thể thu thập tin tức')
+        toast.error('Không thể thu thập tin tức')
       }
     } catch (error: any) {
       console.error('Error fetching news:', error)
-      toast.error('❌ Lỗi khi thu thập tin tức')
+      toast.error('Lỗi khi thu thập tin tức')
     } finally {
       setFetchingNews(false)
     }
@@ -154,20 +144,16 @@ export default function Dashboard() {
     loadData()
   }, [])
 
-  // Calculate KPIs from real data
   const kpiData = useMemo(() => {
     const today = new Date().toISOString().split('T')[0]
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    // Today's cases
     const todayCases = dailyCounts
       .filter(count => count.day === today)
       .reduce((sum, count) => sum + count.cases, 0)
 
-    // Open alerts
     const openAlerts = alerts.filter(alert => alert.status === 'open').length
 
-    // Diseases in last 7 days
     const recentDiseases = new Set(
       dailyCounts
         .filter(count => count.day >= sevenDaysAgo)
@@ -177,20 +163,20 @@ export default function Dashboard() {
     return [
       {
         title: "Ca bệnh hôm nay",
-        value: todayCases.toLocaleString(),
+        value: todayCases.toLocaleString('vi-VN'),
         change: { value: 12, type: 'increase' as const },
         icon: Users,
         variant: 'info' as const
       },
       {
-        title: "Cảnh báo mở",
+        title: "Cảnh báo đang mở",
         value: openAlerts.toString(),
         change: { value: 2, type: 'decrease' as const },
         icon: AlertTriangle,
         variant: openAlerts > 5 ? 'danger' as const : 'warning' as const
       },
       {
-        title: "Bệnh (7 ngày)",
+        title: "Loại bệnh (7 ngày)",
         value: recentDiseases.toString(),
         change: { value: 1, type: 'increase' as const },
         icon: Activity,
@@ -206,7 +192,6 @@ export default function Dashboard() {
     ]
   }, [dailyCounts, alerts])
 
-  // Chart data from real daily counts
   const trendData = useMemo(() => {
     const last7Days = []
     for (let i = 6; i >= 0; i--) {
@@ -218,15 +203,11 @@ export default function Dashboard() {
         .filter(count => count.day === dayStr)
         .reduce((sum, count) => sum + count.cases, 0)
       
-      last7Days.push({
-        name: dayName,
-        value: dayCases
-      })
+      last7Days.push({ name: dayName, value: dayCases })
     }
     return last7Days
   }, [dailyCounts])
 
-  // Disease distribution data
   const diseaseData = useMemo(() => {
     const diseaseMap: Record<string, number> = {}
     dailyCounts.forEach(count => {
@@ -239,7 +220,6 @@ export default function Dashboard() {
       .slice(0, 5)
   }, [dailyCounts])
 
-  // District distribution data
   const districtData = useMemo(() => {
     const districtMap: Record<string, number> = {}
     dailyCounts.forEach(count => {
@@ -254,10 +234,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Tổng quan hệ thống</h1>
-          <p className="text-muted-foreground">Giám sát y tế công cộng TP. Hồ Chí Minh</p>
+      <div className="p-6 space-y-6 animate-fade-up">
+        <div className="space-y-1">
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-5 w-96" />
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
@@ -269,36 +249,43 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Tổng quan hệ thống</h1>
-          <p className="text-muted-foreground">Giám sát y tế công cộng TP. Hồ Chí Minh</p>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-up">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            Tổng quan hệ thống
+          </h1>
+          <p className="text-muted-foreground">
+            Giám sát y tế công cộng TP. Hồ Chí Minh
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <Button
             onClick={fetchNewsData}
             disabled={fetchingNews}
             size="sm"
-            variant="outline"
-            className="gap-2"
+            className="gap-2 rounded-xl"
           >
             {fetchingNews ? (
-              <>
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Đang cập nhật...
-              </>
+              <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (
-              <>
-                <Newspaper className="h-4 w-4" />
-                Thu thập tin tức
-              </>
+              <Newspaper className="h-4 w-4" />
             )}
+            Thu thập tin tức
           </Button>
-          <Badge variant={countsConnected && alertsConnected ? "default" : "secondary"}>
-            {countsConnected && alertsConnected ? "Live" : "Offline"}
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "rounded-lg px-3 py-1",
+              countsConnected && alertsConnected 
+                ? "border-success/50 bg-success/10 text-success" 
+                : "border-muted"
+            )}
+          >
+            {countsConnected && alertsConnected ? "● Live" : "○ Offline"}
           </Badge>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground hidden sm:inline">
             {nowTs.toLocaleTimeString('vi-VN')}
           </span>
         </div>
@@ -307,65 +294,97 @@ export default function Dashboard() {
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {kpiData.map((kpi, index) => (
-          <KpiCard key={index} {...kpi} />
+          <div key={index} className="animate-fade-up" style={{ animationDelay: `${index * 100}ms` }}>
+            <KpiCard {...kpi} />
+          </div>
         ))}
       </div>
 
-      {/* Charts */}
+      {/* Charts Row 1 */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <DashboardChart
-          title="Xu hướng ca bệnh (7 ngày)"
-          data={trendData}
-          type="line"
-          multiSeries={false}
-        />
-        <DashboardChart
-          title="Phân bố theo loại bệnh"
-          data={diseaseData}
-          type="bar"
-          multiSeries={false}
-        />
+        <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
+          <DashboardChart
+            title="Xu hướng ca bệnh (7 ngày)"
+            data={trendData}
+            type="line"
+            multiSeries={false}
+          />
+        </div>
+        <div className="animate-fade-up" style={{ animationDelay: '300ms' }}>
+          <DashboardChart
+            title="Phân bố theo loại bệnh"
+            data={diseaseData}
+            type="bar"
+            multiSeries={false}
+          />
+        </div>
       </div>
 
+      {/* Charts Row 2 */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <DashboardChart
-          title="Phân bố theo quận/huyện"
-          data={districtData}
-          type="bar"
-          multiSeries={false}
-        />
-        <Card className="rounded-2xl shadow-sm">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-warning" />
-              Cảnh báo gần đây
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {alerts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Không có cảnh báo</p>
-              ) : (
-                alerts.slice(0, 5).map((alert) => (
-                  <div key={alert.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <Badge 
-                        variant={alert.status === 'open' ? 'destructive' : 'secondary'}
-                        className="min-w-[50px] justify-center"
-                      >
-                        {alert.status === 'open' ? 'Đông' : 'Đóng'}
-                      </Badge>
-                      <span className="text-sm">
-                        {alert.disease_code} - {alert.cases} ca tại {alert.day}
-                      </span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(alert.created_at).toLocaleTimeString('vi-VN')}
-                    </span>
-                  </div>
-                ))
-              )}
+        <div className="animate-fade-up" style={{ animationDelay: '400ms' }}>
+          <DashboardChart
+            title="Phân bố theo quận/huyện"
+            data={districtData}
+            type="bar"
+            multiSeries={false}
+          />
+        </div>
+        
+        {/* Recent Alerts */}
+        <Card className="rounded-2xl border-border/50 animate-fade-up" style={{ animationDelay: '500ms' }}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-warning/10">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Cảnh báo gần đây</CardTitle>
+                  <CardDescription className="text-xs">
+                    {alerts.filter(a => a.status === 'open').length} cảnh báo đang mở
+                  </CardDescription>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => window.location.href = '/alerts'}>
+                Xem tất cả
+                <ArrowRight className="h-3 w-3" />
+              </Button>
             </div>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {alerts.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Không có cảnh báo</p>
+              </div>
+            ) : (
+              alerts.slice(0, 4).map((alert, idx) => (
+                <div 
+                  key={alert.id} 
+                  className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-2 h-2 rounded-full",
+                      alert.status === 'open' ? "bg-danger animate-pulse" : "bg-muted"
+                    )} />
+                    <div>
+                      <p className="text-sm font-medium">
+                        {alert.disease_code.toUpperCase()} - {alert.cases} ca
+                      </p>
+                      <p className="text-xs text-muted-foreground">{alert.day}</p>
+                    </div>
+                  </div>
+                  <Badge 
+                    variant={alert.status === 'open' ? 'destructive' : 'secondary'}
+                    className="text-xs"
+                  >
+                    {alert.status === 'open' ? 'Mở' : 'Đóng'}
+                  </Badge>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

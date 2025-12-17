@@ -1,33 +1,20 @@
-import { useState } from "react"
 import { 
   Activity, 
-  BarChart3, 
-  Building2, 
-  Calendar, 
-  Database, 
-  Heart, 
-  Shield, 
-  Stethoscope, 
-  Users, 
-  Warehouse,
-  AlertTriangle,
-  Map,
-  Microscope,
-  TrendingUp,
   Bell,
-  MapPin,
-  UserCheck,
-  ClipboardList,
+  Brain,
+  Calendar,
   CalendarCheck,
-  Target,
   Hospital,
+  MapPin,
+  Microscope,
   Package,
-  FileCheck,
-  Lock,
-  Crown
+  Target,
+  TrendingUp,
+  UserCheck
 } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import { usePrefetch } from "@/hooks/usePrefetch"
+import { cn } from "@/lib/utils"
 
 import {
   Sidebar,
@@ -38,7 +25,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar"
 
@@ -46,25 +32,26 @@ const menuItems = [
   {
     title: "Điều hành",
     items: [
-      { title: "Tổng quan", url: "/", icon: TrendingUp, color: "text-blue-600" },
-      { title: "Giám sát bệnh", url: "/surveillance", icon: Microscope, color: "text-red-600" },
-      { title: "Cảnh báo", url: "/alerts", icon: Bell, color: "text-orange-600" },
-      { title: "Bản đồ", url: "/maps", icon: MapPin, color: "text-green-600" },
+      { title: "Tổng quan", url: "/", icon: TrendingUp },
+      { title: "Giám sát bệnh", url: "/surveillance", icon: Microscope },
+      { title: "Cảnh báo", url: "/alerts", icon: Bell },
+      { title: "Bản đồ", url: "/maps", icon: MapPin },
+      { title: "Dự báo đột quỵ", url: "/stroke-risk", icon: Brain },
     ]
   },
   {
     title: "Quản lý",
     items: [
-      { title: "Bệnh nhân", url: "/patients", icon: UserCheck, color: "text-purple-600" },
-      { title: "Lịch hẹn", url: "/appointments", icon: CalendarCheck, color: "text-emerald-600" },
-      { title: "Chiến dịch", url: "/campaigns", icon: Target, color: "text-pink-600" },
+      { title: "Bệnh nhân", url: "/patients", icon: UserCheck },
+      { title: "Lịch hẹn", url: "/appointments", icon: CalendarCheck },
+      { title: "Chiến dịch", url: "/campaigns", icon: Target },
     ]
   },
   {
     title: "Cơ sở vật chất",
     items: [
-      { title: "Cơ sở y tế", url: "/facilities", icon: Hospital, color: "text-slate-600" },
-      { title: "Kho tồn", url: "/stocks", icon: Package, color: "text-amber-600" },
+      { title: "Cơ sở y tế", url: "/facilities", icon: Hospital },
+      { title: "Kho tồn", url: "/stocks", icon: Package },
     ]
   }
 ]
@@ -76,11 +63,10 @@ export function AppSidebar() {
   const currentPath = location.pathname
   const { prefetchByRoute } = usePrefetch()
 
-  const isActive = (path: string) => currentPath === path
-  const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive 
-      ? "bg-primary text-primary-foreground font-semibold shadow-sm border border-primary/20" 
-      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
+  const isActive = (path: string) => {
+    if (path === '/') return currentPath === '/'
+    return currentPath.startsWith(path)
+  }
 
   const handleMouseEnter = (url: string) => {
     prefetchByRoute(url);
@@ -88,37 +74,64 @@ export function AppSidebar() {
 
   return (
     <Sidebar
-      className={collapsed ? "w-16" : "w-64"}
+      className={cn(
+        "border-r border-border/50 bg-card/95 backdrop-blur-sm transition-all duration-300",
+        collapsed ? "w-16" : "w-64"
+      )}
       collapsible="icon"
     >
-      <SidebarContent>
-        <div className="p-4">
-          <h2 className={`font-bold text-lg text-primary ${collapsed ? 'hidden' : 'block'}`}>
-            HCMC Health Hub
-          </h2>
-          {collapsed && (
-            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">H</span>
+      <SidebarContent className="px-2 py-4">
+        {/* Logo */}
+        <div className="mb-6 px-3">
+          {collapsed ? (
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-md">
+              <span className="text-primary-foreground font-bold text-lg">H</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-md">
+                <span className="text-primary-foreground font-bold text-lg">H</span>
+              </div>
+              <div>
+                <h2 className="font-bold text-base text-foreground">HCMC Health</h2>
+                <p className="text-xs text-muted-foreground">Giám sát y tế</p>
+              </div>
             </div>
           )}
         </div>
 
-        {menuItems.map((group) => (
-          <SidebarGroup key={group.title}>
-            {!collapsed && <SidebarGroupLabel>{group.title}</SidebarGroupLabel>}
+        {menuItems.map((group, groupIdx) => (
+          <SidebarGroup key={group.title} className="mb-2">
+            {!collapsed && (
+              <SidebarGroupLabel className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground/70 px-3 mb-1">
+                {group.title}
+              </SidebarGroupLabel>
+            )}
             <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
+              <SidebarMenu className="space-y-0.5">
+                {group.items.map((item, idx) => (
+                  <SidebarMenuItem 
+                    key={item.title}
+                    className="animate-fade-up"
+                    style={{ animationDelay: `${(groupIdx * 3 + idx) * 50}ms` }}
+                  >
                     <SidebarMenuButton asChild>
                       <NavLink 
                         to={item.url} 
-                        end 
-                        className={getNavCls}
+                        end={item.url === '/'}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                          isActive(item.url)
+                            ? "bg-primary text-primary-foreground shadow-md" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        )}
                         onMouseEnter={() => handleMouseEnter(item.url)}
                       >
-                        <item.icon className={`h-5 w-5 flex-shrink-0 ${item.color}`} />
-                        {!collapsed && <span className={`font-medium text-sm ${item.color}`}>{item.title}</span>}
+                        <item.icon className={cn(
+                          "h-[18px] w-[18px] flex-shrink-0 transition-transform",
+                          isActive(item.url) && "scale-110"
+                        )} />
+                        {!collapsed && <span>{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
