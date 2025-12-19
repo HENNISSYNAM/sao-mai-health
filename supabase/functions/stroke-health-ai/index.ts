@@ -28,7 +28,7 @@ serve(async (req) => {
   }
 
   try {
-    const { context, type = 'recommendations' }: { context: HealthContext; type?: string } = await req.json();
+    const body = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -39,13 +39,46 @@ serve(async (req) => {
     let systemPrompt = "";
     let userPrompt = "";
 
-    if (type === 'emergency') {
-      systemPrompt = `Bạn là trợ lý y tế AI chuyên về đột quỵ và sức khỏe tim mạch tại Việt Nam. 
+    // Handle profile analysis (from registration modal)
+    if (body.analysisType === 'profile_analysis') {
+      const { userProfile, lat, lon, ageGroup } = body;
+      
+      systemPrompt = `Bạn là trợ lý y tế AI chuyên về đột quỵ và sức khỏe tim mạch tại Việt Nam.
+Nhiệm vụ: Phân tích hồ sơ sức khỏe người dùng và đưa ra đánh giá ban đầu.
+Trả lời bằng tiếng Việt, ngắn gọn, tích cực và động viên.
+
+Format trả lời JSON:
+{
+  "summary": "Tóm tắt 1 câu về hồ sơ",
+  "riskFactors": ["yếu tố 1", "yếu tố 2"],
+  "recommendations": ["khuyến nghị 1", "khuyến nghị 2"],
+  "urgency": "low|medium|high"
+}`;
+
+      userPrompt = `Thông tin người dùng đăng ký nhận cảnh báo đột quỵ:
+- Nhóm tuổi: ${ageGroup}
+- Giới tính: ${userProfile?.gender || 'Không rõ'}
+- Có cảm biến khí áp: ${userProfile?.hasBarometer ? 'Có' : 'Không'}
+- Vị trí: ${lat}, ${lon}
+
+Hãy phân tích ngắn gọn hồ sơ và đưa ra đánh giá ban đầu.`;
+
+    } else {
+      // Handle regular health context analysis
+      const { context, type = 'recommendations' }: { context: HealthContext; type?: string } = body;
+      
+      if (!context) {
+        console.error("Missing context in request body:", JSON.stringify(body));
+        throw new Error("Missing context in request body");
+      }
+
+      if (type === 'emergency') {
+        systemPrompt = `Bạn là trợ lý y tế AI chuyên về đột quỵ và sức khỏe tim mạch tại Việt Nam. 
 Nhiệm vụ: Cung cấp thông tin các cơ sở y tế cấp cứu gần nhất dựa trên vị trí.
 Trả lời bằng tiếng Việt, ngắn gọn, rõ ràng.
 Luôn nhắc nhở gọi 115 trong trường hợp khẩn cấp.`;
 
-      userPrompt = `Vị trí người dùng: ${context.lat}, ${context.lon}
+        userPrompt = `Vị trí người dùng: ${context.lat}, ${context.lon}
 Mức độ nguy cơ: ${context.riskLevel} (${context.riskScore}/100)
 
 Hãy cung cấp:
@@ -53,8 +86,8 @@ Hãy cung cấp:
 2. Gợi ý các bệnh viện có khoa cấp cứu/đột quỵ gần khu vực Hà Nội hoặc TP.HCM (tùy vào tọa độ)
 3. Hướng dẫn nhận biết dấu hiệu đột quỵ FAST`;
 
-    } else {
-      systemPrompt = `Bạn là AI tư vấn sức khỏe môi trường, chuyên về đánh giá nguy cơ đột quỵ dựa trên yếu tố môi trường.
+      } else {
+        systemPrompt = `Bạn là AI tư vấn sức khỏe môi trường, chuyên về đánh giá nguy cơ đột quỵ dựa trên yếu tố môi trường.
 
 Vai trò:
 - Phân tích dữ liệu môi trường và đưa ra lời khuyên cá nhân hóa
@@ -79,31 +112,31 @@ Format trả lời JSON:
   "urgency": "low|medium|high"
 }`;
 
-      const envDescription = [];
-      if (context.temperature !== null) {
-        envDescription.push(`Nhiệt độ: ${context.temperature}°C`);
-      }
-      if (context.humidity !== null) {
-        envDescription.push(`Độ ẩm: ${context.humidity}%`);
-      }
-      if (context.pressure !== null || context.devicePressure !== null) {
-        const pressure = context.devicePressure || context.pressure;
-        envDescription.push(`Áp suất: ${pressure?.toFixed(0)} hPa${context.devicePressure ? ' (từ thiết bị)' : ''}`);
-      }
-      if (context.pressureChange1h !== null) {
-        envDescription.push(`Thay đổi áp suất 1h: ${context.pressureChange1h > 0 ? '+' : ''}${context.pressureChange1h.toFixed(1)} hPa`);
-      }
-      if (context.aqi !== null) {
-        envDescription.push(`AQI: ${context.aqi}`);
-      }
-      if (context.pm25 !== null) {
-        envDescription.push(`PM2.5: ${context.pm25} µg/m³`);
-      }
-      if (context.uvIndex !== null) {
-        envDescription.push(`UV Index: ${context.uvIndex}`);
-      }
+        const envDescription = [];
+        if (context.temperature !== null) {
+          envDescription.push(`Nhiệt độ: ${context.temperature}°C`);
+        }
+        if (context.humidity !== null) {
+          envDescription.push(`Độ ẩm: ${context.humidity}%`);
+        }
+        if (context.pressure !== null || context.devicePressure !== null) {
+          const pressure = context.devicePressure || context.pressure;
+          envDescription.push(`Áp suất: ${pressure?.toFixed(0)} hPa${context.devicePressure ? ' (từ thiết bị)' : ''}`);
+        }
+        if (context.pressureChange1h !== null) {
+          envDescription.push(`Thay đổi áp suất 1h: ${context.pressureChange1h > 0 ? '+' : ''}${context.pressureChange1h.toFixed(1)} hPa`);
+        }
+        if (context.aqi !== null) {
+          envDescription.push(`AQI: ${context.aqi}`);
+        }
+        if (context.pm25 !== null) {
+          envDescription.push(`PM2.5: ${context.pm25} µg/m³`);
+        }
+        if (context.uvIndex !== null) {
+          envDescription.push(`UV Index: ${context.uvIndex}`);
+        }
 
-      userPrompt = `Dữ liệu môi trường hiện tại:
+        userPrompt = `Dữ liệu môi trường hiện tại:
 ${envDescription.join('\n')}
 
 Thông tin người dùng:
@@ -112,10 +145,12 @@ Thông tin người dùng:
 - Yếu tố chính: ${context.primaryFactors.join(', ') || 'Không có'}
 
 Hãy phân tích và đưa ra khuyến nghị cá nhân hóa.`;
+      }
+
+      console.log("Context:", JSON.stringify(context, null, 2));
     }
 
-    console.log("Calling Lovable AI for health recommendations");
-    console.log("Context:", JSON.stringify(context, null, 2));
+    console.log("Calling Lovable AI for health analysis");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
