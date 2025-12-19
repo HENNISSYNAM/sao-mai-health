@@ -42,11 +42,8 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
   };
 
   const aqiInfo = getAQIInfo(environment.aqi);
-
-  // Display pressure - prefer device barometer
   const displayPressure = devicePressure || environment.pressure;
 
-  // Format outdoor time
   const formatOutdoorTime = (minutes: number) => {
     if (minutes < 60) return `${minutes} phút`;
     const hours = Math.floor(minutes / 60);
@@ -54,17 +51,8 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     return mins > 0 ? `${hours}h ${mins}p` : `${hours} giờ`;
   };
 
-  // Risk color for marker
-  const getRiskColor = () => {
-    switch (riskAssessment.risk_level) {
-      case 'HIGH': return '#ef4444';
-      case 'MEDIUM': return '#f59e0b';
-      default: return '#22c55e';
-    }
-  };
-
-  // Windy embed URL with PM2.5 overlay
-  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=14&overlay=pm25&product=cams&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&message=true`;
+  // Windy embed URL với marker=true để hiện định vị
+  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=14&overlay=pm25&product=cams&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true`;
 
   return (
     <div className={cn(
@@ -72,7 +60,7 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
       isBlurred && "scale-[1.02] brightness-[0.3] blur-sm",
       className
     )}>
-      {/* Windy Map as background - weather animations */}
+      {/* Windy Map với định vị sẵn có */}
       <iframe
         src={windyUrl}
         className="absolute inset-0 w-full h-full border-0"
@@ -80,71 +68,6 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
         allow="geolocation"
         title="Windy Weather Map"
       />
-
-      {/* GPS Position Marker Overlay - fixed at center */}
-      {gps && !isBlurred && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          {/* Accuracy circle */}
-          {gpsAccuracy && gpsAccuracy < 100 && (
-            <div 
-              className="absolute rounded-full border border-blue-400/30 bg-blue-400/10 animate-pulse"
-              style={{
-                width: Math.min(gpsAccuracy * 2, 120),
-                height: Math.min(gpsAccuracy * 2, 120)
-              }}
-            />
-          )}
-          
-          {/* Pulse animation */}
-          <div 
-            className="absolute rounded-full animate-ping"
-            style={{
-              width: 48,
-              height: 48,
-              backgroundColor: `${getRiskColor()}30`
-            }}
-          />
-          
-          {/* GPS dot marker */}
-          <div 
-            className="relative w-5 h-5 rounded-full border-[3px] border-white shadow-lg z-20"
-            style={{ backgroundColor: getRiskColor() }}
-          >
-            {/* Inner glow */}
-            <div 
-              className="absolute inset-0 rounded-full animate-pulse"
-              style={{ boxShadow: `0 0 12px 4px ${getRiskColor()}60` }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* GPS Trail dots - show recent positions */}
-      {!isBlurred && gpsHistory.length > 1 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-5">
-          {gpsHistory.slice(-10, -1).map((point, index) => {
-            const latDiff = (point.lat - lat) * 5000; // Scale for visibility
-            const lonDiff = (point.lon - lon) * 5000;
-            const opacity = 0.2 + (index / 10) * 0.5;
-            const size = 4 + (index / 10) * 4;
-            
-            return (
-              <div
-                key={point.id}
-                className="absolute rounded-full bg-blue-400 border border-white/50"
-                style={{
-                  left: `calc(50% + ${lonDiff}px)`,
-                  top: `calc(50% - ${latDiff}px)`,
-                  opacity,
-                  width: size,
-                  height: size,
-                  transform: 'translate(-50%, -50%)'
-                }}
-              />
-            );
-          })}
-        </div>
-      )}
 
       {/* Top gradient overlay */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/50 to-transparent pointer-events-none z-15" />
