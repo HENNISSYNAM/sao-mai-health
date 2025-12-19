@@ -21,7 +21,8 @@ import {
   Shield,
   TrendingUp,
   TrendingDown,
-  Gauge
+  Gauge,
+  Users
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -31,6 +32,7 @@ import RiskCharts from '@/components/stroke/RiskCharts';
 import RiskStatsPanel from '@/components/stroke/RiskStatsPanel';
 import HealthRecommendations from '@/components/stroke/HealthRecommendations';
 import AgeGroupSelector from '@/components/stroke/AgeGroupSelector';
+import { UserDataCollector } from '@/components/stroke/UserDataCollector';
 import { useBarometer } from '@/hooks/useBarometer';
 
 type AgeGroup = '<18' | '18-35' | '36-55' | '>55';
@@ -306,10 +308,13 @@ const StrokeRisk: React.FC = () => {
           !showPanel && "hidden lg:block"
         )}>
           <div className="p-4 space-y-4">
+            {/* User Data Collector */}
+            <UserDataCollector />
+
             {/* Age Group Selector */}
-            <Card className="p-4 bg-gradient-to-br from-primary/5 to-danger/5 border-2 border-border">
+            <Card className="p-4 bg-gradient-to-br from-primary/5 to-info/5 border-2 border-border">
               <div className="flex items-center gap-2 mb-3">
-                <Activity className="h-4 w-4 text-primary" />
+                <Users className="h-4 w-4 text-primary" />
                 <p className="text-sm font-semibold">Nhóm tuổi của bạn</p>
               </div>
               <AgeGroupSelector value={ageGroup} onChange={setAgeGroup} />
