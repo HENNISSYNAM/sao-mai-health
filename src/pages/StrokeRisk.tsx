@@ -1,398 +1,123 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
-import { 
-  Brain, 
-  MapPin, 
-  RefreshCw, 
-  Maximize2,
-  Minimize2,
-  Activity,
-  Heart,
-  AlertTriangle,
-  Thermometer,
-  Wind,
-  Droplets,
-  Phone,
-  Radio,
-  Clock,
-  Shield,
-  TrendingUp,
-  TrendingDown,
-  Gauge,
-  Users
-} from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import StrokeRiskMap from '@/components/stroke/StrokeRiskMap';
-import RiskCharts from '@/components/stroke/RiskCharts';
-import RiskStatsPanel from '@/components/stroke/RiskStatsPanel';
-import HealthRecommendations from '@/components/stroke/HealthRecommendations';
-import AgeGroupSelector from '@/components/stroke/AgeGroupSelector';
-import { UserDataCollector } from '@/components/stroke/UserDataCollector';
-import { useBarometer } from '@/hooks/useBarometer';
-
-type AgeGroup = '<18' | '18-35' | '36-55' | '>55';
+import { useStrokeRiskEngine } from '@/hooks/useStrokeRiskEngine';
+import FullScreenMap from '@/components/stroke/FullScreenMap';
+import GrokChatPanel from '@/components/stroke/GrokChatPanel';
+import RiskOverlay from '@/components/stroke/RiskOverlay';
+import ChatToggleButton from '@/components/stroke/ChatToggleButton';
+import { Loader2, Radio, MapPin } from 'lucide-react';
 
 const StrokeRisk: React.FC = () => {
-  const [selectedCity, setSelectedCity] = useState<'hcmc' | 'hanoi' | 'all'>('all');
-  const [ageGroup, setAgeGroup] = useState<AgeGroup>('36-55');
-  const [isFullscreen, setIsFullscreen] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [predictions, setPredictions] = useState<any[]>([]);
-  const [selectedZone, setSelectedZone] = useState<any>(null);
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [showPanel, setShowPanel] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(true); // Start with chat open
+  const [showRiskOverlay, setShowRiskOverlay] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const barometer = useBarometer();
+  const {
+    userData,
+    environment,
+    riskAssessment,
+    barometer,
+    isLoading,
+    gpsLoading,
+    envLoading,
+    startMonitoring,
+    setAgeGroup,
+    refreshData
+  } = useStrokeRiskEngine();
 
+  // Initialize monitoring on mount
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Fetch predictions
-  const fetchPredictions = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('stroke_risk_predictions')
-        .select('*')
-        .gte('valid_until', new Date().toISOString())
-        .order('predicted_at', { ascending: false });
-
-      if (error) throw error;
-      setPredictions(data || []);
-      
-      // Simulate barometer from weather data
-      if (data?.[0]?.pressure && typeof data[0].pressure === 'number') {
-        barometer.simulatePressureFromWeather(data[0].pressure);
-      }
-    } catch (error) {
-      console.error('Error fetching predictions:', error);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchPredictions();
-    const interval = setInterval(fetchPredictions, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [fetchPredictions]);
-
-  // Generate new predictions
-  const generatePredictions = async () => {
-    setLoading(true);
-    toast.info('Đang cập nhật dữ liệu thời gian thực...');
-    try {
-      const { data, error } = await supabase.functions.invoke('stroke-risk-agent', {});
-      if (error) throw error;
-      if (data?.success) {
-        toast.success(`Đã cập nhật ${data.predictions?.length || 0} khu vực`);
-        fetchPredictions();
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error('Lỗi khi cập nhật dữ liệu');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Calculate stats
-  const stats = useMemo(() => {
-    const highRisk = predictions.filter(p => p.risk_level === 'HIGH' || p.risk_level === 'CRITICAL');
-    const criticalCount = predictions.filter(p => p.risk_level === 'CRITICAL').length;
-    return {
-      totalZones: predictions.length,
-      highRiskZones: highRisk.length,
-      criticalZones: criticalCount,
-      avgAqi: predictions.length > 0 ? predictions.reduce((a, b) => a + (b.aqi || 0), 0) / predictions.length : 0,
-      avgTemperature: predictions.length > 0 ? predictions.reduce((a, b) => a + (b.temperature || 0), 0) / predictions.length : 0,
-      avgHumidity: predictions.length > 0 ? predictions.reduce((a, b) => a + (b.humidity || 0), 0) / predictions.length : 0,
-      avgPressure: predictions.length > 0 ? predictions.reduce((a, b) => a + (b.pressure || 0), 0) / predictions.length : 1013,
-      lastUpdate: predictions[0]?.predicted_at || new Date().toISOString()
+    const init = async () => {
+      await startMonitoring();
+      setIsInitialized(true);
     };
-  }, [predictions]);
+    init();
+  }, [startMonitoring]);
 
-  // Risk distribution for chart
-  const riskDistribution = useMemo(() => {
-    const counts = { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 };
-    predictions.forEach(p => { 
-      if (p.risk_level && counts[p.risk_level as keyof typeof counts] !== undefined) {
-        counts[p.risk_level as keyof typeof counts]++;
-      }
-    });
-    return Object.entries(counts).map(([level, count]) => ({ level, count }));
-  }, [predictions]);
-
-  // Pollution data for chart
-  const pollutionData = useMemo(() => {
-    return predictions.slice(0, 8).map((p, i) => ({
-      time: p.district_id?.substring(0, 6) || `Zone ${i + 1}`,
-      aqi: p.aqi || 0,
-      pm25: p.pm25 || 0
-    }));
-  }, [predictions]);
-
-  const getRiskColor = (level: string) => {
-    switch (level) {
-      case 'CRITICAL': return 'bg-danger text-danger-foreground';
-      case 'HIGH': return 'bg-secondary text-secondary-foreground';
-      case 'MEDIUM': return 'bg-warning text-warning-foreground';
-      default: return 'bg-success text-success-foreground';
+  // Show risk overlay when chat closes and risk is medium+
+  useEffect(() => {
+    if (!isChatOpen && isInitialized) {
+      setShowRiskOverlay(true);
     }
-  };
+  }, [isChatOpen, isInitialized]);
 
-  const getRiskLabel = (level: string) => {
-    switch (level) {
-      case 'CRITICAL': return 'Rất cao';
-      case 'HIGH': return 'Cao';
-      case 'MEDIUM': return 'Trung bình';
-      default: return 'Thấp';
-    }
-  };
+  // Handle chat close - transition to monitoring mode
+  const handleChatClose = useCallback(() => {
+    setIsChatOpen(false);
+  }, []);
 
-  const overallRisk = stats.criticalZones > 0 ? 'CRITICAL' : stats.highRiskZones > 2 ? 'HIGH' : stats.highRiskZones > 0 ? 'MEDIUM' : 'LOW';
+  // Handle chat open
+  const handleChatOpen = useCallback(() => {
+    setIsChatOpen(true);
+    setShowRiskOverlay(false);
+  }, []);
 
   return (
-    <div className={cn("flex flex-col bg-background", isFullscreen ? "fixed inset-0 z-50" : "min-h-screen")}>
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-card border-b-2 border-border shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-danger/20 border-2 border-primary/30">
-              <Brain className="h-6 w-6 text-primary" />
-            </div>
-            <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-success animate-pulse border-2 border-card" />
-          </div>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold tracking-tight font-display">Hệ Thống Cảnh Báo Đột Quỵ</h1>
-              <Badge className={cn("text-xs font-bold uppercase gap-1", getRiskColor(overallRisk))}>
-                {overallRisk === 'CRITICAL' && <AlertTriangle className="h-3 w-3" />}
-                {getRiskLabel(overallRisk)}
-              </Badge>
-            </div>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Radio className="h-3 w-3 text-success animate-pulse" />
-                Live
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Shield className="h-3 w-3" />
-                AI-powered
-              </span>
-            </div>
-          </div>
-        </div>
+    <div className="fixed inset-0 bg-background overflow-hidden">
+      {/* Full Screen Map Background */}
+      <FullScreenMap
+        gps={userData.gps}
+        environment={environment}
+        riskAssessment={riskAssessment}
+        isBlurred={isChatOpen}
+      />
 
-        <div className="flex items-center gap-3">
-          {/* Emergency Hotline */}
-          <div className="hidden xl:flex items-center gap-2 px-4 py-2 rounded-xl bg-danger/10 border border-danger/30">
-            <Phone className="h-4 w-4 text-danger" />
-            <span className="text-sm font-bold text-danger">Cấp cứu: 115</span>
-          </div>
-
-          {/* Live Time */}
-          <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 border border-border">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-mono font-semibold">
-              {currentTime.toLocaleTimeString('vi-VN')}
-            </span>
-          </div>
-
-          {/* City Selector */}
-          <Tabs value={selectedCity} onValueChange={(v) => setSelectedCity(v as any)}>
-            <TabsList className="h-10 bg-muted/50 rounded-xl p-1">
-              <TabsTrigger value="all" className="text-sm px-4 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                <MapPin className="h-4 w-4 mr-2" />Việt Nam
-              </TabsTrigger>
-              <TabsTrigger value="hanoi" className="text-sm px-4 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                Hà Nội
-              </TabsTrigger>
-              <TabsTrigger value="hcmc" className="text-sm px-4 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
-                TP.HCM
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={generatePredictions} 
-            disabled={loading} 
-            className="gap-2 rounded-xl border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all"
-          >
-            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-            Cập nhật
-          </Button>
-
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="h-10 w-10 rounded-xl border-2"
-            onClick={() => setIsFullscreen(!isFullscreen)}
-          >
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </Button>
-        </div>
-      </header>
-
-      {/* Quick Stats Bar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-card/50 border-b border-border overflow-x-auto">
-        {stats.criticalZones > 0 && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-danger/10 border border-danger/30 animate-pulse-glow">
-            <AlertTriangle className="h-4 w-4 text-danger" />
-            <span className="text-sm font-bold text-danger">{stats.criticalZones} vùng nguy hiểm</span>
-          </div>
-        )}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/10 border border-secondary/30">
-          <Heart className="h-4 w-4 text-secondary" />
-          <span className="text-sm font-medium text-secondary">{stats.highRiskZones} vùng rủi ro cao</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30 border border-border">
-          <Thermometer className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">{stats.avgTemperature.toFixed(1)}°C</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30 border border-border">
-          <Wind className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">AQI: {stats.avgAqi.toFixed(0)}</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30 border border-border">
-          <Droplets className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">{stats.avgHumidity.toFixed(0)}%</span>
-        </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30 border border-border">
-          <Gauge className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">{stats.avgPressure.toFixed(0)} hPa</span>
-          {barometer.pressureChange1h !== null && (
-            <span className={cn(
-              "flex items-center text-xs",
-              barometer.pressureChange1h < -2 ? "text-danger" : barometer.pressureChange1h > 2 ? "text-warning" : "text-success"
-            )}>
-              {barometer.pressureChange1h < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
-              {barometer.pressureChange1h > 0 ? '+' : ''}{barometer.pressureChange1h.toFixed(1)}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Map */}
-        <div className="flex-1 relative">
-          <div className="absolute inset-2 rounded-2xl overflow-hidden border-2 border-border shadow-xl">
-            <StrokeRiskMap 
-              selectedCity={selectedCity} 
-              onZoneSelect={setSelectedZone}
-              className="absolute inset-0"
-            />
-          </div>
-
-          {/* Toggle Panel Button */}
-          <Button
-            variant="secondary"
-            size="sm"
-            className="absolute top-4 right-4 z-20 lg:hidden"
-            onClick={() => setShowPanel(!showPanel)}
-          >
-            {showPanel ? 'Ẩn' : 'Hiện'} thông tin
-          </Button>
-        </div>
-
-        {/* Side Panel */}
-        <aside className={cn(
-          "w-full lg:w-[420px] bg-card border-l-2 border-border overflow-y-auto transition-all duration-300",
-          !showPanel && "hidden lg:block"
-        )}>
-          <div className="p-4 space-y-4">
-            {/* User Data Collector */}
-            <UserDataCollector />
-
-            {/* Age Group Selector */}
-            <Card className="p-4 bg-gradient-to-br from-primary/5 to-info/5 border-2 border-border">
-              <div className="flex items-center gap-2 mb-3">
-                <Users className="h-4 w-4 text-primary" />
-                <p className="text-sm font-semibold">Nhóm tuổi của bạn</p>
+      {/* Loading Overlay */}
+      {(isLoading || (gpsLoading && !userData.gps)) && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center z-40">
+          <div className="text-center space-y-4">
+            <div className="relative">
+              <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <MapPin className="h-6 w-6 text-primary animate-pulse" />
               </div>
-              <AgeGroupSelector value={ageGroup} onChange={setAgeGroup} />
-            </Card>
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-foreground">Đang khởi tạo...</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {gpsLoading ? 'Đang lấy vị trí GPS...' : 'Đang tải dữ liệu môi trường...'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
-            {/* Stats Grid */}
-            <RiskStatsPanel stats={stats} />
-
-            {/* Charts */}
-            <RiskCharts 
-              pressureHistory={barometer.pressureHistory}
-              pollutionData={pollutionData}
-              riskDistribution={riskDistribution}
-              currentPressure={barometer.currentPressure || stats.avgPressure}
-              pressureChange1h={barometer.pressureChange1h}
-            />
-
-            {/* Health Recommendations */}
-            <HealthRecommendations 
-              riskLevel={selectedZone?.risk_level || overallRisk}
-              riskScore={selectedZone?.risk_score || Math.round(stats.avgAqi / 2)}
-              ageGroup={ageGroup}
-              environmentalFactors={{
-                aqi: selectedZone?.aqi || stats.avgAqi,
-                temperature: selectedZone?.temperature || stats.avgTemperature,
-                humidity: selectedZone?.humidity || stats.avgHumidity,
-                pressureChange: barometer.pressureChange1h || undefined
-              }}
-            />
-
-            {/* Selected Zone Info */}
-            {selectedZone && (
-              <Card className="p-4 bg-muted/30 border-2 border-primary/30">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    {selectedZone.district_id}
-                  </h3>
-                  <Badge className={getRiskColor(selectedZone.risk_level)}>
-                    {getRiskLabel(selectedZone.risk_level)}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Wind className="h-4 w-4 text-muted-foreground" />
-                    <span>AQI: {selectedZone.aqi}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Thermometer className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedZone.temperature?.toFixed(1)}°C</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Droplets className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedZone.humidity?.toFixed(0)}%</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Gauge className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedZone.pressure?.toFixed(0)} hPa</span>
-                  </div>
-                </div>
-                {selectedZone.ai_analysis && (
-                  <p className="mt-3 text-xs text-muted-foreground border-t border-border pt-3">
-                    {selectedZone.ai_analysis}
-                  </p>
-                )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full mt-3"
-                  onClick={() => setSelectedZone(null)}
-                >
-                  Đóng
-                </Button>
-              </Card>
+      {/* Live Status Badge */}
+      {isInitialized && !isChatOpen && (
+        <div className="absolute top-4 right-4 z-20 animate-in fade-in duration-500">
+          <div className="flex items-center gap-2 px-4 py-2 bg-card/80 backdrop-blur-md rounded-full border border-border/50 shadow-lg">
+            <Radio className="h-4 w-4 text-success animate-pulse" />
+            <span className="text-sm font-medium text-foreground">Đang theo dõi</span>
+            {envLoading && (
+              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-1" />
             )}
           </div>
-        </aside>
-      </div>
+        </div>
+      )}
+
+      {/* Grok-style Chat Panel */}
+      <GrokChatPanel
+        isOpen={isChatOpen}
+        onClose={handleChatClose}
+        ageGroup={userData.ageGroup}
+        environment={environment}
+        riskAssessment={riskAssessment}
+        onAgeGroupChange={setAgeGroup}
+        gps={userData.gps}
+      />
+
+      {/* Risk Overlay (shown when chat is closed) */}
+      <RiskOverlay
+        riskAssessment={riskAssessment}
+        environment={environment}
+        pressureChange1h={barometer.pressureChange1h}
+        isVisible={showRiskOverlay && !isChatOpen}
+      />
+
+      {/* Chat Toggle Button (shown when chat is closed) */}
+      {!isChatOpen && isInitialized && (
+        <ChatToggleButton onClick={handleChatOpen} />
+      )}
     </div>
   );
 };
