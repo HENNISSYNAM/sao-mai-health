@@ -3372,33 +3372,54 @@ export type Database = {
       }
       stroke_alert_subscribers: {
         Row: {
+          age_group: string | null
+          ai_risk_analysis: Json | null
           created_at: string
+          date_of_birth: string | null
           district_id: string | null
+          gender: string | null
+          health_data_history: Json | null
           id: string
           is_active: boolean | null
           last_alert_sent: string | null
+          last_barometer_data: Json | null
+          last_gps_data: Json | null
           lat: number | null
           lon: number | null
           phone: string
           updated_at: string
         }
         Insert: {
+          age_group?: string | null
+          ai_risk_analysis?: Json | null
           created_at?: string
+          date_of_birth?: string | null
           district_id?: string | null
+          gender?: string | null
+          health_data_history?: Json | null
           id?: string
           is_active?: boolean | null
           last_alert_sent?: string | null
+          last_barometer_data?: Json | null
+          last_gps_data?: Json | null
           lat?: number | null
           lon?: number | null
           phone: string
           updated_at?: string
         }
         Update: {
+          age_group?: string | null
+          ai_risk_analysis?: Json | null
           created_at?: string
+          date_of_birth?: string | null
           district_id?: string | null
+          gender?: string | null
+          health_data_history?: Json | null
           id?: string
           is_active?: boolean | null
           last_alert_sent?: string | null
+          last_barometer_data?: Json | null
+          last_gps_data?: Json | null
           lat?: number | null
           lon?: number | null
           phone?: string

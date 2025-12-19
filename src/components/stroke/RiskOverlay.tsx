@@ -20,9 +20,11 @@ import {
   ChevronDown,
   Bell,
   BellOff,
-  MapPin
+  MapPin,
+  UserCheck
 } from 'lucide-react';
 import type { RiskAssessment, EnvironmentData, AgeGroup } from '@/hooks/useStrokeRiskEngine';
+import SubscriberRegistrationModal from './SubscriberRegistrationModal';
 
 interface RiskOverlayProps {
   riskAssessment: RiskAssessment;
@@ -100,6 +102,8 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [subscriberPhone, setSubscriberPhone] = useState<string | null>(null);
   const lastNotifiedLevel = useRef<string | null>(null);
   const lastNotifiedPressureDrop = useRef<boolean>(false);
   const lastAICallRef = useRef<number>(0);
@@ -112,9 +116,14 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
   // Cooldown after 429 error (2 minutes)
   const ERROR_COOLDOWN = 120000;
 
-  // Check notification permission on mount
+  // Check notification permission and subscriber status on mount
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'granted') {
+    // Check if user is already subscribed
+    const savedPhone = localStorage.getItem('stroke_subscriber_phone');
+    if (savedPhone) {
+      setSubscriberPhone(savedPhone);
+      setNotificationsEnabled(true);
+    } else if ('Notification' in window && Notification.permission === 'granted') {
       setNotificationsEnabled(true);
     }
   }, []);
@@ -155,20 +164,30 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
     }
   }, [risk_level, risk_score, pressureChange1h, primary_factors, notificationsEnabled]);
 
-  // Toggle notifications
+  // Toggle notifications - show registration modal if not subscribed
   const toggleNotifications = async () => {
-    if (notificationsEnabled) {
+    if (notificationsEnabled && subscriberPhone) {
+      // Already subscribed - disable notifications
       setNotificationsEnabled(false);
+      localStorage.removeItem('stroke_subscriber_phone');
+      localStorage.removeItem('stroke_subscriber_id');
+      setSubscriberPhone(null);
       toast.info('Đã tắt thông báo tự động');
     } else {
-      const granted = await requestNotificationPermission();
-      if (granted) {
-        setNotificationsEnabled(true);
-        toast.success('Đã bật thông báo tự động');
-      } else {
-        toast.error('Không thể bật thông báo. Vui lòng cho phép trong cài đặt trình duyệt.');
-      }
+      // Show registration modal for new subscribers
+      setShowRegistrationModal(true);
     }
+  };
+
+  // Handle successful registration
+  const handleRegistrationSuccess = async (subscriberId: string, phone: string) => {
+    setSubscriberPhone(phone);
+    setNotificationsEnabled(true);
+    
+    // Also request browser notification permission
+    await requestNotificationPermission();
+    
+    toast.success(`Đã đăng ký thành công với SĐT: ${phone}`);
   };
 
   // Fetch AI recommendations with throttling
@@ -518,12 +537,20 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                className={cn("h-7 px-2", notificationsEnabled && "bg-primary/10 border-primary/30")}
+                className={cn(
+                  "h-7 px-2", 
+                  notificationsEnabled && subscriberPhone && "bg-emerald-500/20 border-emerald-500/30",
+                  notificationsEnabled && !subscriberPhone && "bg-primary/10 border-primary/30"
+                )}
                 onClick={toggleNotifications}
-                title={notificationsEnabled ? "Tắt thông báo" : "Bật thông báo"}
+                title={notificationsEnabled ? (subscriberPhone ? `Đã đăng ký: ${subscriberPhone}` : "Tắt thông báo") : "Đăng ký nhận cảnh báo"}
               >
                 {notificationsEnabled ? (
-                  <Bell className="h-3 w-3 text-primary" />
+                  subscriberPhone ? (
+                    <UserCheck className="h-3 w-3 text-emerald-400" />
+                  ) : (
+                    <Bell className="h-3 w-3 text-primary" />
+                  )
                 ) : (
                   <BellOff className="h-3 w-3 text-muted-foreground" />
                 )}
@@ -547,6 +574,19 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
           </div>
         </div>
       )}
+
+      {/* Subscriber Registration Modal */}
+      <SubscriberRegistrationModal
+        isOpen={showRegistrationModal}
+        onClose={() => setShowRegistrationModal(false)}
+        onSuccess={handleRegistrationSuccess}
+        gps={gps}
+        barometerData={{
+          pressure: devicePressure || null,
+          change1h: pressureChange1h,
+          change24h: pressureChange24h || null
+        }}
+      />
     </>
   );
 };
