@@ -32,16 +32,28 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current) return;
+    
+    // Remove existing map if any
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
+    }
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/dark-v11',
       center: [lon, lat],
-      zoom: 12,
-      pitch: 45,
+      zoom: 13,
+      pitch: 60,
       bearing: -17.6,
-      antialias: true
+      antialias: true,
+      attributionControl: false
+    });
+
+    // Resize map to fit container
+    map.current.on('load', () => {
+      map.current?.resize();
     });
 
     map.current.addControl(
@@ -52,14 +64,45 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     // Add atmosphere effect
     map.current.on('style.load', () => {
       map.current?.setFog({
-        color: 'rgb(20, 20, 30)',
-        'high-color': 'rgb(30, 30, 60)',
-        'horizon-blend': 0.1,
-        'star-intensity': 0.15
+        color: 'rgb(15, 15, 25)',
+        'high-color': 'rgb(25, 25, 50)',
+        'horizon-blend': 0.15,
+        'star-intensity': 0.2
       });
+
+      // Add 3D buildings
+      const layers = map.current?.getStyle()?.layers;
+      if (layers) {
+        const labelLayerId = layers.find(
+          (layer) => layer.type === 'symbol' && layer.layout?.['text-field']
+        )?.id;
+
+        map.current?.addLayer(
+          {
+            id: '3d-buildings',
+            source: 'composite',
+            'source-layer': 'building',
+            filter: ['==', 'extrude', 'true'],
+            type: 'fill-extrusion',
+            minzoom: 12,
+            paint: {
+              'fill-extrusion-color': '#1a1a2e',
+              'fill-extrusion-height': ['get', 'height'],
+              'fill-extrusion-base': ['get', 'min_height'],
+              'fill-extrusion-opacity': 0.7
+            }
+          },
+          labelLayerId
+        );
+      }
     });
 
+    // Handle window resize
+    const handleResize = () => map.current?.resize();
+    window.addEventListener('resize', handleResize);
+
     return () => {
+      window.removeEventListener('resize', handleResize);
       map.current?.remove();
       map.current = null;
     };
@@ -119,11 +162,12 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
       {/* Mapbox Container */}
       <div 
         ref={mapContainer} 
-        className="absolute inset-0"
+        className="absolute inset-0 w-full h-full"
+        style={{ minHeight: '100vh', minWidth: '100vw' }}
       />
 
       {/* Dark gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-background/50 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-background/20 via-transparent to-background/40 pointer-events-none" />
 
       {/* Risk zone overlay */}
       {gps && !isBlurred && (
@@ -247,6 +291,18 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
 
       {/* Custom marker styles */}
       <style>{`
+        .mapboxgl-map {
+          width: 100% !important;
+          height: 100% !important;
+        }
+        .mapboxgl-canvas {
+          width: 100% !important;
+          height: 100% !important;
+        }
+        .mapboxgl-ctrl-bottom-right {
+          bottom: 80px !important;
+          right: 10px !important;
+        }
         .gps-marker {
           position: relative;
           width: 24px;
