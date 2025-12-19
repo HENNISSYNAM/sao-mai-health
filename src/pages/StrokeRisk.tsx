@@ -144,6 +144,7 @@ const StrokeRisk: React.FC = () => {
         ageGroup={userData.ageGroup}
         gps={userData.gps}
         devicePressure={userData.devicePressure}
+        gpsAccuracy={userData.gpsAccuracy}
       />
 
       {/* Chat Toggle Button (shown when chat is closed) */}

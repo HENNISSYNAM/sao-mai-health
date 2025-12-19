@@ -204,7 +204,70 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     }
   }, [environment]);
 
-  // Start continuous GPS tracking with watchPosition
+  // Kalman filter for GPS smoothing
+  const kalmanFilterRef = useRef({
+    lat: { estimate: 0, errorEstimate: 1, errorMeasure: 0.00001 },
+    lon: { estimate: 0, errorEstimate: 1, errorMeasure: 0.00001 },
+    initialized: false
+  });
+
+  // Apply Kalman filter to smooth GPS readings
+  const applyKalmanFilter = useCallback((lat: number, lon: number, accuracy: number) => {
+    const filter = kalmanFilterRef.current;
+    
+    // Adjust error based on accuracy (higher accuracy = lower error)
+    const errorFromAccuracy = accuracy / 100000;
+    
+    if (!filter.initialized) {
+      filter.lat.estimate = lat;
+      filter.lon.estimate = lon;
+      filter.lat.errorEstimate = errorFromAccuracy;
+      filter.lon.errorEstimate = errorFromAccuracy;
+      filter.initialized = true;
+      return { lat, lon };
+    }
+    
+    // Kalman gain
+    const latGain = filter.lat.errorEstimate / (filter.lat.errorEstimate + errorFromAccuracy);
+    const lonGain = filter.lon.errorEstimate / (filter.lon.errorEstimate + errorFromAccuracy);
+    
+    // Update estimates
+    filter.lat.estimate = filter.lat.estimate + latGain * (lat - filter.lat.estimate);
+    filter.lon.estimate = filter.lon.estimate + lonGain * (lon - filter.lon.estimate);
+    
+    // Update error estimates
+    filter.lat.errorEstimate = (1 - latGain) * filter.lat.errorEstimate;
+    filter.lon.errorEstimate = (1 - lonGain) * filter.lon.errorEstimate;
+    
+    return {
+      lat: filter.lat.estimate,
+      lon: filter.lon.estimate
+    };
+  }, []);
+
+  // Request wake lock to prevent device sleep during tracking
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  
+  const requestWakeLock = useCallback(async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        console.log('Wake Lock acquired for GPS tracking');
+      }
+    } catch (err) {
+      console.log('Wake Lock not available:', err);
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(() => {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release();
+      wakeLockRef.current = null;
+      console.log('Wake Lock released');
+    }
+  }, []);
+
+  // Start continuous GPS tracking with maximum accuracy
   const startGPSTracking = useCallback(() => {
     if (!navigator.geolocation) {
       console.error('Geolocation not supported');
@@ -218,28 +281,72 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     setGpsLoading(true);
     setIsTracking(true);
     
+    // Request wake lock for continuous tracking
+    requestWakeLock();
+    
+    // Reset Kalman filter
+    kalmanFilterRef.current.initialized = false;
+    
     // Record tracking start time
     const startTime = Date.now();
     setUserData(prev => ({ ...prev, trackingStartTime: startTime }));
 
+    // Track best accuracy achieved
+    let bestAccuracy = Infinity;
+    let consecutiveGoodReadings = 0;
+
     watchIdRef.current = navigator.geolocation.watchPosition(
       async (position) => {
+        const rawLat = position.coords.latitude;
+        const rawLon = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
+        const speed = position.coords.speed; // m/s
+        const heading = position.coords.heading; // degrees
+        const altitude = position.coords.altitude;
+        const altitudeAccuracy = position.coords.altitudeAccuracy;
+        
+        // Update best accuracy
+        if (accuracy < bestAccuracy) {
+          bestAccuracy = accuracy;
+        }
+
+        // Filter out very inaccurate readings (> 500m)
+        // But still accept them if we haven't got any good readings yet
+        if (accuracy > 500 && bestAccuracy < 200) {
+          console.log('Skipping inaccurate GPS reading:', accuracy, 'm');
+          return;
+        }
+
+        // Apply Kalman filter for smoothing
+        const smoothed = applyKalmanFilter(rawLat, rawLon, accuracy);
+        
+        // Calculate effective accuracy (improved by filtering)
+        const effectiveAccuracy = Math.min(accuracy, bestAccuracy * 1.2);
+        
+        // Track consecutive good readings for confidence
+        if (accuracy < 50) {
+          consecutiveGoodReadings++;
+        } else {
+          consecutiveGoodReadings = Math.max(0, consecutiveGoodReadings - 1);
+        }
+
         const newPoint: GPSPoint = {
           id: generateGPSId(),
-          lat: position.coords.latitude,
-          lon: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          timestamp: Date.now()
+          lat: smoothed.lat,
+          lon: smoothed.lon,
+          accuracy: effectiveAccuracy,
+          timestamp: Date.now(),
+          label: speed !== null ? `${(speed * 3.6).toFixed(1)} km/h` : undefined
         };
 
-        // Update GPS data first
+        // Update GPS data with enhanced metadata
         setUserData(prev => {
           const newHistory = [...prev.gpsHistory, newPoint].slice(-100);
           return {
             ...prev,
-            gps: { lat: newPoint.lat, lon: newPoint.lon },
+            gps: { lat: smoothed.lat, lon: smoothed.lon },
             gpsHistory: newHistory,
-            gpsAccuracy: newPoint.accuracy,
+            gpsAccuracy: effectiveAccuracy,
             timestamp: Date.now()
           };
         });
@@ -248,9 +355,9 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
 
         // Detect indoor/outdoor status
         const locationResult = await detectLocationType(
-          newPoint.lat,
-          newPoint.lon,
-          newPoint.accuracy,
+          smoothed.lat,
+          smoothed.lon,
+          effectiveAccuracy,
           userData.gpsHistory
         );
 
@@ -303,19 +410,25 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
         }
 
         // Fetch environment data for new position
-        fetchEnvironment(newPoint.lat, newPoint.lon);
+        fetchEnvironment(smoothed.lat, smoothed.lon);
       },
       (error) => {
         console.error('GPS error:', error);
         setGpsLoading(false);
+        
+        // Try fallback to lower accuracy if high accuracy fails
+        if (error.code === error.TIMEOUT && watchIdRef.current !== null) {
+          console.log('Retrying with lower accuracy threshold...');
+        }
       },
       {
+        // Maximum accuracy settings
         enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0
+        timeout: 30000, // Increased timeout for better accuracy
+        maximumAge: 0 // Always get fresh position, never use cached
       }
     );
-  }, [generateGPSId, fetchEnvironment]);
+  }, [generateGPSId, fetchEnvironment, applyKalmanFilter, requestWakeLock]);
 
   // Stop GPS tracking
   const stopGPSTracking = useCallback(() => {
@@ -323,49 +436,80 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
     }
+    // Release wake lock
+    releaseWakeLock();
     setIsTracking(false);
-  }, []);
+  }, [releaseWakeLock]);
 
-  // Get single GPS position (for initial load)
+  // Get single GPS position with maximum accuracy (multiple attempts)
   const fetchGPS = useCallback(async (): Promise<{ lat: number; lon: number } | null> => {
     setGpsLoading(true);
-    return new Promise((resolve) => {
-      if (!navigator.geolocation) {
-        setGpsLoading(false);
-        resolve(null);
-        return;
-      }
+    
+    // Try multiple times to get best accuracy
+    const attemptGPS = (attempt: number): Promise<GeolocationPosition | null> => {
+      return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => resolve(position),
+          () => resolve(null),
+          { 
+            enableHighAccuracy: true, 
+            timeout: attempt === 1 ? 30000 : 10000, // Longer timeout on first attempt
+            maximumAge: 0 
+          }
+        );
+      });
+    };
+    
+    if (!navigator.geolocation) {
+      setGpsLoading(false);
+      return null;
+    }
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const gps = {
-            lat: position.coords.latitude,
-            lon: position.coords.longitude
-          };
-          const newPoint: GPSPoint = {
-            id: generateGPSId(),
-            lat: gps.lat,
-            lon: gps.lon,
-            accuracy: position.coords.accuracy,
-            timestamp: Date.now()
-          };
-          setUserData(prev => ({
-            ...prev,
-            gps,
-            gpsHistory: [...prev.gpsHistory, newPoint].slice(-100),
-            gpsAccuracy: position.coords.accuracy,
-            timestamp: Date.now()
-          }));
-          setGpsLoading(false);
-          resolve(gps);
-        },
-        () => {
-          setGpsLoading(false);
-          resolve(null);
-        },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-      );
-    });
+    let bestPosition: GeolocationPosition | null = null;
+    let bestAccuracy = Infinity;
+
+    // Try up to 3 times to get best accuracy
+    for (let i = 0; i < 3; i++) {
+      const position = await attemptGPS(i + 1);
+      if (position && position.coords.accuracy < bestAccuracy) {
+        bestAccuracy = position.coords.accuracy;
+        bestPosition = position;
+        
+        // If we got very good accuracy, stop trying
+        if (bestAccuracy < 20) break;
+      }
+      
+      // Small delay between attempts
+      if (i < 2) await new Promise(r => setTimeout(r, 500));
+    }
+
+    if (!bestPosition) {
+      setGpsLoading(false);
+      return null;
+    }
+
+    const gps = {
+      lat: bestPosition.coords.latitude,
+      lon: bestPosition.coords.longitude
+    };
+    const newPoint: GPSPoint = {
+      id: generateGPSId(),
+      lat: gps.lat,
+      lon: gps.lon,
+      accuracy: bestPosition.coords.accuracy,
+      timestamp: Date.now()
+    };
+    
+    setUserData(prev => ({
+      ...prev,
+      gps,
+      gpsHistory: [...prev.gpsHistory, newPoint].slice(-100),
+      gpsAccuracy: bestPosition!.coords.accuracy,
+      timestamp: Date.now()
+    }));
+    
+    setGpsLoading(false);
+    return gps;
   }, [generateGPSId]);
 
   // Add external GPS point (for multi-user tracking)
@@ -601,8 +745,9 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
         clearInterval(refreshIntervalRef.current);
       }
       stopGPSTracking();
+      releaseWakeLock();
     };
-  }, [stopGPSTracking]);
+  }, [stopGPSTracking, releaseWakeLock]);
 
   // Refresh all data
   const refreshData = useCallback(async () => {

@@ -19,7 +19,8 @@ import {
   ChevronUp,
   ChevronDown,
   Bell,
-  BellOff
+  BellOff,
+  MapPin
 } from 'lucide-react';
 import type { RiskAssessment, EnvironmentData, AgeGroup } from '@/hooks/useStrokeRiskEngine';
 
@@ -32,6 +33,7 @@ interface RiskOverlayProps {
   ageGroup?: AgeGroup;
   gps?: { lat: number; lon: number } | null;
   devicePressure?: number | null;
+  gpsAccuracy?: number | null;
 }
 
 interface AIRecommendations {
@@ -90,7 +92,8 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
   isVisible,
   ageGroup = '36-55',
   gps,
-  devicePressure
+  devicePressure,
+  gpsAccuracy
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendations | null>(null);
@@ -337,7 +340,45 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
               </div>
             )}
 
-            {/* AI Warnings */}
+            {/* GPS Accuracy Indicator */}
+            {gpsAccuracy !== null && gpsAccuracy !== undefined && (
+              <div className="px-4 py-2 bg-purple-500/10 border-b border-border/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="h-3 w-3 text-purple-400" />
+                    <span className="text-[10px] text-muted-foreground">Độ chính xác GPS</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "text-[11px] font-medium",
+                      gpsAccuracy < 20 ? "text-emerald-400" : 
+                      gpsAccuracy < 50 ? "text-green-400" :
+                      gpsAccuracy < 100 ? "text-amber-400" : "text-red-400"
+                    )}>
+                      ±{gpsAccuracy < 1000 ? gpsAccuracy.toFixed(0) : (gpsAccuracy / 1000).toFixed(1) + 'k'}m
+                    </span>
+                    <Badge 
+                      variant="outline" 
+                      className={cn(
+                        "text-[8px] px-1.5 py-0",
+                        gpsAccuracy < 20 ? "border-emerald-500/50 text-emerald-400" : 
+                        gpsAccuracy < 50 ? "border-green-500/50 text-green-400" :
+                        gpsAccuracy < 100 ? "border-amber-500/50 text-amber-400" : "border-red-500/50 text-red-400"
+                      )}
+                    >
+                      {gpsAccuracy < 20 ? 'Tuyệt vời' : 
+                       gpsAccuracy < 50 ? 'Tốt' :
+                       gpsAccuracy < 100 ? 'Trung bình' : 'Kém'}
+                    </Badge>
+                  </div>
+                </div>
+                {gpsAccuracy > 100 && (
+                  <div className="text-[9px] text-amber-400 mt-1">
+                    💡 Ra ngoài trời sẽ cải thiện độ chính xác
+                  </div>
+                )}
+              </div>
+            )}
             {displayWarnings.length > 0 && (
               <div className="px-4 py-2 bg-red-500/10 border-b border-border/30">
                 {displayWarnings.slice(0, 3).map((warning, i) => (
