@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
-import { Thermometer, Wind, Gauge, Droplets, Activity, Radio, Clock, MapPin, Home, TreePine, Eye, EyeOff } from 'lucide-react';
+import { Thermometer, Wind, Gauge, Droplets, Activity, Radio, MapPin, Home, TreePine, Eye, EyeOff } from 'lucide-react';
 
 interface FullScreenMapProps {
   gps: { lat: number; lon: number } | null;
@@ -83,128 +83,127 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
       {/* Top gradient overlay */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/50 to-transparent pointer-events-none z-15" />
 
-      {/* Left panel - Compact environmental data */}
+      {/* Left panel - Combined unified card */}
       {!isBlurred && (
-        <div className="absolute top-4 left-4 flex flex-col gap-1.5 z-20">
-          {/* Risk Score Badge */}
-          <div className={cn(
-            "px-3 py-2 rounded-xl shadow-xl backdrop-blur-xl animate-fade-in",
-            riskAssessment.risk_level === 'HIGH' ? 'bg-red-500' :
-            riskAssessment.risk_level === 'MEDIUM' ? 'bg-amber-500' : 'bg-emerald-500'
-          )}>
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-white" />
-              <span className="text-xs text-white/80 uppercase tracking-wider">Nguy cơ</span>
-            </div>
-            <div className="text-3xl font-bold text-white">{riskAssessment.risk_score}<span className="text-lg">/100</span></div>
-          </div>
-
-          {/* AQI Card - Clickable to toggle layer */}
-          {environment.aqi !== null && (
-            <button
-              onClick={() => setShowAQILayer(!showAQILayer)}
-              className={cn(
-                "px-3 py-2 rounded-xl shadow-xl backdrop-blur-xl animate-fade-in text-left transition-all",
-                aqiInfo.color,
-                showAQILayer && "ring-2 ring-white ring-offset-2 ring-offset-transparent"
-              )} 
-              style={{ animationDelay: '0.05s' }}
-            >
+        <div className="absolute top-4 left-4 z-20 animate-fade-in">
+          <div className="bg-card/90 backdrop-blur-xl rounded-2xl shadow-xl border border-border/20 overflow-hidden w-[140px]">
+            {/* Risk Score Header */}
+            <div className={cn(
+              "px-3 py-2.5",
+              riskAssessment.risk_level === 'HIGH' ? 'bg-red-500' :
+              riskAssessment.risk_level === 'MEDIUM' ? 'bg-amber-500' : 'bg-emerald-500'
+            )}>
               <div className="flex items-center gap-1.5">
-                <Wind className="h-3.5 w-3.5" style={{ color: aqiInfo.textColor === 'text-white' ? 'white' : 'black' }} />
-                <span className={cn("text-[10px] uppercase tracking-wider", aqiInfo.textColor === 'text-white' ? 'text-white/80' : 'text-black/70')}>AQI</span>
-                {showAQILayer ? (
-                  <Eye className="h-3 w-3 ml-auto" style={{ color: aqiInfo.textColor === 'text-white' ? 'white' : 'black' }} />
-                ) : (
-                  <EyeOff className="h-3 w-3 ml-auto opacity-50" style={{ color: aqiInfo.textColor === 'text-white' ? 'white' : 'black' }} />
+                <Activity className="h-3.5 w-3.5 text-white" />
+                <span className="text-[10px] text-white/80 uppercase tracking-wider">Nguy cơ</span>
+              </div>
+              <div className="text-2xl font-bold text-white">{riskAssessment.risk_score}<span className="text-sm">/100</span></div>
+            </div>
+
+            {/* Data Grid */}
+            <div className="divide-y divide-border/30">
+              {/* AQI - Clickable */}
+              {environment.aqi !== null && (
+                <button
+                  onClick={() => setShowAQILayer(!showAQILayer)}
+                  className={cn(
+                    "w-full px-3 py-2 text-left transition-all",
+                    showAQILayer ? aqiInfo.color : "hover:bg-muted/50"
+                  )}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Wind className={cn("h-3.5 w-3.5", showAQILayer ? "text-white" : "text-purple-400")} />
+                      <span className={cn("text-[10px] uppercase", showAQILayer ? "text-white/80" : "text-muted-foreground")}>AQI</span>
+                    </div>
+                    {showAQILayer ? (
+                      <Eye className="h-3 w-3 text-white" />
+                    ) : (
+                      <EyeOff className="h-3 w-3 text-muted-foreground/50" />
+                    )}
+                  </div>
+                  <div className={cn("text-lg font-bold", showAQILayer ? "text-white" : "text-foreground")}>{environment.aqi}</div>
+                </button>
+              )}
+
+              {/* Location Type & Outdoor Time */}
+              <div className={cn(
+                "px-3 py-2",
+                isOutdoor 
+                  ? outdoorMinutes >= safeOutdoorMinutes ? 'bg-red-500/90' : 'bg-blue-500/90'
+                  : ''
+              )}>
+                <div className="flex items-center gap-1.5">
+                  {isOutdoor ? (
+                    <TreePine className={cn("h-3.5 w-3.5", isOutdoor ? "text-white" : "text-slate-400")} />
+                  ) : (
+                    <Home className="h-3.5 w-3.5 text-slate-400" />
+                  )}
+                  <span className={cn("text-[10px] uppercase", isOutdoor ? "text-white/80" : "text-muted-foreground")}>
+                    {isOutdoor ? 'Ngoài trời' : 'Trong nhà'}
+                  </span>
+                  {locationConfidence >= 70 && (
+                    <span className={cn("text-[8px] px-1 rounded ml-auto", isOutdoor ? "bg-white/20 text-white" : "bg-muted text-muted-foreground")}>
+                      {locationConfidence}%
+                    </span>
+                  )}
+                </div>
+                {isOutdoor && outdoorMinutes > 0 ? (
+                  <div className="mt-0.5">
+                    <div className="text-lg font-bold text-white">{formatOutdoorTime(outdoorMinutes)}</div>
+                    <div className="flex items-center gap-1">
+                      <div className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                        <div 
+                          className={cn(
+                            "h-full rounded-full transition-all",
+                            outdoorMinutes >= safeOutdoorMinutes ? 'bg-red-300' : 'bg-white'
+                          )}
+                          style={{ width: `${Math.min(100, (outdoorMinutes / safeOutdoorMinutes) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-white/70">{safeOutdoorMinutes}p</span>
+                    </div>
+                  </div>
+                ) : !isOutdoor ? (
+                  <div className="text-xs text-muted-foreground mt-0.5">Không tính</div>
+                ) : null}
+              </div>
+
+              {/* Temperature & Humidity Row */}
+              <div className="px-3 py-2 flex gap-3">
+                {environment.temperature !== null && (
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1">
+                      <Thermometer className="h-3 w-3 text-orange-400" />
+                      <span className="text-[9px] text-muted-foreground">°C</span>
+                    </div>
+                    <div className="text-base font-bold text-foreground">{environment.temperature?.toFixed(0)}°</div>
+                  </div>
+                )}
+                {environment.humidity !== null && (
+                  <div className="flex-1">
+                    <div className="flex items-center gap-1">
+                      <Droplets className="h-3 w-3 text-blue-400" />
+                      <span className="text-[9px] text-muted-foreground">%</span>
+                    </div>
+                    <div className="text-base font-bold text-foreground">{environment.humidity?.toFixed(0)}%</div>
+                  </div>
                 )}
               </div>
-              <div className={cn("text-2xl font-bold", aqiInfo.textColor)}>{environment.aqi}</div>
-              <div className={cn("text-[9px]", aqiInfo.textColor === 'text-white' ? 'text-white/60' : 'text-black/50')}>
-                {showAQILayer ? 'Đang hiện layer' : 'Bấm để xem layer'}
-              </div>
-            </button>
-          )}
 
-          {/* Location Type & Outdoor Time Card */}
-          <div className={cn(
-            "px-3 py-2 backdrop-blur-xl rounded-xl shadow-xl animate-fade-in",
-            isOutdoor 
-              ? outdoorMinutes >= safeOutdoorMinutes ? 'bg-red-500/90' : 'bg-blue-500/90'
-              : 'bg-slate-500/90'
-          )} style={{ animationDelay: '0.1s' }}>
-            <div className="flex items-center gap-1.5">
-              {isOutdoor ? (
-                <TreePine className="h-3.5 w-3.5 text-white" />
-              ) : (
-                <Home className="h-3.5 w-3.5 text-white" />
-              )}
-              <span className="text-[10px] text-white/80 uppercase tracking-wider">
-                {isOutdoor ? 'Ngoài trời' : 'Trong nhà'}
-              </span>
-              {locationConfidence >= 70 && (
-                <span className="text-[8px] bg-white/20 px-1 rounded">
-                  {locationConfidence}%
-                </span>
-              )}
-            </div>
-            {isOutdoor && outdoorMinutes > 0 && (
-              <div className="mt-1">
-                <div className="text-xl font-bold text-white">{formatOutdoorTime(outdoorMinutes)}</div>
-                <div className="flex items-center gap-1 mt-0.5">
-                  <div className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
-                    <div 
-                      className={cn(
-                        "h-full rounded-full transition-all",
-                        outdoorMinutes >= safeOutdoorMinutes ? 'bg-red-300' : 'bg-white'
-                      )}
-                      style={{ width: `${Math.min(100, (outdoorMinutes / safeOutdoorMinutes) * 100)}%` }}
-                    />
+              {/* Pressure */}
+              {displayPressure !== null && (
+                <div className="px-3 py-2">
+                  <div className="flex items-center gap-1">
+                    <Gauge className="h-3 w-3 text-teal-400" />
+                    <span className="text-[9px] text-muted-foreground">hPa</span>
+                    {devicePressure && <span className="text-[8px] ml-1">📱</span>}
                   </div>
-                  <span className="text-[9px] text-white/70">
-                    {safeOutdoorMinutes}p
-                  </span>
+                  <div className="text-base font-bold text-foreground">{displayPressure?.toFixed(0)}</div>
                 </div>
-              </div>
-            )}
-            {!isOutdoor && (
-              <div className="text-sm text-white/70 mt-0.5">Không tính thời gian</div>
-            )}
+              )}
+            </div>
           </div>
-
-          {/* Temperature */}
-          {environment.temperature !== null && (
-            <div className="px-3 py-2 bg-card/85 backdrop-blur-xl rounded-xl border border-border/20 shadow-xl animate-fade-in" style={{ animationDelay: '0.15s' }}>
-              <div className="flex items-center gap-1.5">
-                <Thermometer className="h-3.5 w-3.5 text-orange-400" />
-                <span className="text-[10px] text-muted-foreground uppercase">Nhiệt độ</span>
-              </div>
-              <div className="text-xl font-bold text-foreground">{environment.temperature?.toFixed(0)}°C</div>
-            </div>
-          )}
-
-          {/* Pressure */}
-          {displayPressure !== null && (
-            <div className="px-3 py-2 bg-card/85 backdrop-blur-xl rounded-xl border border-border/20 shadow-xl animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <div className="flex items-center gap-1.5">
-                <Gauge className="h-3.5 w-3.5 text-teal-400" />
-                <span className="text-[10px] text-muted-foreground uppercase">Áp suất</span>
-                {devicePressure && <span className="text-[8px] bg-teal-500/30 text-teal-300 px-1 rounded">📱</span>}
-              </div>
-              <div className="text-xl font-bold text-foreground">{displayPressure?.toFixed(0)} hPa</div>
-            </div>
-          )}
-
-          {/* Humidity */}
-          {environment.humidity !== null && (
-            <div className="px-3 py-2 bg-card/85 backdrop-blur-xl rounded-xl border border-border/20 shadow-xl animate-fade-in" style={{ animationDelay: '0.25s' }}>
-              <div className="flex items-center gap-1.5">
-                <Droplets className="h-3.5 w-3.5 text-blue-400" />
-                <span className="text-[10px] text-muted-foreground uppercase">Độ ẩm</span>
-              </div>
-              <div className="text-xl font-bold text-foreground">{environment.humidity?.toFixed(0)}%</div>
-            </div>
-          )}
         </div>
       )}
 
