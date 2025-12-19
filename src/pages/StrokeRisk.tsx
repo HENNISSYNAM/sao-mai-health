@@ -8,7 +8,7 @@ import ChatToggleButton from '@/components/stroke/ChatToggleButton';
 import { Loader2, Radio, MapPin } from 'lucide-react';
 
 const StrokeRisk: React.FC = () => {
-  const [isChatOpen, setIsChatOpen] = useState(true); // Start with chat open
+  const [isChatOpen, setIsChatOpen] = useState(false); // Start with map visible
   const [showRiskOverlay, setShowRiskOverlay] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -41,12 +41,12 @@ const StrokeRisk: React.FC = () => {
     };
   }, []); // Empty dependency array - run only once
 
-  // Show risk overlay when chat closes and risk is medium+
+  // Show risk overlay when initialized and chat is closed
   useEffect(() => {
-    if (!isChatOpen && isInitialized) {
+    if (isInitialized && !isChatOpen) {
       setShowRiskOverlay(true);
     }
-  }, [isChatOpen, isInitialized]);
+  }, [isInitialized, isChatOpen]);
 
   // Handle chat close - transition to monitoring mode
   const handleChatClose = useCallback(() => {
