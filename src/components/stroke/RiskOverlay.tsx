@@ -143,23 +143,20 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
   const displayRecommendations = aiRecommendations?.recommendations || recommendations;
   const displayWarnings = aiRecommendations?.warnings || [];
 
-  // Only show expanded panel when there are warnings or high risk
-  const shouldAutoShow = risk_level === 'HIGH' || displayWarnings.length > 0;
-
   return (
     <>
-      {/* Only show when needed: high risk or has warnings */}
-      {shouldAutoShow && !isExpanded && (
+      {/* Always show floating badge with risk score */}
+      {!isExpanded && (
         <button
           onClick={() => setIsExpanded(true)}
           className={cn(
             "fixed bottom-32 left-4 z-30 flex items-center gap-2 px-3 py-2 rounded-full shadow-lg border backdrop-blur-xl transition-all duration-300 hover:scale-105 active:scale-95",
             styles.bg,
-            styles.pulse
+            risk_level === 'HIGH' && styles.pulse
           )}
         >
-          <AlertTriangle className="h-4 w-4 text-white" />
-          <span className="text-white font-bold text-sm">Cảnh báo</span>
+          <Icon className="h-4 w-4 text-white" />
+          <span className="text-white font-bold">{risk_score}</span>
           <ChevronUp className="h-3 w-3 text-white/70" />
         </button>
       )}

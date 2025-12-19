@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
-import { Thermometer, Wind, Gauge, Droplets, Activity, Radio, MapPin, Home, TreePine, Eye, EyeOff } from 'lucide-react';
+import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff } from 'lucide-react';
 
 interface FullScreenMapProps {
   gps: { lat: number; lon: number } | null;
@@ -83,23 +83,10 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
       {/* Top gradient overlay */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/50 to-transparent pointer-events-none z-15" />
 
-      {/* Left panel - Combined unified card */}
+      {/* Left panel - Environment data only */}
       {!isBlurred && (
         <div className="absolute top-4 left-4 z-20 animate-fade-in">
           <div className="bg-card/90 backdrop-blur-xl rounded-2xl shadow-xl border border-border/20 overflow-hidden w-[140px]">
-            {/* Risk Score Header */}
-            <div className={cn(
-              "px-3 py-2.5",
-              riskAssessment.risk_level === 'HIGH' ? 'bg-red-500' :
-              riskAssessment.risk_level === 'MEDIUM' ? 'bg-amber-500' : 'bg-emerald-500'
-            )}>
-              <div className="flex items-center gap-1.5">
-                <Activity className="h-3.5 w-3.5 text-white" />
-                <span className="text-[10px] text-white/80 uppercase tracking-wider">Nguy cơ</span>
-              </div>
-              <div className="text-2xl font-bold text-white">{riskAssessment.risk_score}<span className="text-sm">/100</span></div>
-            </div>
-
             {/* Data Grid */}
             <div className="divide-y divide-border/30">
               {/* AQI - Clickable */}
