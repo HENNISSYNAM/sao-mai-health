@@ -143,7 +143,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     return isRecent && isNearby;
   }, []);
 
-  // Fetch environment data - OPTIMIZED with caching and smart throttling
+  // Fetch environment data - OPTIMIZED for real-time updates
   const fetchEnvironment = useCallback(async (lat: number, lon: number, forceRefresh = false) => {
     const now = Date.now();
     
@@ -156,27 +156,24 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
         ...cache.data,
         pressure: devicePressure || cache.data.pressure
       });
+      console.log('Using cached environment data');
       return;
     }
 
-    // Throttle: only fetch every 20 seconds minimum
-    if (!forceRefresh && now - lastEnvFetchRef.current < 20000) {
+    // Throttle: only fetch every 15 seconds minimum (reduced from 20s)
+    if (!forceRefresh && now - lastEnvFetchRef.current < 15000) {
+      console.log('Throttling environment fetch');
       return;
     }
     lastEnvFetchRef.current = now;
 
     setEnvLoading(true);
+    console.log('Fetching fresh environment data...');
     
     try {
-      // Use AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout
-
       const { data, error } = await supabase.functions.invoke('fetch-environment-data', {
         body: { lat, lon }
       });
-
-      clearTimeout(timeoutId);
 
       if (error) throw error;
 
@@ -206,6 +203,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       };
 
       setEnvironment(envData);
+      console.log('Environment data updated:', envData);
 
       // Feed API pressure to barometer for tracking if device doesn't have barometer
       if (!devicePressure && apiPressure) {
@@ -357,9 +355,6 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
         const rawLon = position.coords.longitude;
         const accuracy = position.coords.accuracy;
         const speed = position.coords.speed; // m/s
-        const heading = position.coords.heading; // degrees
-        const altitude = position.coords.altitude;
-        const altitudeAccuracy = position.coords.altitudeAccuracy;
         
         // Update best accuracy
         if (accuracy < bestAccuracy) {
@@ -408,6 +403,9 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
         });
 
         setGpsLoading(false);
+
+        // IMMEDIATELY fetch environment data on GPS update
+        fetchEnvironment(smoothed.lat, smoothed.lon);
 
         // Detect indoor/outdoor status
         const locationResult = await detectLocationType(
@@ -464,9 +462,6 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
             };
           });
         }
-
-        // Fetch environment data for new position
-        fetchEnvironment(smoothed.lat, smoothed.lon);
       },
       (error) => {
         console.error('GPS error:', error);
@@ -741,7 +736,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     }
   }, [barometer.currentPressure]);
 
-  // Initialize and start continuous monitoring - ULTRA OPTIMIZED for fastest startup
+  // Initialize and start continuous monitoring - OPTIMIZED for instant data display
   const startMonitoring = useCallback(async () => {
     setIsLoading(true);
     
@@ -750,7 +745,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     
     // Try to use cached environment data immediately
     const cachedEnv = envCacheRef.current;
-    if (cachedEnv && Date.now() - cachedEnv.timestamp < ENV_CACHE_DURATION * 2) {
+    if (cachedEnv && Date.now() - cachedEnv.timestamp < ENV_CACHE_DURATION * 3) {
       const devicePressure = barometer.currentPressure;
       setEnvironment({
         ...cachedEnv.data,
@@ -759,48 +754,71 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       console.log('Using cached environment data for instant display');
     }
     
-    // Start GPS tracking immediately
-    startGPSTracking();
-    
-    // UI can render NOW - data will update in background
-    setIsLoading(false);
-    
-    // Quick GPS with very short timeout for fast initial data
-    const getQuickGPS = (): Promise<{ lat: number; lon: number } | null> => {
+    // PRIORITY 1: Get GPS and Environment data FAST
+    const getInstantGPS = (): Promise<{ lat: number; lon: number; accuracy: number } | null> => {
       return new Promise((resolve) => {
-        // Try cached position first (instant)
+        let resolved = false;
+        
+        // First try: cached/low accuracy for INSTANT result
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+            if (!resolved) {
+              resolved = true;
+              resolve({ 
+                lat: pos.coords.latitude, 
+                lon: pos.coords.longitude,
+                accuracy: pos.coords.accuracy
+              });
+            }
           },
-          () => resolve(null),
-          { enableHighAccuracy: false, timeout: 2000, maximumAge: 300000 } // Allow 5 min cached, low accuracy first
+          () => {
+            if (!resolved) {
+              resolved = true;
+              resolve(null);
+            }
+          },
+          { enableHighAccuracy: false, timeout: 1500, maximumAge: 600000 } // 10 min cache, fast
         );
         
-        // Fallback timeout
-        setTimeout(() => resolve(null), 2500);
+        // Safety timeout
+        setTimeout(() => {
+          if (!resolved) {
+            resolved = true;
+            resolve(null);
+          }
+        }, 2000);
       });
     };
     
-    // Fetch environment data in background
-    getQuickGPS().then(gps => {
-      if (gps) {
-        fetchEnvironment(gps.lat, gps.lon);
-        // Also update userData with GPS
-        setUserData(prev => ({
-          ...prev,
-          gps: { lat: gps.lat, lon: gps.lon },
-          timestamp: Date.now()
-        }));
-      }
-    });
+    // Get instant GPS and fetch environment IMMEDIATELY
+    const instantGps = await getInstantGPS();
+    if (instantGps) {
+      console.log('Got instant GPS, fetching environment immediately...');
+      
+      // Update GPS in state
+      setUserData(prev => ({
+        ...prev,
+        gps: { lat: instantGps.lat, lon: instantGps.lon },
+        gpsAccuracy: instantGps.accuracy,
+        timestamp: Date.now()
+      }));
+      
+      // Fetch environment data IMMEDIATELY (don't wait)
+      fetchEnvironment(instantGps.lat, instantGps.lon, true);
+    }
+    
+    // UI can render NOW
+    setIsLoading(false);
+    
+    // PRIORITY 2: Start GPS tracking for continuous updates
+    startGPSTracking();
 
-    // Set up periodic environment refresh (every 90 seconds instead of 2 min)
+    // Set up periodic environment refresh (every 60 seconds for real-time data)
     refreshIntervalRef.current = setInterval(() => {
       if (userData.gps) {
         fetchEnvironment(userData.gps.lat, userData.gps.lon);
       }
-    }, 90000);
+    }, 60000);
   }, [barometer, startGPSTracking, fetchEnvironment, userData.gps]);
 
   // Stop monitoring
