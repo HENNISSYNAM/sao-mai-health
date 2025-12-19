@@ -1,10 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect } from 'react';
 import { useStrokeRiskEngine } from '@/hooks/useStrokeRiskEngine';
 import FullScreenMap from '@/components/stroke/FullScreenMap';
-import GrokChatPanel from '@/components/stroke/GrokChatPanel';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
-import ChatToggleButton from '@/components/stroke/ChatToggleButton';
 import MLAnalyticsDashboard from '@/components/stroke/MLAnalyticsDashboard';
 import { BarChart3, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,7 +12,6 @@ type ViewMode = 'tracking' | 'statistics';
 
 const StrokeRisk: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('tracking');
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [showRiskOverlay, setShowRiskOverlay] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -26,11 +22,9 @@ const StrokeRisk: React.FC = () => {
     barometer,
     isLoading,
     gpsLoading,
-    envLoading,
     isTracking,
     startMonitoring,
     setAgeGroup,
-    refreshData
   } = useStrokeRiskEngine();
 
   // Initialize monitoring on mount - only run once
@@ -59,10 +53,6 @@ const StrokeRisk: React.FC = () => {
       toast.warning('⚠️ Cảnh báo thời gian ngoài trời', {
         description: `${warning}. Bạn đã ở ngoài trời ${minutes} phút (giới hạn an toàn: ${safeMinutes} phút)`,
         duration: 10000,
-        action: {
-          label: 'Xem chi tiết',
-          onClick: () => setIsChatOpen(true)
-        }
       });
     };
 
@@ -72,23 +62,14 @@ const StrokeRisk: React.FC = () => {
     };
   }, []);
 
-  // Show risk overlay when initialized and chat is closed
+  // Show risk overlay when initialized
   useEffect(() => {
-    if (isInitialized && !isChatOpen && viewMode === 'tracking') {
+    if (isInitialized && viewMode === 'tracking') {
       setShowRiskOverlay(true);
     } else {
       setShowRiskOverlay(false);
     }
-  }, [isInitialized, isChatOpen, viewMode]);
-
-  const handleChatClose = useCallback(() => {
-    setIsChatOpen(false);
-  }, []);
-
-  const handleChatOpen = useCallback(() => {
-    setIsChatOpen(true);
-    setShowRiskOverlay(false);
-  }, []);
+  }, [isInitialized, viewMode]);
 
   // Statistics view - pass tracking data for tight integration
   if (viewMode === 'statistics') {
@@ -129,7 +110,7 @@ const StrokeRisk: React.FC = () => {
         gpsAccuracy={userData.gpsAccuracy}
         environment={environment}
         riskAssessment={riskAssessment}
-        isBlurred={isChatOpen}
+        isBlurred={false}
         isTracking={isTracking}
         devicePressure={userData.devicePressure}
         outdoorMinutes={userData.outdoorMinutes}
@@ -170,34 +151,18 @@ const StrokeRisk: React.FC = () => {
         </div>
       )}
 
-      {/* Grok-style Chat Panel */}
-      <GrokChatPanel
-        isOpen={isChatOpen}
-        onClose={handleChatClose}
-        ageGroup={userData.ageGroup}
-        environment={environment}
-        riskAssessment={riskAssessment}
-        onAgeGroupChange={setAgeGroup}
-        gps={userData.gps}
-      />
-
-      {/* Risk Overlay (shown when chat is closed) */}
+      {/* Risk Overlay - Stats panel at bottom right */}
       <RiskOverlay
         riskAssessment={riskAssessment}
         environment={environment}
         pressureChange1h={barometer.pressureChange1h}
         pressureChange24h={barometer.pressureChange24h}
-        isVisible={showRiskOverlay && !isChatOpen}
+        isVisible={showRiskOverlay}
         ageGroup={userData.ageGroup}
         gps={userData.gps}
         devicePressure={userData.devicePressure}
         gpsAccuracy={userData.gpsAccuracy}
       />
-
-      {/* Chat Toggle Button (shown when chat is closed) */}
-      {!isChatOpen && isInitialized && (
-        <ChatToggleButton onClick={handleChatOpen} />
-      )}
     </div>
   );
 };
