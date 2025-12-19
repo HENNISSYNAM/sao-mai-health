@@ -685,23 +685,40 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     }
   }, [barometer.currentPressure]);
 
-  // Initialize and start continuous monitoring
+  // Initialize and start continuous monitoring - OPTIMIZED for faster startup
   const startMonitoring = useCallback(async () => {
     setIsLoading(true);
     
-    // Start device barometer sensor
-    await barometer.startBarometer();
+    // Start barometer and GPS tracking in PARALLEL (don't await barometer)
+    barometer.startBarometer(); // Non-blocking
     
-    // Get initial GPS
-    const gps = await fetchGPS();
-    
-    // Fetch initial environment data
-    if (gps) {
-      await fetchEnvironment(gps.lat, gps.lon);
-    }
-
-    // Start continuous GPS tracking
+    // Start GPS tracking immediately (non-blocking continuous tracking)
     startGPSTracking();
+    
+    // Quick initial GPS for environment data (reduced timeout)
+    const quickGPS = (): Promise<{ lat: number; lon: number } | null> => {
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => resolve(null), 5000); // 5s timeout
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            clearTimeout(timeout);
+            resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+          },
+          () => {
+            clearTimeout(timeout);
+            resolve(null);
+          },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 } // Allow cached up to 1 min
+        );
+      });
+    };
+    
+    // Get quick GPS and fetch environment in background
+    quickGPS().then(gps => {
+      if (gps) {
+        fetchEnvironment(gps.lat, gps.lon);
+      }
+    });
 
     // Set up periodic environment refresh (every 2 minutes)
     refreshIntervalRef.current = setInterval(() => {
@@ -710,6 +727,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       }
     }, 120000);
 
+    // Loading done - UI can render immediately
     setIsLoading(false);
   }, []);
 
