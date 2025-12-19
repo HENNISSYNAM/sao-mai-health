@@ -6,6 +6,220 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Fetch with timeout helper
+async function fetchWithTimeout(url: string, timeoutMs: number = 5000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
+// Fetch weather data - try multiple sources in priority order
+async function fetchWeatherData(lat: number, lon: number): Promise<{ data: any; source: string }> {
+  const TOMORROW_API_KEY = Deno.env.get('TOMORROW_API_KEY');
+  const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
+
+  // Strategy: Try Open-Meteo first (fastest, free, no rate limits)
+  // Then fallback to paid APIs if needed
+  
+  // Open-Meteo (FREE, fastest, reliable)
+  try {
+    console.log('Fetching weather from Open-Meteo...');
+    const response = await fetchWithTimeout(
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,uv_index&timezone=auto`,
+      4000
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      const current = data?.current;
+      if (current) {
+        return {
+          data: {
+            temperature: current.temperature_2m ?? null,
+            humidity: current.relative_humidity_2m ?? null,
+            pressure: current.surface_pressure ?? null,
+            windSpeed: current.wind_speed_10m ?? null,
+            uvIndex: current.uv_index ?? null,
+          },
+          source: 'Open-Meteo'
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Open-Meteo weather error:', error);
+  }
+
+  // Tomorrow.io (backup)
+  if (TOMORROW_API_KEY) {
+    try {
+      console.log('Fetching weather from Tomorrow.io...');
+      const response = await fetchWithTimeout(
+        `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${TOMORROW_API_KEY}`,
+        4000
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const values = data?.data?.values;
+        if (values) {
+          return {
+            data: {
+              temperature: values.temperature,
+              humidity: values.humidity,
+              pressure: values.pressureSurfaceLevel,
+              windSpeed: values.windSpeed ? values.windSpeed * 3.6 : null,
+              uvIndex: values.uvIndex,
+            },
+            source: 'Tomorrow.io'
+          };
+        }
+      }
+    } catch (error) {
+      console.error('Tomorrow.io error:', error);
+    }
+  }
+
+  // OpenWeatherMap (backup)
+  if (OPENWEATHER_API_KEY) {
+    try {
+      console.log('Fetching weather from OpenWeatherMap...');
+      const response = await fetchWithTimeout(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`,
+        4000
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          data: {
+            temperature: data.main?.temp ?? null,
+            humidity: data.main?.humidity ?? null,
+            pressure: data.main?.pressure ?? null,
+            windSpeed: data.wind?.speed ? data.wind.speed * 3.6 : null,
+            uvIndex: null,
+          },
+          source: 'OpenWeatherMap'
+        };
+      }
+    } catch (error) {
+      console.error('OpenWeatherMap error:', error);
+    }
+  }
+
+  return { data: null, source: 'None' };
+}
+
+// Fetch air quality data - try multiple sources
+async function fetchAirQualityData(lat: number, lon: number): Promise<{ data: any; source: string }> {
+  const AIR_QUALITY_API_KEY = Deno.env.get('AIR_QUALITY_API_KEY');
+  const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
+
+  // Strategy: Try Open-Meteo first (fastest, free)
+  
+  // Open-Meteo Air Quality (FREE, fastest)
+  try {
+    console.log('Fetching air quality from Open-Meteo...');
+    const response = await fetchWithTimeout(
+      `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,us_aqi,nitrogen_dioxide,sulphur_dioxide,ozone,carbon_monoxide`,
+      4000
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      const current = data?.current;
+      if (current) {
+        return {
+          data: {
+            aqi: current.us_aqi ?? null,
+            pm25: current.pm2_5 ?? null,
+            pm10: current.pm10 ?? null,
+            no2: current.nitrogen_dioxide ?? null,
+            so2: current.sulphur_dioxide ?? null,
+            o3: current.ozone ?? null,
+            co: current.carbon_monoxide ?? null,
+            mainPollutant: 'p2',
+          },
+          source: 'Open-Meteo'
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Open-Meteo AQ error:', error);
+  }
+
+  // IQAir (backup)
+  if (AIR_QUALITY_API_KEY) {
+    try {
+      console.log('Fetching air quality from IQAir...');
+      const response = await fetchWithTimeout(
+        `https://api.airvisual.com/v2/nearest_city?lat=${lat}&lon=${lon}&key=${AIR_QUALITY_API_KEY}`,
+        4000
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const pollution = data?.data?.current?.pollution;
+        if (pollution) {
+          return {
+            data: {
+              aqi: pollution.aqius,
+              pm25: pollution.aqius,
+              mainPollutant: pollution.mainus,
+            },
+            source: 'IQAir'
+          };
+        }
+      }
+    } catch (error) {
+      console.error('IQAir error:', error);
+    }
+  }
+
+  // OpenWeatherMap Pollution (backup)
+  if (OPENWEATHER_API_KEY) {
+    try {
+      console.log('Fetching air quality from OpenWeatherMap...');
+      const response = await fetchWithTimeout(
+        `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`,
+        4000
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const components = data?.list?.[0]?.components;
+        const aqi = data?.list?.[0]?.main?.aqi;
+        if (components) {
+          return {
+            data: {
+              aqi: aqi ? aqi * 50 : null,
+              pm25: components.pm2_5,
+              pm10: components.pm10,
+              no2: components.no2,
+              so2: components.so2,
+              co: components.co,
+              o3: components.o3,
+              mainPollutant: 'p2',
+            },
+            source: 'OpenWeatherMap'
+          };
+        }
+      }
+    } catch (error) {
+      console.error('OpenWeatherMap AQ error:', error);
+    }
+  }
+
+  return { data: null, source: 'None' };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -14,229 +228,27 @@ serve(async (req) => {
   try {
     const { lat, lon } = await req.json();
     
-    console.log(`Fetching environment data for location: ${lat}, ${lon}`);
+    console.log(`Fetching environment data for: ${lat}, ${lon}`);
+    const startTime = Date.now();
 
-    const TOMORROW_API_KEY = Deno.env.get('TOMORROW_API_KEY');
-    const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
-    const AIR_QUALITY_API_KEY = Deno.env.get('AIR_QUALITY_API_KEY');
+    // PARALLEL fetch - weather and air quality at the same time
+    const [weatherResult, airQualityResult] = await Promise.all([
+      fetchWeatherData(lat, lon),
+      fetchAirQualityData(lat, lon)
+    ]);
 
-    let weatherData: any = null;
-    let weatherSource = 'Unknown';
-
-    // Primary: Tomorrow.io API
-    if (TOMORROW_API_KEY) {
-      try {
-        console.log('Fetching weather data from Tomorrow.io...');
-        const tomorrowResponse = await fetch(
-          `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${TOMORROW_API_KEY}`
-        );
-
-        if (tomorrowResponse.ok) {
-          const tomorrowData = await tomorrowResponse.json();
-          const values = tomorrowData?.data?.values;
-          if (values) {
-            weatherData = {
-              temperature: values.temperature,
-              humidity: values.humidity,
-              pressure: values.pressureSurfaceLevel,
-              windSpeed: values.windSpeed ? values.windSpeed * 3.6 : null,
-              uvIndex: values.uvIndex,
-            };
-            weatherSource = 'Tomorrow.io';
-            console.log('Tomorrow.io data received');
-          }
-        } else {
-          const errorText = await tomorrowResponse.text();
-          console.error('Tomorrow.io API error:', tomorrowResponse.status, errorText);
-        }
-      } catch (error) {
-        console.error('Error fetching from Tomorrow.io:', error);
-      }
-    }
-
-    // Fallback 1: OpenWeatherMap API
-    if (!weatherData && OPENWEATHER_API_KEY) {
-      try {
-        console.log('Fetching weather data from OpenWeatherMap (fallback)...');
-        const owmResponse = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`
-        );
-
-        if (owmResponse.ok) {
-          const owmData = await owmResponse.json();
-          weatherData = {
-            temperature: owmData.main?.temp ?? null,
-            humidity: owmData.main?.humidity ?? null,
-            pressure: owmData.main?.pressure ?? null,
-            windSpeed: owmData.wind?.speed ? owmData.wind.speed * 3.6 : null,
-          };
-          weatherSource = 'OpenWeatherMap';
-          console.log('OpenWeatherMap data received');
-        } else {
-          const errorText = await owmResponse.text();
-          console.error('OpenWeatherMap API error:', owmResponse.status, errorText);
-        }
-      } catch (error) {
-        console.error('Error fetching from OpenWeatherMap:', error);
-      }
-    }
-
-    // Fallback 2: Open-Meteo API (FREE, no API key required)
-    if (!weatherData) {
-      try {
-        console.log('Fetching weather data from Open-Meteo (free fallback)...');
-        const openMeteoResponse = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,uv_index&timezone=auto`
-        );
-
-        if (openMeteoResponse.ok) {
-          const openMeteoData = await openMeteoResponse.json();
-          const current = openMeteoData?.current;
-          if (current) {
-            weatherData = {
-              temperature: current.temperature_2m ?? null,
-              humidity: current.relative_humidity_2m ?? null,
-              pressure: current.surface_pressure ?? null,
-              windSpeed: current.wind_speed_10m ?? null,
-              uvIndex: current.uv_index ?? null,
-            };
-            weatherSource = 'Open-Meteo';
-            console.log('Open-Meteo data received:', JSON.stringify(weatherData));
-          }
-        } else {
-          const errorText = await openMeteoResponse.text();
-          console.error('Open-Meteo API error:', openMeteoResponse.status, errorText);
-        }
-      } catch (error) {
-        console.error('Error fetching from Open-Meteo:', error);
-      }
-    }
-
-    // Air quality data
-    let airQualityData: any = null;
-    let airQualitySource = 'Unknown';
-
-    // Primary: IQAir
-    if (AIR_QUALITY_API_KEY) {
-      try {
-        console.log('Fetching air quality data from IQAir...');
-        const aqResponse = await fetch(
-          `https://api.airvisual.com/v2/nearest_city?lat=${lat}&lon=${lon}&key=${AIR_QUALITY_API_KEY}`
-        );
-
-        if (aqResponse.ok) {
-          const aqData = await aqResponse.json();
-          const pollution = aqData?.data?.current?.pollution;
-          if (pollution) {
-            airQualityData = {
-              aqi: pollution.aqius,
-              pm25: pollution.aqius, // IQAir uses AQI US which is based on PM2.5
-              mainPollutant: pollution.mainus,
-            };
-            airQualitySource = 'IQAir';
-            console.log('IQAir data received');
-            
-            // Also get weather from IQAir if not available
-            if (!weatherData) {
-              const iqWeather = aqData?.data?.current?.weather;
-              if (iqWeather) {
-                weatherData = {
-                  temperature: iqWeather.tp ?? null,
-                  humidity: iqWeather.hu ?? null,
-                  pressure: iqWeather.pr ?? null,
-                  windSpeed: iqWeather.ws ? iqWeather.ws * 3.6 : null,
-                };
-                weatherSource = 'IQAir';
-              }
-            }
-          }
-        } else {
-          const errorText = await aqResponse.text();
-          console.error('IQAir API error:', aqResponse.status, errorText);
-        }
-      } catch (error) {
-        console.error('Error fetching from IQAir:', error);
-      }
-    }
-
-    // Fallback: OpenWeatherMap Air Pollution API
-    if (!airQualityData && OPENWEATHER_API_KEY) {
-      try {
-        console.log('Fetching air pollution from OpenWeatherMap...');
-        const pollutionResponse = await fetch(
-          `https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`
-        );
-
-        if (pollutionResponse.ok) {
-          const owmPollution = await pollutionResponse.json();
-          const components = owmPollution?.list?.[0]?.components;
-          const owmAqi = owmPollution?.list?.[0]?.main?.aqi;
-          if (components) {
-            airQualityData = {
-              aqi: owmAqi ? owmAqi * 50 : null, // Convert 1-5 scale to 0-250
-              pm25: components.pm2_5,
-              pm10: components.pm10,
-              no2: components.no2,
-              so2: components.so2,
-              co: components.co,
-              o3: components.o3,
-              mainPollutant: 'p2',
-            };
-            airQualitySource = 'OpenWeatherMap';
-            console.log('OpenWeatherMap pollution data received');
-          }
-        } else {
-          const errorText = await pollutionResponse.text();
-          console.error('OpenWeatherMap Air Pollution API error:', pollutionResponse.status, errorText);
-        }
-      } catch (error) {
-        console.error('Error fetching OWM pollution:', error);
-      }
-    }
-
-    // Fallback 2: Open-Meteo Air Quality API (FREE, no key required)
-    if (!airQualityData) {
-      try {
-        console.log('Fetching air quality from Open-Meteo (free fallback)...');
-        const openMeteoAQResponse = await fetch(
-          `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5,pm10,us_aqi,nitrogen_dioxide,sulphur_dioxide,ozone,carbon_monoxide`
-        );
-
-        if (openMeteoAQResponse.ok) {
-          const openMeteoAQ = await openMeteoAQResponse.json();
-          const current = openMeteoAQ?.current;
-          if (current) {
-            airQualityData = {
-              aqi: current.us_aqi ?? null,
-              pm25: current.pm2_5 ?? null,
-              pm10: current.pm10 ?? null,
-              no2: current.nitrogen_dioxide ?? null,
-              so2: current.sulphur_dioxide ?? null,
-              o3: current.ozone ?? null,
-              co: current.carbon_monoxide ?? null,
-              mainPollutant: 'p2',
-            };
-            airQualitySource = 'Open-Meteo';
-            console.log('Open-Meteo AQ data received:', JSON.stringify(airQualityData));
-          }
-        } else {
-          const errorText = await openMeteoAQResponse.text();
-          console.error('Open-Meteo AQ API error:', openMeteoAQResponse.status, errorText);
-        }
-      } catch (error) {
-        console.error('Error fetching from Open-Meteo AQ:', error);
-      }
-    }
+    const elapsed = Date.now() - startTime;
+    console.log(`Data fetched in ${elapsed}ms - Weather: ${weatherResult.source}, AQ: ${airQualityResult.source}`);
 
     const result = {
       timestamp: new Date().toISOString(),
       location: { lat, lon },
       sources: {
-        weather: weatherSource,
-        airQuality: airQualitySource,
+        weather: weatherResult.source,
+        airQuality: airQualityResult.source,
       },
-      weather: weatherData,
-      airQuality: airQualityData || {
+      weather: weatherResult.data,
+      airQuality: airQualityResult.data || {
         aqi: null,
         pm25: null,
         pm10: null,
@@ -246,9 +258,8 @@ serve(async (req) => {
         o3: null,
         mainPollutant: 'p2',
       },
+      fetchTimeMs: elapsed
     };
-
-    console.log('Final combined data:', JSON.stringify(result));
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
