@@ -1,7 +1,8 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
-import { Thermometer, Wind, Gauge, Droplets, Navigation, Activity, Radio, Sun, Clock, MapPin } from 'lucide-react';
+import { Thermometer, Wind, Gauge, Droplets, Navigation, Activity, Radio, Clock, MapPin } from 'lucide-react';
+import UserLocationMap from './UserLocationMap';
 
 interface FullScreenMapProps {
   gps: { lat: number; lon: number } | null;
@@ -28,9 +29,6 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
   outdoorMinutes = 0,
   className
 }) => {
-  const lat = gps?.lat || 10.7769;
-  const lon = gps?.lon || 106.7009;
-
   // Get AQI color and label
   const getAQIInfo = (aqi: number | null) => {
     if (aqi === null) return { color: 'bg-muted', label: '--', textColor: 'text-muted-foreground' };
@@ -54,22 +52,18 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     return mins > 0 ? `${hours}h ${mins}p` : `${hours} giờ`;
   };
 
-  // Windy embed URL - user can pan freely
-  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=12&overlay=pm25&product=cams&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true`;
-
   return (
     <div className={cn(
       "absolute inset-0 transition-all duration-700 overflow-hidden",
       isBlurred && "scale-[1.02] brightness-[0.3] blur-sm",
       className
     )}>
-      {/* Windy Map Embed - user can pan/zoom freely */}
-      <iframe
-        src={windyUrl}
-        className="absolute inset-0 w-full h-full border-0"
-        style={{ minHeight: '100vh', minWidth: '100vw' }}
-        allow="geolocation"
-        title="Windy Weather Map"
+      {/* MapLibre Map with user location */}
+      <UserLocationMap
+        gps={gps}
+        gpsHistory={gpsHistory}
+        gpsAccuracy={gpsAccuracy}
+        riskLevel={riskAssessment.risk_level}
       />
 
       {/* Top gradient overlay */}
