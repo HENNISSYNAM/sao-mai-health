@@ -297,13 +297,13 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
         </div>
       )}
 
-      {/* Tracking status badge - top center (avoid Windy controls at top-right) */}
+      {/* Tracking status badge - top left to cover Windy logo */}
       {!isBlurred && isTracking && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/90 backdrop-blur-xl rounded-full shadow-xl">
-            <Radio className="h-3.5 w-3.5 text-white animate-pulse" />
-            <span className="text-xs font-medium text-white">Live</span>
-            <span className="text-[10px] text-white/70">{gpsHistory.length} điểm</span>
+        <div className="absolute top-2 left-2 z-20 animate-fade-in">
+          <div className="flex items-center gap-2.5 px-4 py-2 bg-emerald-500 backdrop-blur-xl rounded-full shadow-xl">
+            <Radio className="h-4 w-4 text-white animate-pulse" />
+            <span className="text-sm font-semibold text-white">Live</span>
+            <span className="text-xs text-white/80">{gpsHistory.length} điểm</span>
           </div>
         </div>
       )}
