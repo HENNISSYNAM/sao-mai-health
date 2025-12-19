@@ -5,7 +5,7 @@ import FullScreenMap from '@/components/stroke/FullScreenMap';
 import GrokChatPanel from '@/components/stroke/GrokChatPanel';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
 import ChatToggleButton from '@/components/stroke/ChatToggleButton';
-import { Loader2, Radio, MapPin } from 'lucide-react';
+import { Loader2, MapPin } from 'lucide-react';
 
 const StrokeRisk: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false); // Start with map visible
@@ -71,6 +71,7 @@ const StrokeRisk: React.FC = () => {
         isBlurred={isChatOpen}
         isTracking={isTracking}
         devicePressure={userData.devicePressure}
+        outdoorMinutes={userData.outdoorMinutes}
       />
 
       {/* Loading Overlay */}
@@ -93,18 +94,6 @@ const StrokeRisk: React.FC = () => {
         </div>
       )}
 
-      {/* Live Status Badge */}
-      {isInitialized && !isChatOpen && (
-        <div className="absolute top-4 right-4 z-20 animate-in fade-in duration-500">
-          <div className="flex items-center gap-2 px-4 py-2 bg-card/80 backdrop-blur-md rounded-full border border-border/50 shadow-lg">
-            <Radio className="h-4 w-4 text-success animate-pulse" />
-            <span className="text-sm font-medium text-foreground">Đang theo dõi</span>
-            {envLoading && (
-              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground ml-1" />
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Grok-style Chat Panel */}
       <GrokChatPanel

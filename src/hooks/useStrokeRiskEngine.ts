@@ -48,6 +48,8 @@ export interface UserData {
   ageGroup: AgeGroup;
   timestamp: number;
   gpsAccuracy: number | null;
+  outdoorMinutes: number; // Time spent outdoor based on GPS tracking
+  trackingStartTime: number | null;
 }
 
 interface UseStrokeRiskEngineProps {
@@ -62,7 +64,9 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     devicePressure: null,
     ageGroup: '36-55',
     timestamp: Date.now(),
-    gpsAccuracy: null
+    gpsAccuracy: null,
+    outdoorMinutes: 0,
+    trackingStartTime: null
   });
   
   const [environment, setEnvironment] = useState<EnvironmentData>({
@@ -168,6 +172,10 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
 
     setGpsLoading(true);
     setIsTracking(true);
+    
+    // Record tracking start time
+    const startTime = Date.now();
+    setUserData(prev => ({ ...prev, trackingStartTime: startTime }));
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
@@ -182,12 +190,18 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
         setUserData(prev => {
           // Keep last 100 GPS points for history/tracking
           const newHistory = [...prev.gpsHistory, newPoint].slice(-100);
+          
+          // Calculate outdoor minutes from tracking start time
+          const trackingStart = prev.trackingStartTime || startTime;
+          const outdoorMinutes = Math.floor((Date.now() - trackingStart) / 60000);
+          
           return {
             ...prev,
             gps: { lat: newPoint.lat, lon: newPoint.lon },
             gpsHistory: newHistory,
             gpsAccuracy: newPoint.accuracy,
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            outdoorMinutes
           };
         });
 
@@ -287,6 +301,25 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       '>55': 1.4
     };
     const ageFactor = ageMultiplier[userData.ageGroup];
+
+    // Outdoor exposure time contribution (0-20 points)
+    const outdoorMins = userData.outdoorMinutes;
+    if (outdoorMins > 0) {
+      // Combine with air quality for exposure risk
+      const aqiMultiplier = environment.aqi ? Math.min(environment.aqi / 100, 2) : 1;
+      
+      if (outdoorMins > 120) { // > 2 hours
+        score += Math.round(20 * aqiMultiplier);
+        factors.push(`Ngoài trời ${Math.floor(outdoorMins / 60)}h`);
+        avoidRecommendations.push('Nên vào trong nhà nghỉ ngơi');
+      } else if (outdoorMins > 60) { // > 1 hour
+        score += Math.round(12 * aqiMultiplier);
+        factors.push(`Ngoài trời ${outdoorMins} phút`);
+        doRecommendations.push('Tìm nơi nghỉ chân thoáng mát');
+      } else if (outdoorMins > 30) {
+        score += Math.round(5 * aqiMultiplier);
+      }
+    }
 
     // PM2.5 contribution (0-30 points)
     if (environment.pm25 !== null) {
@@ -393,13 +426,13 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
         alerts: score >= 31
       }
     };
-  }, [userData.ageGroup, environment, barometer.pressureChange1h]);
+  }, [userData.ageGroup, userData.outdoorMinutes, environment, barometer.pressureChange1h]);
 
   // Update risk when data changes
   useEffect(() => {
     const newRisk = calculateRisk();
     setRiskAssessment(newRisk);
-  }, [userData.ageGroup, environment.aqi, environment.pm25, environment.temperature, environment.humidity, barometer.pressureChange1h]);
+  }, [userData.ageGroup, userData.outdoorMinutes, environment.aqi, environment.pm25, environment.temperature, environment.humidity, barometer.pressureChange1h]);
 
   // Update device pressure from barometer
   useEffect(() => {
