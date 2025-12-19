@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.fetch-environment-data]
 verify_jwt = false
+
+[functions.stroke-risk-chat]
+verify_jwt = false
