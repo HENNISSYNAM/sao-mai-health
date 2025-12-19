@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
-import { Thermometer, Wind, Gauge, Droplets, Activity, Radio, Clock, MapPin } from 'lucide-react';
+import { Thermometer, Wind, Gauge, Droplets, Activity, Radio, Clock, MapPin, Home, TreePine } from 'lucide-react';
 
 interface FullScreenMapProps {
   gps: { lat: number; lon: number } | null;
@@ -13,6 +13,9 @@ interface FullScreenMapProps {
   isTracking?: boolean;
   devicePressure?: number | null;
   outdoorMinutes?: number;
+  isOutdoor?: boolean;
+  locationConfidence?: number;
+  safeOutdoorMinutes?: number;
   className?: string;
 }
 
@@ -26,6 +29,9 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
   isTracking = false,
   devicePressure,
   outdoorMinutes = 0,
+  isOutdoor = true,
+  locationConfidence = 50,
+  safeOutdoorMinutes = 120,
   className
 }) => {
   const lat = gps?.lat || 10.7769;
@@ -51,8 +57,8 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     return mins > 0 ? `${hours}h ${mins}p` : `${hours} giờ`;
   };
 
-  // Windy embed URL với marker và webcams
-  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=14&overlay=pm25&product=cams&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true&webcams=true`;
+  // Windy embed URL với marker, webcams, và spot vị trí
+  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=15&overlay=pm25&product=cams&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true&webcams=true&spot=${lat},${lon}`;
 
   return (
     <div className={cn(
@@ -102,16 +108,51 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
             </div>
           )}
 
-          {/* Outdoor Time Card */}
-          {outdoorMinutes > 0 && (
-            <div className="px-3 py-2 bg-blue-500/90 backdrop-blur-xl rounded-xl shadow-xl animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-white" />
-                <span className="text-[10px] text-white/80 uppercase tracking-wider">Ngoài trời</span>
-              </div>
-              <div className="text-xl font-bold text-white">{formatOutdoorTime(outdoorMinutes)}</div>
+          {/* Location Type & Outdoor Time Card */}
+          <div className={cn(
+            "px-3 py-2 backdrop-blur-xl rounded-xl shadow-xl animate-fade-in",
+            isOutdoor 
+              ? outdoorMinutes >= safeOutdoorMinutes ? 'bg-red-500/90' : 'bg-blue-500/90'
+              : 'bg-slate-500/90'
+          )} style={{ animationDelay: '0.1s' }}>
+            <div className="flex items-center gap-1.5">
+              {isOutdoor ? (
+                <TreePine className="h-3.5 w-3.5 text-white" />
+              ) : (
+                <Home className="h-3.5 w-3.5 text-white" />
+              )}
+              <span className="text-[10px] text-white/80 uppercase tracking-wider">
+                {isOutdoor ? 'Ngoài trời' : 'Trong nhà'}
+              </span>
+              {locationConfidence >= 70 && (
+                <span className="text-[8px] bg-white/20 px-1 rounded">
+                  {locationConfidence}%
+                </span>
+              )}
             </div>
-          )}
+            {isOutdoor && outdoorMinutes > 0 && (
+              <div className="mt-1">
+                <div className="text-xl font-bold text-white">{formatOutdoorTime(outdoorMinutes)}</div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <div className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+                    <div 
+                      className={cn(
+                        "h-full rounded-full transition-all",
+                        outdoorMinutes >= safeOutdoorMinutes ? 'bg-red-300' : 'bg-white'
+                      )}
+                      style={{ width: `${Math.min(100, (outdoorMinutes / safeOutdoorMinutes) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-white/70">
+                    {safeOutdoorMinutes}p
+                  </span>
+                </div>
+              </div>
+            )}
+            {!isOutdoor && (
+              <div className="text-sm text-white/70 mt-0.5">Không tính thời gian</div>
+            )}
+          </div>
 
           {/* Temperature */}
           {environment.temperature !== null && (
@@ -169,9 +210,9 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
         </div>
       )}
 
-      {/* Tracking status badge - top right */}
+      {/* Tracking status badge - top center (avoid Windy controls at top-right) */}
       {!isBlurred && isTracking && (
-        <div className="absolute top-4 right-4 z-20 animate-fade-in">
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/90 backdrop-blur-xl rounded-full shadow-xl">
             <Radio className="h-3.5 w-3.5 text-white animate-pulse" />
             <span className="text-xs font-medium text-white">Live</span>

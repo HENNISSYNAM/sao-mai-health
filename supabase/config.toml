@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.stroke-health-ai]
 verify_jwt = false
+
+[functions.detect-location-type]
+verify_jwt = false

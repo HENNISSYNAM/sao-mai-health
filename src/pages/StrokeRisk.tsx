@@ -6,6 +6,7 @@ import GrokChatPanel from '@/components/stroke/GrokChatPanel';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
 import ChatToggleButton from '@/components/stroke/ChatToggleButton';
 import { Loader2, MapPin } from 'lucide-react';
+import { toast } from 'sonner';
 
 const StrokeRisk: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false); // Start with map visible
@@ -41,6 +42,30 @@ const StrokeRisk: React.FC = () => {
     };
   }, []); // Empty dependency array - run only once
 
+  // Listen for outdoor time warning events
+  useEffect(() => {
+    const handleOutdoorWarning = (event: CustomEvent<{
+      minutes: number;
+      safeMinutes: number;
+      warning: string;
+    }>) => {
+      const { minutes, safeMinutes, warning } = event.detail;
+      toast.warning('⚠️ Cảnh báo thời gian ngoài trời', {
+        description: `${warning}. Bạn đã ở ngoài trời ${minutes} phút (giới hạn an toàn: ${safeMinutes} phút)`,
+        duration: 10000,
+        action: {
+          label: 'Xem chi tiết',
+          onClick: () => setIsChatOpen(true)
+        }
+      });
+    };
+
+    window.addEventListener('outdoor-time-warning', handleOutdoorWarning as EventListener);
+    return () => {
+      window.removeEventListener('outdoor-time-warning', handleOutdoorWarning as EventListener);
+    };
+  }, []);
+
   // Show risk overlay when initialized and chat is closed
   useEffect(() => {
     if (isInitialized && !isChatOpen) {
@@ -72,6 +97,9 @@ const StrokeRisk: React.FC = () => {
         isTracking={isTracking}
         devicePressure={userData.devicePressure}
         outdoorMinutes={userData.outdoorMinutes}
+        isOutdoor={userData.isOutdoor}
+        locationConfidence={userData.locationConfidence}
+        safeOutdoorMinutes={userData.safeOutdoorMinutes}
       />
 
       {/* Loading Overlay */}
