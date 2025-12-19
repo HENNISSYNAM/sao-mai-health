@@ -50,6 +50,10 @@ export interface UserData {
   gpsAccuracy: number | null;
   outdoorMinutes: number; // Time spent outdoor based on GPS tracking
   trackingStartTime: number | null;
+  isOutdoor: boolean; // AI-detected indoor/outdoor status
+  locationConfidence: number; // Confidence of indoor/outdoor detection
+  safeOutdoorMinutes: number; // Safe time limit based on environment
+  outdoorWarning: string | null; // Warning message when exceeding safe time
 }
 
 interface UseStrokeRiskEngineProps {
@@ -66,7 +70,11 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     timestamp: Date.now(),
     gpsAccuracy: null,
     outdoorMinutes: 0,
-    trackingStartTime: null
+    trackingStartTime: null,
+    isOutdoor: true,
+    locationConfidence: 50,
+    safeOutdoorMinutes: 120,
+    outdoorWarning: null
   });
   
   const [environment, setEnvironment] = useState<EnvironmentData>({
@@ -99,6 +107,9 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const lastEnvFetchRef = useRef<number>(0);
+  const lastLocationCheckRef = useRef<number>(0);
+  const outdoorStartTimeRef = useRef<number | null>(null);
+  const hasShownWarningRef = useRef<boolean>(false);
 
   // Hash phone number for anonymization
   const hashPhone = useCallback(async (phone: string): Promise<string> => {
@@ -159,6 +170,40 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     }
   }, [barometer]);
 
+  // Detect if user is indoor or outdoor using AI
+  const detectLocationType = useCallback(async (lat: number, lon: number, gpsAccuracy: number | null, gpsHistory: GPSPoint[]) => {
+    // Throttle: only check every 60 seconds minimum
+    const now = Date.now();
+    if (now - lastLocationCheckRef.current < 60000) {
+      return null;
+    }
+    lastLocationCheckRef.current = now;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('detect-location-type', {
+        body: {
+          locationData: {
+            lat,
+            lon,
+            gpsAccuracy,
+            gpsHistory: gpsHistory.slice(-10),
+            environment: {
+              temperature: environment.temperature,
+              humidity: environment.humidity,
+              aqi: environment.aqi
+            }
+          }
+        }
+      });
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error detecting location type:', error);
+      return null;
+    }
+  }, [environment]);
+
   // Start continuous GPS tracking with watchPosition
   const startGPSTracking = useCallback(() => {
     if (!navigator.geolocation) {
@@ -178,7 +223,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     setUserData(prev => ({ ...prev, trackingStartTime: startTime }));
 
     watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
+      async (position) => {
         const newPoint: GPSPoint = {
           id: generateGPSId(),
           lat: position.coords.latitude,
@@ -187,25 +232,75 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
           timestamp: Date.now()
         };
 
+        // Update GPS data first
         setUserData(prev => {
-          // Keep last 100 GPS points for history/tracking
           const newHistory = [...prev.gpsHistory, newPoint].slice(-100);
-          
-          // Calculate outdoor minutes from tracking start time
-          const trackingStart = prev.trackingStartTime || startTime;
-          const outdoorMinutes = Math.floor((Date.now() - trackingStart) / 60000);
-          
           return {
             ...prev,
             gps: { lat: newPoint.lat, lon: newPoint.lon },
             gpsHistory: newHistory,
             gpsAccuracy: newPoint.accuracy,
-            timestamp: Date.now(),
-            outdoorMinutes
+            timestamp: Date.now()
           };
         });
 
         setGpsLoading(false);
+
+        // Detect indoor/outdoor status
+        const locationResult = await detectLocationType(
+          newPoint.lat,
+          newPoint.lon,
+          newPoint.accuracy,
+          userData.gpsHistory
+        );
+
+        if (locationResult) {
+          const isOutdoor = locationResult.shouldCountOutdoorTime;
+          
+          setUserData(prev => {
+            let newOutdoorMinutes = prev.outdoorMinutes;
+            
+            // Only count outdoor time when detected as outdoor
+            if (isOutdoor) {
+              // Start counting if just went outdoor
+              if (!outdoorStartTimeRef.current) {
+                outdoorStartTimeRef.current = Date.now();
+              }
+              newOutdoorMinutes = Math.floor((Date.now() - outdoorStartTimeRef.current) / 60000);
+            } else {
+              // Stop counting when indoor, but keep accumulated time
+              outdoorStartTimeRef.current = null;
+            }
+
+            // Check if exceeding safe outdoor time and show warning
+            const exceedingSafeTime = newOutdoorMinutes >= locationResult.safeOutdoorMinutes;
+            if (exceedingSafeTime && !hasShownWarningRef.current && locationResult.outdoorWarning) {
+              hasShownWarningRef.current = true;
+              // Dispatch custom event for notification
+              window.dispatchEvent(new CustomEvent('outdoor-time-warning', {
+                detail: {
+                  minutes: newOutdoorMinutes,
+                  safeMinutes: locationResult.safeOutdoorMinutes,
+                  warning: locationResult.outdoorWarning
+                }
+              }));
+            }
+            
+            // Reset warning flag if back under safe time
+            if (newOutdoorMinutes < locationResult.safeOutdoorMinutes) {
+              hasShownWarningRef.current = false;
+            }
+            
+            return {
+              ...prev,
+              isOutdoor,
+              locationConfidence: locationResult.confidence,
+              safeOutdoorMinutes: locationResult.safeOutdoorMinutes,
+              outdoorWarning: exceedingSafeTime ? locationResult.outdoorWarning : null,
+              outdoorMinutes: newOutdoorMinutes
+            };
+          });
+        }
 
         // Fetch environment data for new position
         fetchEnvironment(newPoint.lat, newPoint.lon);
