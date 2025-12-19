@@ -33,6 +33,38 @@ const queryClient = new QueryClient({
   },
 });
 
+// Layout with sidebar for most pages
+const MainLayout = () => (
+  <SidebarProvider>
+    <div className="min-h-screen flex w-full">
+      <AppSidebar />
+      <div className="flex-1 flex flex-col">
+        <TopNavbar />
+        <main className="flex-1 p-6 bg-background">
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/surveillance" element={<Surveillance />} />
+            <Route path="/case-intake" element={<CaseIntake />} />
+            <Route path="/lab-import" element={<LabImport />} />
+            <Route path="/alerts" element={<AlertsNew />} />
+            <Route path="/maps" element={<MapView />} />
+            <Route path="/map" element={<MapView />} />
+            <Route path="/patients" element={<PatientsNew />} />
+            <Route path="/appointments" element={<Appointments />} />
+            <Route path="/campaigns" element={<Campaigns />} />
+            <Route path="/facilities" element={<Facilities />} />
+            <Route path="/stocks" element={<Inventory />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <EnhancedCommandPalette />
+          <GlobalAIAssistant />
+        </main>
+      </div>
+    </div>
+  </SidebarProvider>
+);
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -41,37 +73,10 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/*" element={
-              <SidebarProvider>
-                <div className="min-h-screen flex w-full">
-                  <AppSidebar />
-                  <div className="flex-1 flex flex-col">
-                    <TopNavbar />
-                    <main className="flex-1 p-6 bg-background">
-                      <Routes>
-                        <Route path="/" element={<Dashboard />} />
-                        <Route path="/surveillance" element={<Surveillance />} />
-                        <Route path="/case-intake" element={<CaseIntake />} />
-                        <Route path="/lab-import" element={<LabImport />} />
-                        <Route path="/alerts" element={<AlertsNew />} />
-                        <Route path="/maps" element={<MapView />} />
-                        <Route path="/map" element={<MapView />} />
-                        <Route path="/patients" element={<PatientsNew />} />
-                        <Route path="/appointments" element={<Appointments />} />
-                        <Route path="/campaigns" element={<Campaigns />} />
-                        <Route path="/facilities" element={<Facilities />} />
-                        <Route path="/stocks" element={<Inventory />} />
-                        <Route path="/inventory" element={<Inventory />} />
-                        <Route path="/stroke-risk" element={<StrokeRisk />} />
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                      <EnhancedCommandPalette />
-                      <GlobalAIAssistant />
-                    </main>
-                  </div>
-                </div>
-              </SidebarProvider>
-            } />
+            {/* Stroke Risk - Full screen without sidebar */}
+            <Route path="/stroke-risk" element={<StrokeRisk />} />
+            {/* All other routes with sidebar layout */}
+            <Route path="/*" element={<MainLayout />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

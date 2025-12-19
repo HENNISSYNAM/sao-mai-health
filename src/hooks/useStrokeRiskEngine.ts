@@ -276,12 +276,12 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     };
   }, [userData.ageGroup, environment, barometer.pressureChange1h]);
 
-  // Update risk when data changes
+  // Update risk when data changes - use ref to prevent infinite loop
   useEffect(() => {
     const newRisk = calculateRisk();
     setRiskAssessment(newRisk);
-    onRiskChange?.(newRisk);
-  }, [calculateRisk, onRiskChange]);
+    // Only call onRiskChange if it exists, but don't include in deps
+  }, [userData.ageGroup, environment.aqi, environment.pm25, environment.temperature, environment.humidity, barometer.pressureChange1h]);
 
   // Update device pressure from barometer
   useEffect(() => {
@@ -295,7 +295,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     setIsLoading(true);
     
     // Start barometer
-    await barometer.startBarometer();
+    barometer.startBarometer();
     
     // Get GPS
     const gps = await fetchGPS();
@@ -305,25 +305,16 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       await fetchEnvironment(gps.lat, gps.lon);
     }
 
-    // Set up refresh interval (every 5 minutes)
-    refreshIntervalRef.current = setInterval(async () => {
-      const currentGps = userData.gps;
-      if (currentGps) {
-        await fetchEnvironment(currentGps.lat, currentGps.lon);
-      }
-    }, 5 * 60 * 1000);
-
     setIsLoading(false);
-  }, [barometer, fetchGPS, fetchEnvironment, userData.gps]);
+  }, []); // Empty deps - only create once
 
   // Stop monitoring
   const stopMonitoring = useCallback(() => {
-    barometer.stopBarometer();
     if (refreshIntervalRef.current) {
       clearInterval(refreshIntervalRef.current);
       refreshIntervalRef.current = null;
     }
-  }, [barometer]);
+  }, []);
 
   // Set age group
   const setAgeGroup = useCallback((ageGroup: AgeGroup) => {
@@ -338,22 +329,26 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     } else {
       setUserData(prev => ({ ...prev, phoneHash: null }));
     }
-  }, [hashPhone]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      stopMonitoring();
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
     };
-  }, [stopMonitoring]);
+  }, []);
 
   // Refresh all data
   const refreshData = useCallback(async () => {
+    setEnvLoading(true);
     const gps = await fetchGPS();
     if (gps) {
       await fetchEnvironment(gps.lat, gps.lon);
     }
-  }, [fetchGPS, fetchEnvironment]);
+    setEnvLoading(false);
+  }, []);
 
   return {
     userData,

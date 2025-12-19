@@ -95,12 +95,9 @@ export function useRealtimeHealth<T = any>({
     setChannel(realtimeChannel)
 
     return () => {
-      if (realtimeChannel) {
-        supabase.removeChannel(realtimeChannel)
-      }
-      setIsConnected(false)
+      supabase.removeChannel(realtimeChannel)
     }
-  }, [table, event, schema, mergeCache])
+  }, [table, event, schema]) // Remove mergeCache from dependencies to prevent infinite loop
 
   const pushUpdate = useCallback((newData: T) => {
     mergeCache({

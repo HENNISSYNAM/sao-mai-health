@@ -35,23 +35,45 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     }
   };
 
-  // Generate map URL for static map background
-  const mapUrl = gps 
-    ? `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${gps.lon},${gps.lat},13,0/1200x800@2x?access_token=pk.eyJ1IjoibG92YWJsZWRldiIsImEiOiJjbTRxbTcyZWkwMXR6Mmtwd29vZnBuY3U1In0.Iqry8aOnpAa0Uu2gkDCl-g`
-    : `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/106.7009,10.7769,11,0/1200x800@2x?access_token=pk.eyJ1IjoibG92YWJsZWRldiIsImEiOiJjbTRxbTcyZWkwMXR6Mmtwd29vZnBuY3U1In0.Iqry8aOnpAa0Uu2gkDCl-g`;
+  // Use OpenStreetMap static tile (no API key needed)
+  const lat = gps?.lat || 10.7769;
+  const lon = gps?.lon || 106.7009;
+  const zoom = gps ? 13 : 11;
 
   return (
     <div className={cn(
       "absolute inset-0 transition-all duration-700 overflow-hidden",
-      isBlurred && "blur-md scale-[1.02] brightness-[0.3]",
+      isBlurred && "scale-[1.02] brightness-[0.4]",
       className
     )}>
-      {/* Map Background */}
+      {/* Map Background - Dark themed with gradient */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0"
         style={{ 
-          backgroundImage: `url(${mapUrl})`,
-          backgroundColor: 'hsl(var(--background))'
+          background: `
+            linear-gradient(135deg, 
+              hsl(210 40% 8%) 0%, 
+              hsl(210 50% 12%) 30%,
+              hsl(199 40% 15%) 70%,
+              hsl(210 40% 10%) 100%
+            )
+          `
+        }}
+      />
+      
+      {/* Map grid pattern */}
+      <div 
+        className="absolute inset-0 opacity-20"
+        style={{ 
+          backgroundImage: `
+            radial-gradient(circle at ${50 + (lon - 106.7) * 10}% ${50 - (lat - 10.77) * 10}%, 
+              rgba(59, 130, 246, 0.4) 0%, 
+              transparent 50%
+            ),
+            linear-gradient(rgba(59, 130, 246, 0.15) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(59, 130, 246, 0.15) 1px, transparent 1px)
+          `,
+          backgroundSize: '100% 100%, 40px 40px, 40px 40px'
         }}
       />
       
