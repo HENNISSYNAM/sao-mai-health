@@ -225,13 +225,30 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
         </div>
       )}
 
+      {/* AQI Map mode indicator */}
+      {!isBlurred && showAQILayer && (
+        <div className="absolute top-16 left-4 z-20 animate-fade-in">
+          <div className={cn(
+            "px-3 py-1.5 rounded-lg shadow-lg border",
+            aqiInfo.color,
+            "border-white/20"
+          )}>
+            <div className="flex items-center gap-2">
+              <Wind className="h-4 w-4 text-white" />
+              <span className="text-xs font-semibold text-white">Bản đồ ô nhiễm PM2.5</span>
+            </div>
+            <p className="text-[10px] text-white/80 mt-0.5">Bấm AQI để tắt</p>
+          </div>
+        </div>
+      )}
+
       {/* Data source badge - bottom left */}
       {!isBlurred && (
         <div className="absolute bottom-4 left-4 z-20">
           <div className="px-2.5 py-1 bg-card/70 backdrop-blur-md rounded-lg border border-border/20">
             <span className="text-[9px] text-muted-foreground flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Windy • Tomorrow.io
+              Windy • {showAQILayer ? 'CAMS PM2.5' : 'ECMWF Wind'}
             </span>
           </div>
         </div>
