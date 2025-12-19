@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
-import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff } from 'lucide-react';
+import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface GeocodedLocation {
+  address: string;
+  district: string;
+  city: string;
+  full_address: string;
+  area_type: string;
+}
 
 interface FullScreenMapProps {
   gps: { lat: number; lon: number } | null;
@@ -36,9 +45,50 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
 }) => {
   const [showAQILayer, setShowAQILayer] = useState(false);
   const [mapKey, setMapKey] = useState(0); // Force iframe reload
+  const [geocodedLocation, setGeocodedLocation] = useState<GeocodedLocation | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const lastGeocodedRef = React.useRef<string>('');
   
   const lat = gps?.lat || 10.7769;
   const lon = gps?.lon || 106.7009;
+
+  // Geocode GPS to address using AI
+  const geocodeLocation = useCallback(async (lat: number, lon: number) => {
+    const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    if (lastGeocodedRef.current === key) return;
+    
+    setIsGeocoding(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('geocode-location', {
+        body: { lat, lon }
+      });
+      
+      if (!error && data?.success) {
+        lastGeocodedRef.current = key;
+        setGeocodedLocation({
+          address: data.address,
+          district: data.district,
+          city: data.city,
+          full_address: data.full_address,
+          area_type: data.area_type
+        });
+      }
+    } catch (err) {
+      console.error('Geocoding error:', err);
+    } finally {
+      setIsGeocoding(false);
+    }
+  }, []);
+
+  // Geocode when GPS changes (throttled)
+  useEffect(() => {
+    if (gps) {
+      const timer = setTimeout(() => {
+        geocodeLocation(gps.lat, gps.lon);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [gps, geocodeLocation]);
 
   // Toggle AQI layer with forced reload
   const toggleAQILayer = () => {
@@ -202,18 +252,43 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
         </div>
       )}
 
-      {/* GPS Position Card - Fixed bottom center */}
+      {/* GPS Position Card - Fixed bottom center with AI geocoded address */}
       {gps && !isBlurred && (
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 animate-fade-in max-w-[90vw]">
           <div className="flex items-center gap-3 px-4 py-2.5 bg-card/90 backdrop-blur-xl rounded-2xl border border-border/30 shadow-xl">
-            <div className="flex items-center justify-center w-8 h-8 bg-blue-500 rounded-full">
-              <MapPin className="h-4 w-4 text-white" />
+            <div className="flex items-center justify-center w-8 h-8 bg-blue-500 rounded-full shrink-0">
+              {isGeocoding ? (
+                <Loader2 className="h-4 w-4 text-white animate-spin" />
+              ) : (
+                <MapPin className="h-4 w-4 text-white" />
+              )}
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="text-xs text-muted-foreground">Vị trí của bạn</div>
-              <div className="text-sm font-mono text-foreground">
-                {gps.lat.toFixed(5)}, {gps.lon.toFixed(5)}
-              </div>
+              {geocodedLocation ? (
+                <>
+                  <div className="text-sm font-medium text-foreground truncate max-w-[250px]">
+                    {geocodedLocation.address}
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    {geocodedLocation.district && (
+                      <span>{geocodedLocation.district}</span>
+                    )}
+                    {geocodedLocation.city && (
+                      <span className="text-blue-500 font-medium">{geocodedLocation.city}</span>
+                    )}
+                    {geocodedLocation.area_type && geocodedLocation.area_type !== 'Không xác định' && (
+                      <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-600 rounded">
+                        {geocodedLocation.area_type}
+                      </span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm font-mono text-foreground">
+                  {gps.lat.toFixed(5)}, {gps.lon.toFixed(5)}
+                </div>
+              )}
               {gpsAccuracy && (
                 <div className="text-[10px] text-muted-foreground">±{gpsAccuracy.toFixed(0)}m</div>
               )}

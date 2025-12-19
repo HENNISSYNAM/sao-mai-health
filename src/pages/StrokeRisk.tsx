@@ -111,6 +111,8 @@ const StrokeRisk: React.FC = () => {
           isTracking={isTracking}
           outdoorMinutes={userData.outdoorMinutes}
           locationConfidence={userData.locationConfidence}
+          pressureChange1h={barometer.pressureChange1h}
+          pressureChange24h={barometer.pressureChange24h}
         />
       </div>
     );
