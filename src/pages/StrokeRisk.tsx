@@ -20,6 +20,7 @@ const StrokeRisk: React.FC = () => {
     isLoading,
     gpsLoading,
     envLoading,
+    isTracking,
     startMonitoring,
     setAgeGroup,
     refreshData
@@ -63,9 +64,13 @@ const StrokeRisk: React.FC = () => {
       {/* Full Screen Map Background */}
       <FullScreenMap
         gps={userData.gps}
+        gpsHistory={userData.gpsHistory}
+        gpsAccuracy={userData.gpsAccuracy}
         environment={environment}
         riskAssessment={riskAssessment}
         isBlurred={isChatOpen}
+        isTracking={isTracking}
+        devicePressure={userData.devicePressure}
       />
 
       {/* Loading Overlay */}
