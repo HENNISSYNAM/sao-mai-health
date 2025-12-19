@@ -6,9 +6,10 @@ import GrokChatPanel from '@/components/stroke/GrokChatPanel';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
 import ChatToggleButton from '@/components/stroke/ChatToggleButton';
 import MLAnalyticsDashboard from '@/components/stroke/MLAnalyticsDashboard';
-import { Loader2, MapPin, BarChart3, Navigation } from 'lucide-react';
+import { BarChart3, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import healthLogo from '@/assets/health-logo.png';
 
 type ViewMode = 'tracking' | 'statistics';
 
@@ -150,13 +151,14 @@ const StrokeRisk: React.FC = () => {
 
       {/* Loading Overlay */}
       {(isLoading || (gpsLoading && !userData.gps)) && (
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-md flex items-center justify-center z-40">
+        <div className="absolute inset-0 bg-background/90 backdrop-blur-md flex items-center justify-center z-40">
           <div className="text-center space-y-4">
             <div className="relative">
-              <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <MapPin className="h-6 w-6 text-primary animate-pulse" />
-              </div>
+              <img 
+                src={healthLogo} 
+                alt="Loading" 
+                className="w-24 h-24 mx-auto animate-heartbeat drop-shadow-lg"
+              />
             </div>
             <div>
               <p className="text-lg font-semibold text-foreground">Đang khởi tạo...</p>
