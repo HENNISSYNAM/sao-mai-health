@@ -49,6 +49,11 @@ interface AnalyticsData {
     emergencyResponseTime: number;
     marketTrends: { metric: string; value: number; change: number }[];
   };
+  locationInfo?: {
+    city: string;
+    address: string;
+    coordinates: { lat: number; lng: number } | null;
+  };
   lastUpdated: string;
 }
 
@@ -191,20 +196,25 @@ const MLAnalyticsDashboard: React.FC<MLAnalyticsDashboardProps> = ({
             </div>
             Phân tích Thống kê
           </h1>
-          <p className="text-slate-500 mt-1 flex items-center gap-2">
-            {gps ? (
-              <>
-                <MapPin className="h-4 w-4 text-blue-500" />
-                <span>Vị trí: {gps.lat.toFixed(4)}, {gps.lon.toFixed(4)}</span>
-                {isTracking && (
-                  <Badge className="bg-green-100 text-green-700 text-xs ml-2">
-                    <Navigation className="h-3 w-3 mr-1" />
-                    Đang theo dõi
-                  </Badge>
-                )}
-              </>
+          <p className="text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+            <MapPin className="h-4 w-4 text-blue-500" />
+            {data?.locationInfo?.address ? (
+              <span className="font-medium text-slate-700">{data.locationInfo.address}</span>
+            ) : gps ? (
+              <span>{gps.lat.toFixed(4)}, {gps.lon.toFixed(4)}</span>
             ) : (
               <span>TP. Hồ Chí Minh</span>
+            )}
+            {isTracking && (
+              <Badge className="bg-green-100 text-green-700 text-xs">
+                <Navigation className="h-3 w-3 mr-1" />
+                Đang theo dõi
+              </Badge>
+            )}
+            {data?.locationInfo?.city && (
+              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600 border-blue-200">
+                {data.locationInfo.city}
+              </Badge>
             )}
           </p>
         </div>
