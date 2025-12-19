@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.detect-location-type]
 verify_jwt = false
+
+[functions.stroke-analytics-data]
+verify_jwt = false
