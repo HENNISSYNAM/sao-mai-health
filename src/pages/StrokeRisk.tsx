@@ -93,7 +93,7 @@ const StrokeRisk: React.FC = () => {
       <FullScreenMap gps={userData.gps} gpsHistory={userData.gpsHistory} gpsAccuracy={userData.gpsAccuracy} environment={environment} riskAssessment={riskAssessment} isBlurred={false} isTracking={isTracking} devicePressure={userData.devicePressure} outdoorMinutes={userData.outdoorMinutes} isOutdoor={userData.isOutdoor} locationConfidence={userData.locationConfidence} safeOutdoorMinutes={userData.safeOutdoorMinutes} />
 
       {/* View Toggle Button - Bottom left */}
-      <div className="fixed bottom-24 left-4 md:bottom-8 md:left-8 z-50 mt-0">
+      <div className="fixed bottom-24 left-4 md:bottom-8 md:left-8 z-50 mt-[140px]">
         <Button onClick={() => setViewMode('statistics')} className="bg-slate-800/80 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600 mx-0 ml-0 px-[14px] mr-0 my-[250px]">
           <BarChart3 className="h-4 w-4 mr-2" />
           Thống kê
