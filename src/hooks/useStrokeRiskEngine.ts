@@ -4,6 +4,15 @@ import { supabase } from '@/integrations/supabase/client';
 
 export type AgeGroup = '<18' | '18-35' | '36-55' | '>55';
 
+export interface GPSPoint {
+  id: string;
+  lat: number;
+  lon: number;
+  accuracy: number;
+  timestamp: number;
+  label?: string;
+}
+
 export interface EnvironmentData {
   temperature: number | null;
   humidity: number | null;
@@ -34,9 +43,11 @@ export interface RiskAssessment {
 export interface UserData {
   phoneHash: string | null;
   gps: { lat: number; lon: number } | null;
+  gpsHistory: GPSPoint[];
   devicePressure: number | null;
   ageGroup: AgeGroup;
   timestamp: number;
+  gpsAccuracy: number | null;
 }
 
 interface UseStrokeRiskEngineProps {
@@ -47,9 +58,11 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
   const [userData, setUserData] = useState<UserData>({
     phoneHash: null,
     gps: null,
+    gpsHistory: [],
     devicePressure: null,
     ageGroup: '36-55',
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    gpsAccuracy: null
   });
   
   const [environment, setEnvironment] = useState<EnvironmentData>({
@@ -76,9 +89,12 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
   const [isLoading, setIsLoading] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [envLoading, setEnvLoading] = useState(false);
+  const [isTracking, setIsTracking] = useState(false);
 
   const barometer = useBarometer();
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const watchIdRef = useRef<number | null>(null);
+  const lastEnvFetchRef = useRef<number>(0);
 
   // Hash phone number for anonymization
   const hashPhone = useCallback(async (phone: string): Promise<string> => {
@@ -89,7 +105,119 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
   }, []);
 
-  // Get GPS location
+  // Generate unique ID for GPS point
+  const generateGPSId = useCallback(() => {
+    return `gps_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }, []);
+
+  // Fetch environment data (with throttling)
+  const fetchEnvironment = useCallback(async (lat: number, lon: number) => {
+    // Throttle: only fetch every 30 seconds minimum
+    const now = Date.now();
+    if (now - lastEnvFetchRef.current < 30000) {
+      return;
+    }
+    lastEnvFetchRef.current = now;
+
+    setEnvLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-environment-data', {
+        body: { lat, lon }
+      });
+
+      if (error) throw error;
+
+      // Use device barometer pressure if available, otherwise use API pressure
+      const devicePressure = barometer.currentPressure;
+      const apiPressure = data.weather?.pressure ?? null;
+
+      setEnvironment({
+        temperature: data.weather?.temperature ?? null,
+        humidity: data.weather?.humidity ?? null,
+        pressure: devicePressure || apiPressure,
+        windSpeed: data.weather?.windSpeed ?? null,
+        uvIndex: data.weather?.uvIndex ?? null,
+        aqi: data.airQuality?.aqi ?? null,
+        pm25: data.airQuality?.pm25 ?? null,
+        pm10: data.airQuality?.pm10 ?? null,
+        no2: data.airQuality?.no2 ?? null,
+        so2: data.airQuality?.so2 ?? null
+      });
+
+      // Feed API pressure to barometer for tracking if device doesn't have barometer
+      if (!devicePressure && apiPressure) {
+        barometer.simulatePressureFromWeather(apiPressure);
+      }
+    } catch (error) {
+      console.error('Error fetching environment:', error);
+    } finally {
+      setEnvLoading(false);
+    }
+  }, [barometer]);
+
+  // Start continuous GPS tracking with watchPosition
+  const startGPSTracking = useCallback(() => {
+    if (!navigator.geolocation) {
+      console.error('Geolocation not supported');
+      return;
+    }
+
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
+
+    setGpsLoading(true);
+    setIsTracking(true);
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (position) => {
+        const newPoint: GPSPoint = {
+          id: generateGPSId(),
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: Date.now()
+        };
+
+        setUserData(prev => {
+          // Keep last 100 GPS points for history/tracking
+          const newHistory = [...prev.gpsHistory, newPoint].slice(-100);
+          return {
+            ...prev,
+            gps: { lat: newPoint.lat, lon: newPoint.lon },
+            gpsHistory: newHistory,
+            gpsAccuracy: newPoint.accuracy,
+            timestamp: Date.now()
+          };
+        });
+
+        setGpsLoading(false);
+
+        // Fetch environment data for new position
+        fetchEnvironment(newPoint.lat, newPoint.lon);
+      },
+      (error) => {
+        console.error('GPS error:', error);
+        setGpsLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+  }, [generateGPSId, fetchEnvironment]);
+
+  // Stop GPS tracking
+  const stopGPSTracking = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setIsTracking(false);
+  }, []);
+
+  // Get single GPS position (for initial load)
   const fetchGPS = useCallback(async (): Promise<{ lat: number; lon: number } | null> => {
     setGpsLoading(true);
     return new Promise((resolve) => {
@@ -105,7 +233,20 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
             lat: position.coords.latitude,
             lon: position.coords.longitude
           };
-          setUserData(prev => ({ ...prev, gps, timestamp: Date.now() }));
+          const newPoint: GPSPoint = {
+            id: generateGPSId(),
+            lat: gps.lat,
+            lon: gps.lon,
+            accuracy: position.coords.accuracy,
+            timestamp: Date.now()
+          };
+          setUserData(prev => ({
+            ...prev,
+            gps,
+            gpsHistory: [...prev.gpsHistory, newPoint].slice(-100),
+            gpsAccuracy: position.coords.accuracy,
+            timestamp: Date.now()
+          }));
           setGpsLoading(false);
           resolve(gps);
         },
@@ -113,44 +254,23 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
           setGpsLoading(false);
           resolve(null);
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       );
     });
-  }, []);
+  }, [generateGPSId]);
 
-  // Fetch environment data
-  const fetchEnvironment = useCallback(async (lat: number, lon: number) => {
-    setEnvLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-environment-data', {
-        body: { lat, lon }
-      });
-
-      if (error) throw error;
-
-      setEnvironment({
-        temperature: data.weather?.temperature ?? null,
-        humidity: data.weather?.humidity ?? null,
-        pressure: data.weather?.pressure ?? null,
-        windSpeed: data.weather?.windSpeed ?? null,
-        uvIndex: data.weather?.uvIndex ?? null,
-        aqi: data.airQuality?.aqi ?? null,
-        pm25: data.airQuality?.pm25 ?? null,
-        pm10: null,
-        no2: null,
-        so2: null
-      });
-
-      // Feed pressure to barometer for tracking
-      if (data.weather?.pressure) {
-        barometer.simulatePressureFromWeather(data.weather.pressure);
-      }
-    } catch (error) {
-      console.error('Error fetching environment:', error);
-    } finally {
-      setEnvLoading(false);
-    }
-  }, [barometer]);
+  // Add external GPS point (for multi-user tracking)
+  const addExternalGPSPoint = useCallback((point: Omit<GPSPoint, 'id' | 'timestamp'>) => {
+    const newPoint: GPSPoint = {
+      ...point,
+      id: generateGPSId(),
+      timestamp: Date.now()
+    };
+    setUserData(prev => ({
+      ...prev,
+      gpsHistory: [...prev.gpsHistory, newPoint].slice(-100)
+    }));
+  }, [generateGPSId]);
 
   // Calculate risk score (0-100)
   const calculateRisk = useCallback((): RiskAssessment => {
@@ -195,7 +315,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       }
     }
 
-    // Pressure drop contribution (0-25 points)
+    // Pressure drop contribution - use device barometer if available (0-25 points)
     const pressureChange = barometer.pressureChange1h;
     if (pressureChange !== null) {
       if (pressureChange < -5) {
@@ -256,7 +376,6 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       doRecommendations.push('Duy trì lối sống lành mạnh');
     }
 
-    // Always add base recommendations
     if (doRecommendations.length === 0) {
       doRecommendations.push('Duy trì lối sống lành mạnh');
     }
@@ -276,17 +395,21 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     };
   }, [userData.ageGroup, environment, barometer.pressureChange1h]);
 
-  // Update risk when data changes - use ref to prevent infinite loop
+  // Update risk when data changes
   useEffect(() => {
     const newRisk = calculateRisk();
     setRiskAssessment(newRisk);
-    // Only call onRiskChange if it exists, but don't include in deps
   }, [userData.ageGroup, environment.aqi, environment.pm25, environment.temperature, environment.humidity, barometer.pressureChange1h]);
 
   // Update device pressure from barometer
   useEffect(() => {
     if (barometer.currentPressure) {
       setUserData(prev => ({ ...prev, devicePressure: barometer.currentPressure }));
+      // Update environment pressure with device barometer
+      setEnvironment(prev => ({
+        ...prev,
+        pressure: barometer.currentPressure
+      }));
     }
   }, [barometer.currentPressure]);
 
@@ -294,19 +417,29 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
   const startMonitoring = useCallback(async () => {
     setIsLoading(true);
     
-    // Start barometer
-    barometer.startBarometer();
+    // Start device barometer sensor
+    await barometer.startBarometer();
     
-    // Get GPS
+    // Get initial GPS
     const gps = await fetchGPS();
     
-    // Fetch environment if GPS available
+    // Fetch initial environment data
     if (gps) {
       await fetchEnvironment(gps.lat, gps.lon);
     }
 
+    // Start continuous GPS tracking
+    startGPSTracking();
+
+    // Set up periodic environment refresh (every 2 minutes)
+    refreshIntervalRef.current = setInterval(() => {
+      if (userData.gps) {
+        fetchEnvironment(userData.gps.lat, userData.gps.lon);
+      }
+    }, 120000);
+
     setIsLoading(false);
-  }, []); // Empty deps - only create once
+  }, []);
 
   // Stop monitoring
   const stopMonitoring = useCallback(() => {
@@ -314,7 +447,9 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       clearInterval(refreshIntervalRef.current);
       refreshIntervalRef.current = null;
     }
-  }, []);
+    stopGPSTracking();
+    barometer.stopBarometer();
+  }, [stopGPSTracking, barometer]);
 
   // Set age group
   const setAgeGroup = useCallback((ageGroup: AgeGroup) => {
@@ -329,7 +464,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     } else {
       setUserData(prev => ({ ...prev, phoneHash: null }));
     }
-  }, []);
+  }, [hashPhone]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -337,18 +472,20 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
       }
+      stopGPSTracking();
     };
-  }, []);
+  }, [stopGPSTracking]);
 
   // Refresh all data
   const refreshData = useCallback(async () => {
     setEnvLoading(true);
+    lastEnvFetchRef.current = 0; // Reset throttle
     const gps = await fetchGPS();
     if (gps) {
       await fetchEnvironment(gps.lat, gps.lon);
     }
     setEnvLoading(false);
-  }, []);
+  }, [fetchGPS, fetchEnvironment]);
 
   return {
     userData,
@@ -358,12 +495,16 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     isLoading,
     gpsLoading,
     envLoading,
+    isTracking,
     startMonitoring,
     stopMonitoring,
+    startGPSTracking,
+    stopGPSTracking,
     setAgeGroup,
     setPhone,
     refreshData,
     fetchGPS,
-    fetchEnvironment
+    fetchEnvironment,
+    addExternalGPSPoint
   };
 }
