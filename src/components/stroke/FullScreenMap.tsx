@@ -217,39 +217,39 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
                 ) : null}
               </div>
 
-              {/* Temperature & Humidity Row */}
+              {/* Temperature & Humidity Row - Always show */}
               <div className="px-3 py-2 flex gap-3">
-                {environment.temperature !== null && (
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1">
-                      <Thermometer className="h-3 w-3 text-orange-400" />
-                      <span className="text-[9px] text-muted-foreground">°C</span>
-                    </div>
-                    <div className="text-base font-bold text-foreground">{environment.temperature?.toFixed(0)}°</div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-1">
+                    <Thermometer className="h-3 w-3 text-orange-400" />
+                    <span className="text-[9px] text-muted-foreground">°C</span>
                   </div>
-                )}
-                {environment.humidity !== null && (
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1">
-                      <Droplets className="h-3 w-3 text-blue-400" />
-                      <span className="text-[9px] text-muted-foreground">%</span>
-                    </div>
-                    <div className="text-base font-bold text-foreground">{environment.humidity?.toFixed(0)}%</div>
+                  <div className="text-base font-bold text-foreground">
+                    {environment.temperature !== null ? `${environment.temperature.toFixed(0)}°` : '--'}
                   </div>
-                )}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-1">
+                    <Droplets className="h-3 w-3 text-blue-400" />
+                    <span className="text-[9px] text-muted-foreground">%</span>
+                  </div>
+                  <div className="text-base font-bold text-foreground">
+                    {environment.humidity !== null ? `${environment.humidity.toFixed(0)}%` : '--'}
+                  </div>
+                </div>
               </div>
 
-              {/* Pressure */}
-              {displayPressure !== null && (
-                <div className="px-3 py-2">
-                  <div className="flex items-center gap-1">
-                    <Gauge className="h-3 w-3 text-teal-400" />
-                    <span className="text-[9px] text-muted-foreground">hPa</span>
-                    {devicePressure && <span className="text-[8px] ml-1">📱</span>}
-                  </div>
-                  <div className="text-base font-bold text-foreground">{displayPressure?.toFixed(0)}</div>
+              {/* Pressure - Always show */}
+              <div className="px-3 py-2">
+                <div className="flex items-center gap-1">
+                  <Gauge className="h-3 w-3 text-teal-400" />
+                  <span className="text-[9px] text-muted-foreground">hPa</span>
+                  {devicePressure && <span className="text-[8px] ml-1">📱</span>}
                 </div>
-              )}
+                <div className="text-base font-bold text-foreground">
+                  {displayPressure !== null ? displayPressure.toFixed(0) : '--'}
+                </div>
+              </div>
             </div>
           </div>
         </div>
