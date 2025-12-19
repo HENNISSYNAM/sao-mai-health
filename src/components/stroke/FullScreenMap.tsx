@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
-import { Thermometer, Wind, Gauge, Droplets, Activity, Radio, Clock, MapPin, Home, TreePine } from 'lucide-react';
+import { Thermometer, Wind, Gauge, Droplets, Activity, Radio, Clock, MapPin, Home, TreePine, Eye, EyeOff } from 'lucide-react';
 
 interface FullScreenMapProps {
   gps: { lat: number; lon: number } | null;
@@ -34,6 +34,8 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
   safeOutdoorMinutes = 120,
   className
 }) => {
+  const [showAQILayer, setShowAQILayer] = useState(false);
+  
   const lat = gps?.lat || 10.7769;
   const lon = gps?.lon || 106.7009;
 
@@ -57,8 +59,10 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     return mins > 0 ? `${hours}h ${mins}p` : `${hours} giờ`;
   };
 
-  // Windy embed URL với marker, webcams, và spot vị trí
-  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=15&overlay=pm25&product=cams&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true&webcams=true&spot=${lat},${lon}`;
+  // Windy embed URL - thay đổi overlay dựa trên showAQILayer
+  const overlay = showAQILayer ? 'pm25' : 'wind';
+  const product = showAQILayer ? 'cams' : 'ecmwf';
+  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=15&overlay=${overlay}&product=${product}&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true&webcams=true&spot=${lat},${lon}`;
 
   return (
     <div className={cn(
@@ -66,8 +70,9 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
       isBlurred && "scale-[1.02] brightness-[0.3] blur-sm",
       className
     )}>
-      {/* Windy Map với định vị sẵn có */}
+      {/* Windy Map với định vị sẵn có - key để reload khi đổi layer */}
       <iframe
+        key={`windy-${showAQILayer ? 'aqi' : 'wind'}`}
         src={windyUrl}
         className="absolute inset-0 w-full h-full border-0"
         style={{ minHeight: '100vh', minWidth: '100vw' }}
@@ -94,18 +99,31 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
             <div className="text-3xl font-bold text-white">{riskAssessment.risk_score}<span className="text-lg">/100</span></div>
           </div>
 
-          {/* AQI Card */}
+          {/* AQI Card - Clickable to toggle layer */}
           {environment.aqi !== null && (
-            <div className={cn(
-              "px-3 py-2 rounded-xl shadow-xl backdrop-blur-xl animate-fade-in",
-              aqiInfo.color
-            )} style={{ animationDelay: '0.05s' }}>
+            <button
+              onClick={() => setShowAQILayer(!showAQILayer)}
+              className={cn(
+                "px-3 py-2 rounded-xl shadow-xl backdrop-blur-xl animate-fade-in text-left transition-all",
+                aqiInfo.color,
+                showAQILayer && "ring-2 ring-white ring-offset-2 ring-offset-transparent"
+              )} 
+              style={{ animationDelay: '0.05s' }}
+            >
               <div className="flex items-center gap-1.5">
                 <Wind className="h-3.5 w-3.5" style={{ color: aqiInfo.textColor === 'text-white' ? 'white' : 'black' }} />
                 <span className={cn("text-[10px] uppercase tracking-wider", aqiInfo.textColor === 'text-white' ? 'text-white/80' : 'text-black/70')}>AQI</span>
+                {showAQILayer ? (
+                  <Eye className="h-3 w-3 ml-auto" style={{ color: aqiInfo.textColor === 'text-white' ? 'white' : 'black' }} />
+                ) : (
+                  <EyeOff className="h-3 w-3 ml-auto opacity-50" style={{ color: aqiInfo.textColor === 'text-white' ? 'white' : 'black' }} />
+                )}
               </div>
               <div className={cn("text-2xl font-bold", aqiInfo.textColor)}>{environment.aqi}</div>
-            </div>
+              <div className={cn("text-[9px]", aqiInfo.textColor === 'text-white' ? 'text-white/60' : 'text-black/50')}>
+                {showAQILayer ? 'Đang hiện layer' : 'Bấm để xem layer'}
+              </div>
+            </button>
           )}
 
           {/* Location Type & Outdoor Time Card */}
