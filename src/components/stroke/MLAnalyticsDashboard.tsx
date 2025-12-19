@@ -66,6 +66,8 @@ interface MLAnalyticsDashboardProps {
   isTracking?: boolean;
   outdoorMinutes?: number;
   locationConfidence?: number;
+  pressureChange1h?: number | null;
+  pressureChange24h?: number | null;
 }
 
 const MLAnalyticsDashboard: React.FC<MLAnalyticsDashboardProps> = ({
@@ -75,7 +77,9 @@ const MLAnalyticsDashboard: React.FC<MLAnalyticsDashboardProps> = ({
   ageGroup = '36-55',
   isTracking = false,
   outdoorMinutes = 0,
-  locationConfidence = 0
+  locationConfidence = 0,
+  pressureChange1h = null,
+  pressureChange24h = null
 }) => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -288,6 +292,32 @@ const MLAnalyticsDashboard: React.FC<MLAnalyticsDashboardProps> = ({
         </div>
       )}
 
+      {/* Pressure Change Warning */}
+      {pressureChange1h !== null && Math.abs(pressureChange1h) >= 3 && (
+        <div className="mb-6 p-4 rounded-2xl border border-orange-300 bg-gradient-to-r from-orange-50 to-amber-50 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-orange-100 animate-pulse">
+              <AlertTriangle className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-orange-800 flex items-center gap-2">
+                ⚠️ Cảnh báo: Áp suất thay đổi đột ngột
+              </p>
+              <p className="text-sm text-orange-700 mt-1">
+                Áp suất đã {pressureChange1h > 0 ? 'tăng' : 'giảm'} <span className="font-bold">{Math.abs(pressureChange1h).toFixed(1)} hPa</span> trong 1 giờ qua.
+                {pressureChange24h !== null && (
+                  <span> • Trong 24h: {pressureChange24h > 0 ? '+' : ''}{pressureChange24h.toFixed(1)} hPa</span>
+                )}
+              </p>
+              <p className="text-xs text-orange-600 mt-2">
+                💡 Thay đổi áp suất đột ngột có thể ảnh hưởng đến mạch máu và làm tăng nguy cơ đột quỵ. 
+                Hãy nghỉ ngơi, uống đủ nước và theo dõi sức khỏe.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
@@ -328,16 +358,41 @@ const MLAnalyticsDashboard: React.FC<MLAnalyticsDashboardProps> = ({
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <Card className={cn(
+          "bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow",
+          pressureChange1h !== null && Math.abs(pressureChange1h) >= 3 && "border-orange-300 ring-2 ring-orange-200"
+        )}>
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-slate-500 font-medium">Áp suất {gps ? '(thực tế)' : ''}</p>
+                <p className="text-sm text-slate-500 font-medium flex items-center gap-1">
+                  Áp suất {gps ? '(thực tế)' : ''}
+                  {pressureChange1h !== null && Math.abs(pressureChange1h) >= 3 && (
+                    <AlertTriangle className="h-3 w-3 text-orange-500" />
+                  )}
+                </p>
                 <p className="text-3xl font-bold text-slate-800 mt-1">{currentPressure?.toFixed(0) ?? '--'}</p>
-                <p className="text-xs text-slate-400 mt-2 font-medium">hPa</p>
+                <div className="text-xs text-slate-400 mt-2 font-medium flex items-center gap-2">
+                  <span>hPa</span>
+                  {pressureChange1h !== null && (
+                    <span className={cn(
+                      "flex items-center gap-0.5",
+                      pressureChange1h > 0 ? "text-red-500" : pressureChange1h < 0 ? "text-blue-500" : "text-slate-400"
+                    )}>
+                      {pressureChange1h > 0 ? <TrendingUp className="h-3 w-3" /> : pressureChange1h < 0 ? <TrendingDown className="h-3 w-3" /> : null}
+                      {pressureChange1h > 0 ? '+' : ''}{pressureChange1h.toFixed(1)}/1h
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="p-2.5 rounded-xl bg-blue-50">
-                <Activity className="h-5 w-5 text-blue-500" />
+              <div className={cn(
+                "p-2.5 rounded-xl",
+                pressureChange1h !== null && Math.abs(pressureChange1h) >= 3 ? "bg-orange-50" : "bg-blue-50"
+              )}>
+                <Activity className={cn(
+                  "h-5 w-5",
+                  pressureChange1h !== null && Math.abs(pressureChange1h) >= 3 ? "text-orange-500" : "text-blue-500"
+                )} />
               </div>
             </div>
           </CardContent>
