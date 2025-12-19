@@ -16,76 +16,75 @@ serve(async (req) => {
     
     console.log(`Fetching environment data for location: ${lat}, ${lon}`);
 
-    const WINDY_API_KEY = Deno.env.get('WINDY_API_KEY');
+    const TOMORROW_API_KEY = Deno.env.get('TOMORROW_API_KEY');
     const OPENWEATHER_API_KEY = Deno.env.get('OPENWEATHER_API_KEY');
     const AIR_QUALITY_API_KEY = Deno.env.get('AIR_QUALITY_API_KEY');
 
     let weatherData = null;
+    let tomorrowData = null;
 
-    // Primary: OpenWeatherMap API (more reliable)
-    if (OPENWEATHER_API_KEY) {
+    // Primary: Tomorrow.io API (most accurate real-time data)
+    if (TOMORROW_API_KEY) {
       try {
-        console.log('Fetching weather data from OpenWeatherMap...');
+        console.log('Fetching weather data from Tomorrow.io...');
+        const tomorrowResponse = await fetch(
+          `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${TOMORROW_API_KEY}`
+        );
+        
+        if (tomorrowResponse.ok) {
+          tomorrowData = await tomorrowResponse.json();
+          console.log('Tomorrow.io data received:', JSON.stringify(tomorrowData));
+          
+          const values = tomorrowData?.data?.values;
+          if (values) {
+            weatherData = {
+              temperature: values.temperature,
+              humidity: values.humidity,
+              pressure: values.pressureSurfaceLevel,
+              windSpeed: values.windSpeed ? values.windSpeed * 3.6 : null, // m/s to km/h
+              windDirection: values.windDirection,
+              uvIndex: values.uvIndex,
+              visibility: values.visibility,
+              cloudCover: values.cloudCover,
+              dewPoint: values.dewPoint,
+              precipitationProbability: values.precipitationProbability,
+            };
+            console.log('Processed Tomorrow.io data:', JSON.stringify(weatherData));
+          }
+        } else {
+          const errorText = await tomorrowResponse.text();
+          console.error('Tomorrow.io API error:', tomorrowResponse.status, errorText);
+        }
+      } catch (error) {
+        console.error('Error fetching from Tomorrow.io:', error);
+      }
+    }
+
+    // Fallback: OpenWeatherMap API
+    if (!weatherData && OPENWEATHER_API_KEY) {
+      try {
+        console.log('Fetching weather data from OpenWeatherMap (fallback)...');
         const owmResponse = await fetch(
           `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`
         );
         
         if (owmResponse.ok) {
           const owmData = await owmResponse.json();
-          console.log('OpenWeatherMap data received:', JSON.stringify(owmData));
+          console.log('OpenWeatherMap data received');
           
           weatherData = {
             temperature: owmData.main?.temp,
             humidity: owmData.main?.humidity,
             pressure: owmData.main?.pressure,
-            windSpeed: owmData.wind?.speed ? owmData.wind.speed * 3.6 : null, // m/s to km/h
+            windSpeed: owmData.wind?.speed ? owmData.wind.speed * 3.6 : null,
             feelsLike: owmData.main?.feels_like,
-            visibility: owmData.visibility ? owmData.visibility / 1000 : null, // m to km
-            clouds: owmData.clouds?.all,
+            visibility: owmData.visibility ? owmData.visibility / 1000 : null,
+            cloudCover: owmData.clouds?.all,
             description: owmData.weather?.[0]?.description,
           };
-          console.log('Processed OpenWeatherMap data:', JSON.stringify(weatherData));
-        } else {
-          const errorText = await owmResponse.text();
-          console.error('OpenWeatherMap API error:', owmResponse.status, errorText);
         }
       } catch (error) {
         console.error('Error fetching from OpenWeatherMap:', error);
-      }
-    }
-
-    // Fallback: Windy API
-    if (!weatherData && WINDY_API_KEY) {
-      try {
-        console.log('Fetching weather data from Windy API (fallback)...');
-        const windyResponse = await fetch('https://api.windy.com/api/point-forecast/v2', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lat, lon,
-            model: 'gfs',
-            parameters: ['temp', 'wind', 'pressure', 'rh'],
-            levels: ['surface'],
-            key: WINDY_API_KEY,
-          }),
-        });
-        
-        if (windyResponse.ok) {
-          const windyData = await windyResponse.json();
-          const tempSurface = windyData['temp-surface'];
-          const pressureSurface = windyData['pressure-surface'];
-          const rhSurface = windyData['rh-surface'];
-          
-          weatherData = {
-            temperature: tempSurface?.[0] ? (tempSurface[0] - 273.15) : null,
-            humidity: rhSurface?.[0] || null,
-            pressure: pressureSurface?.[0] ? (pressureSurface[0] / 100) : null,
-            windSpeed: null,
-          };
-          console.log('Processed Windy weather data:', JSON.stringify(weatherData));
-        }
-      } catch (error) {
-        console.error('Error fetching from Windy:', error);
       }
     }
 
@@ -100,15 +99,15 @@ serve(async (req) => {
         
         if (aqResponse.ok) {
           airQualityData = await aqResponse.json();
-          console.log('Air quality data fetched successfully');
+          console.log('IQAir data fetched successfully');
         }
       } catch (error) {
-        console.error('Error fetching air quality:', error);
+        console.error('Error fetching IQAir:', error);
       }
     }
 
-    // Additional: OpenWeatherMap Air Pollution API
-    let owmAirPollution = null;
+    // OpenWeatherMap Air Pollution API for detailed pollutants
+    let owmPollution = null;
     if (OPENWEATHER_API_KEY) {
       try {
         console.log('Fetching air pollution from OpenWeatherMap...');
@@ -117,8 +116,8 @@ serve(async (req) => {
         );
         
         if (pollutionResponse.ok) {
-          owmAirPollution = await pollutionResponse.json();
-          console.log('OpenWeatherMap pollution data:', JSON.stringify(owmAirPollution));
+          owmPollution = await pollutionResponse.json();
+          console.log('OWM pollution data fetched');
         }
       } catch (error) {
         console.error('Error fetching OWM pollution:', error);
@@ -126,26 +125,31 @@ serve(async (req) => {
     }
 
     // Combine all data
-    const pollution = airQualityData?.data?.current?.pollution;
-    const owmPollutionData = owmAirPollution?.list?.[0]?.components;
+    const iqAirPollution = airQualityData?.data?.current?.pollution;
+    const owmComponents = owmPollution?.list?.[0]?.components;
+    const owmAqi = owmPollution?.list?.[0]?.main?.aqi;
     
     const result = {
       timestamp: new Date().toISOString(),
       location: { lat, lon },
+      sources: {
+        weather: TOMORROW_API_KEY && tomorrowData ? 'Tomorrow.io' : 'OpenWeatherMap',
+        airQuality: AIR_QUALITY_API_KEY && airQualityData ? 'IQAir + OpenWeatherMap' : 'OpenWeatherMap',
+      },
       weather: weatherData,
       airQuality: {
-        aqi: pollution?.aqius || (owmAirPollution?.list?.[0]?.main?.aqi * 50) || null,
-        mainPollutant: pollution?.mainus || 'p2',
-        pm25: owmPollutionData?.pm2_5 || pollution?.aqius || null,
-        pm10: owmPollutionData?.pm10 || null,
-        no2: owmPollutionData?.no2 || null,
-        so2: owmPollutionData?.so2 || null,
-        co: owmPollutionData?.co || null,
-        o3: owmPollutionData?.o3 || null,
+        aqi: iqAirPollution?.aqius || (owmAqi ? owmAqi * 50 : null),
+        mainPollutant: iqAirPollution?.mainus || 'p2',
+        pm25: owmComponents?.pm2_5 || iqAirPollution?.aqius || null,
+        pm10: owmComponents?.pm10 || null,
+        no2: owmComponents?.no2 || null,
+        so2: owmComponents?.so2 || null,
+        co: owmComponents?.co || null,
+        o3: owmComponents?.o3 || null,
       },
     };
 
-    console.log('Combined environment data:', JSON.stringify(result));
+    console.log('Final combined data:', JSON.stringify(result));
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
