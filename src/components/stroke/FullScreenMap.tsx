@@ -35,9 +35,16 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
   className
 }) => {
   const [showAQILayer, setShowAQILayer] = useState(false);
+  const [mapKey, setMapKey] = useState(0); // Force iframe reload
   
   const lat = gps?.lat || 10.7769;
   const lon = gps?.lon || 106.7009;
+
+  // Toggle AQI layer with forced reload
+  const toggleAQILayer = () => {
+    setShowAQILayer(prev => !prev);
+    setMapKey(prev => prev + 1); // Increment to force iframe remount
+  };
 
   // Get AQI color and label
   const getAQIInfo = (aqi: number | null) => {
@@ -59,10 +66,11 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     return mins > 0 ? `${hours}h ${mins}p` : `${hours} giờ`;
   };
 
-  // Windy embed URL - thay đổi overlay dựa trên showAQILayer
+  // Windy embed URL - use different overlay and product for AQI
+  // pm25 overlay with cams product shows PM2.5 pollution data
   const overlay = showAQILayer ? 'pm25' : 'wind';
   const product = showAQILayer ? 'cams' : 'ecmwf';
-  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=15&overlay=${overlay}&product=${product}&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true&webcams=true&spot=${lat},${lon}`;
+  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=11&overlay=${overlay}&product=${product}&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true`;
 
   return (
     <div className={cn(
@@ -70,14 +78,14 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
       isBlurred && "scale-[1.02] brightness-[0.3] blur-sm",
       className
     )}>
-      {/* Windy Map với định vị sẵn có - key để reload khi đổi layer */}
+      {/* Windy Map - key forces complete reload when switching layers */}
       <iframe
-        key={`windy-${showAQILayer ? 'aqi' : 'wind'}`}
+        key={`windy-map-${mapKey}`}
         src={windyUrl}
         className="absolute inset-0 w-full h-full border-0"
         style={{ minHeight: '100vh', minWidth: '100vw' }}
         allow="geolocation"
-        title="Windy Weather Map"
+        title={showAQILayer ? "Windy AQI Map" : "Windy Weather Map"}
       />
 
       {/* Top gradient overlay */}
@@ -92,7 +100,7 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
               {/* AQI - Clickable */}
               {environment.aqi !== null && (
                 <button
-                  onClick={() => setShowAQILayer(!showAQILayer)}
+                  onClick={toggleAQILayer}
                   className={cn(
                     "w-full px-3 py-2 text-left transition-all",
                     showAQILayer ? aqiInfo.color : "hover:bg-muted/50"
