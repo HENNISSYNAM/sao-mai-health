@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.stroke-risk-chat]
 verify_jwt = false
+
+[functions.stroke-health-ai]
+verify_jwt = false

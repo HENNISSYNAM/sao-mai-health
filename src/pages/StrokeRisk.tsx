@@ -123,6 +123,9 @@ const StrokeRisk: React.FC = () => {
         environment={environment}
         pressureChange1h={barometer.pressureChange1h}
         isVisible={showRiskOverlay && !isChatOpen}
+        ageGroup={userData.ageGroup}
+        gps={userData.gps}
+        devicePressure={userData.devicePressure}
       />
 
       {/* Chat Toggle Button (shown when chat is closed) */}
