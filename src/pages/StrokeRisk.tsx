@@ -139,6 +139,7 @@ const StrokeRisk: React.FC = () => {
         riskAssessment={riskAssessment}
         environment={environment}
         pressureChange1h={barometer.pressureChange1h}
+        pressureChange24h={barometer.pressureChange24h}
         isVisible={showRiskOverlay && !isChatOpen}
         ageGroup={userData.ageGroup}
         gps={userData.gps}
