@@ -5,10 +5,15 @@ import FullScreenMap from '@/components/stroke/FullScreenMap';
 import GrokChatPanel from '@/components/stroke/GrokChatPanel';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
 import ChatToggleButton from '@/components/stroke/ChatToggleButton';
-import { Loader2, MapPin } from 'lucide-react';
+import MLAnalyticsDashboard from '@/components/stroke/MLAnalyticsDashboard';
+import { Loader2, MapPin, BarChart3, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+
+type ViewMode = 'tracking' | 'statistics';
 
 const StrokeRisk: React.FC = () => {
+  const [viewMode, setViewMode] = useState<ViewMode>('tracking');
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showRiskOverlay, setShowRiskOverlay] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -68,22 +73,42 @@ const StrokeRisk: React.FC = () => {
 
   // Show risk overlay when initialized and chat is closed
   useEffect(() => {
-    if (isInitialized && !isChatOpen) {
+    if (isInitialized && !isChatOpen && viewMode === 'tracking') {
       setShowRiskOverlay(true);
+    } else {
+      setShowRiskOverlay(false);
     }
-  }, [isInitialized, isChatOpen]);
+  }, [isInitialized, isChatOpen, viewMode]);
 
-  // Handle chat close - transition to monitoring mode
   const handleChatClose = useCallback(() => {
     setIsChatOpen(false);
   }, []);
 
-  // Handle chat open
   const handleChatOpen = useCallback(() => {
     setIsChatOpen(true);
     setShowRiskOverlay(false);
   }, []);
 
+  // Statistics view
+  if (viewMode === 'statistics') {
+    return (
+      <div className="relative">
+        {/* View Toggle Button */}
+        <div className="fixed top-4 right-4 z-50">
+          <Button
+            onClick={() => setViewMode('tracking')}
+            className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg"
+          >
+            <Navigation className="h-4 w-4 mr-2" />
+            Theo dõi
+          </Button>
+        </div>
+        <MLAnalyticsDashboard />
+      </div>
+    );
+  }
+
+  // Tracking view
   return (
     <div className="fixed inset-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, hsl(210 40% 8%) 0%, hsl(210 50% 12%) 50%, hsl(199 40% 15%) 100%)' }}>
       {/* Full Screen Map Background */}
@@ -101,6 +126,17 @@ const StrokeRisk: React.FC = () => {
         locationConfidence={userData.locationConfidence}
         safeOutdoorMinutes={userData.safeOutdoorMinutes}
       />
+
+      {/* View Toggle Button */}
+      <div className="fixed top-4 right-4 z-50">
+        <Button
+          onClick={() => setViewMode('statistics')}
+          className="bg-slate-800/80 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600"
+        >
+          <BarChart3 className="h-4 w-4 mr-2" />
+          Thống kê
+        </Button>
+      </div>
 
       {/* Loading Overlay */}
       {(isLoading || (gpsLoading && !userData.gps)) && (
@@ -121,7 +157,6 @@ const StrokeRisk: React.FC = () => {
           </div>
         </div>
       )}
-
 
       {/* Grok-style Chat Panel */}
       <GrokChatPanel
