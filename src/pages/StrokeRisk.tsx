@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
 import { 
   Brain, 
   MapPin, 
@@ -13,7 +14,14 @@ import {
   AlertTriangle,
   Thermometer,
   Wind,
-  Droplets
+  Droplets,
+  Phone,
+  Radio,
+  Clock,
+  Shield,
+  TrendingUp,
+  TrendingDown,
+  Gauge
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -35,6 +43,7 @@ const StrokeRisk: React.FC = () => {
   const [predictions, setPredictions] = useState<any[]>([]);
   const [selectedZone, setSelectedZone] = useState<any>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showPanel, setShowPanel] = useState(true);
 
   const barometer = useBarometer();
 
@@ -44,7 +53,7 @@ const StrokeRisk: React.FC = () => {
   }, []);
 
   // Fetch predictions
-  const fetchPredictions = async () => {
+  const fetchPredictions = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('stroke_risk_predictions')
@@ -56,19 +65,19 @@ const StrokeRisk: React.FC = () => {
       setPredictions(data || []);
       
       // Simulate barometer from weather data
-      if (data?.[0]?.pressure) {
+      if (data?.[0]?.pressure && typeof data[0].pressure === 'number') {
         barometer.simulatePressureFromWeather(data[0].pressure);
       }
     } catch (error) {
       console.error('Error fetching predictions:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchPredictions();
     const interval = setInterval(fetchPredictions, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchPredictions]);
 
   // Generate new predictions
   const generatePredictions = async () => {
@@ -77,7 +86,7 @@ const StrokeRisk: React.FC = () => {
     try {
       const { data, error } = await supabase.functions.invoke('stroke-risk-agent', {});
       if (error) throw error;
-      if (data.success) {
+      if (data?.success) {
         toast.success(`Đã cập nhật ${data.predictions?.length || 0} khu vực`);
         fetchPredictions();
       }
@@ -97,10 +106,10 @@ const StrokeRisk: React.FC = () => {
       totalZones: predictions.length,
       highRiskZones: highRisk.length,
       criticalZones: criticalCount,
-      avgAqi: predictions.reduce((a, b) => a + (b.aqi || 0), 0) / (predictions.length || 1),
-      avgTemperature: predictions.reduce((a, b) => a + (b.temperature || 0), 0) / (predictions.length || 1),
-      avgHumidity: predictions.reduce((a, b) => a + (b.humidity || 0), 0) / (predictions.length || 1),
-      avgPressure: predictions.reduce((a, b) => a + (b.pressure || 0), 0) / (predictions.length || 1),
+      avgAqi: predictions.length > 0 ? predictions.reduce((a, b) => a + (b.aqi || 0), 0) / predictions.length : 0,
+      avgTemperature: predictions.length > 0 ? predictions.reduce((a, b) => a + (b.temperature || 0), 0) / predictions.length : 0,
+      avgHumidity: predictions.length > 0 ? predictions.reduce((a, b) => a + (b.humidity || 0), 0) / predictions.length : 0,
+      avgPressure: predictions.length > 0 ? predictions.reduce((a, b) => a + (b.pressure || 0), 0) / predictions.length : 1013,
       lastUpdate: predictions[0]?.predicted_at || new Date().toISOString()
     };
   }, [predictions]);
@@ -108,14 +117,18 @@ const StrokeRisk: React.FC = () => {
   // Risk distribution for chart
   const riskDistribution = useMemo(() => {
     const counts = { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 };
-    predictions.forEach(p => { if (counts[p.risk_level as keyof typeof counts] !== undefined) counts[p.risk_level as keyof typeof counts]++; });
+    predictions.forEach(p => { 
+      if (p.risk_level && counts[p.risk_level as keyof typeof counts] !== undefined) {
+        counts[p.risk_level as keyof typeof counts]++;
+      }
+    });
     return Object.entries(counts).map(([level, count]) => ({ level, count }));
   }, [predictions]);
 
   // Pollution data for chart
   const pollutionData = useMemo(() => {
     return predictions.slice(0, 8).map((p, i) => ({
-      time: p.district_id?.substring(0, 6) || `Zone ${i}`,
+      time: p.district_id?.substring(0, 6) || `Zone ${i + 1}`,
       aqi: p.aqi || 0,
       pm25: p.pm25 || 0
     }));
@@ -130,38 +143,59 @@ const StrokeRisk: React.FC = () => {
     }
   };
 
+  const getRiskLabel = (level: string) => {
+    switch (level) {
+      case 'CRITICAL': return 'Rất cao';
+      case 'HIGH': return 'Cao';
+      case 'MEDIUM': return 'Trung bình';
+      default: return 'Thấp';
+    }
+  };
+
   const overallRisk = stats.criticalZones > 0 ? 'CRITICAL' : stats.highRiskZones > 2 ? 'HIGH' : stats.highRiskZones > 0 ? 'MEDIUM' : 'LOW';
 
   return (
     <div className={cn("flex flex-col bg-background", isFullscreen ? "fixed inset-0 z-50" : "min-h-screen")}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-card border-b-2 border-border shrink-0">
+      <header className="flex items-center justify-between px-4 py-3 bg-card border-b-2 border-border shrink-0">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <div className="p-3 rounded-2xl bg-primary/10 border-2 border-primary/20">
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-primary/20 to-danger/20 border-2 border-primary/30">
               <Brain className="h-6 w-6 text-primary" />
             </div>
             <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-success animate-pulse border-2 border-card" />
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold tracking-tight">Hệ Thống Cảnh Báo Đột Quỵ</h1>
-              <Badge className={cn("text-xs font-bold uppercase", getRiskColor(overallRisk))}>
-                {overallRisk === 'CRITICAL' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                {overallRisk}
+              <h1 className="text-xl font-bold tracking-tight font-display">Hệ Thống Cảnh Báo Đột Quỵ</h1>
+              <Badge className={cn("text-xs font-bold uppercase gap-1", getRiskColor(overallRisk))}>
+                {overallRisk === 'CRITICAL' && <AlertTriangle className="h-3 w-3" />}
+                {getRiskLabel(overallRisk)}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <Activity className="h-3 w-3" />
-              Dữ liệu real-time từ WAQI & Open-Meteo
-            </p>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <Radio className="h-3 w-3 text-success animate-pulse" />
+                Live
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Shield className="h-3 w-3" />
+                AI-powered
+              </span>
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Emergency Hotline */}
+          <div className="hidden xl:flex items-center gap-2 px-4 py-2 rounded-xl bg-danger/10 border border-danger/30">
+            <Phone className="h-4 w-4 text-danger" />
+            <span className="text-sm font-bold text-danger">Cấp cứu: 115</span>
+          </div>
+
           {/* Live Time */}
           <div className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 border border-border">
-            <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            <Clock className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-mono font-semibold">
               {currentTime.toLocaleTimeString('vi-VN')}
             </span>
@@ -202,36 +236,51 @@ const StrokeRisk: React.FC = () => {
             {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
           </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Stats Bar */}
-      <div className="flex items-center gap-4 px-4 py-3 bg-card/50 border-b border-border overflow-x-auto">
-        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-danger/10 border border-danger/20">
-          <AlertTriangle className="h-4 w-4 text-danger" />
-          <span className="text-sm font-semibold text-danger">{stats.criticalZones} vùng nguy hiểm</span>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-secondary/10 border border-secondary/20">
+      {/* Quick Stats Bar */}
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-card/50 border-b border-border overflow-x-auto">
+        {stats.criticalZones > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-danger/10 border border-danger/30 animate-pulse-glow">
+            <AlertTriangle className="h-4 w-4 text-danger" />
+            <span className="text-sm font-bold text-danger">{stats.criticalZones} vùng nguy hiểm</span>
+          </div>
+        )}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary/10 border border-secondary/30">
           <Heart className="h-4 w-4 text-secondary" />
-          <span className="text-sm font-semibold text-secondary">{stats.highRiskZones} vùng rủi ro cao</span>
+          <span className="text-sm font-medium text-secondary">{stats.highRiskZones} vùng rủi ro cao</span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 border border-border">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30 border border-border">
           <Thermometer className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">{stats.avgTemperature.toFixed(1)}°C</span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 border border-border">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30 border border-border">
           <Wind className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">AQI: {stats.avgAqi.toFixed(0)}</span>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-muted/50 border border-border">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30 border border-border">
           <Droplets className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">{stats.avgHumidity.toFixed(0)}%</span>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/30 border border-border">
+          <Gauge className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">{stats.avgPressure.toFixed(0)} hPa</span>
+          {barometer.pressureChange1h !== null && (
+            <span className={cn(
+              "flex items-center text-xs",
+              barometer.pressureChange1h < -2 ? "text-danger" : barometer.pressureChange1h > 2 ? "text-warning" : "text-success"
+            )}>
+              {barometer.pressureChange1h < 0 ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+              {barometer.pressureChange1h > 0 ? '+' : ''}{barometer.pressureChange1h.toFixed(1)}
+            </span>
+          )}
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
         {/* Map */}
-        <div className="flex-1 relative min-h-[400px] lg:min-h-0 p-2">
+        <div className="flex-1 relative">
           <div className="absolute inset-2 rounded-2xl overflow-hidden border-2 border-border shadow-xl">
             <StrokeRiskMap 
               selectedCity={selectedCity} 
@@ -239,19 +288,35 @@ const StrokeRisk: React.FC = () => {
               className="absolute inset-0"
             />
           </div>
+
+          {/* Toggle Panel Button */}
+          <Button
+            variant="secondary"
+            size="sm"
+            className="absolute top-4 right-4 z-20 lg:hidden"
+            onClick={() => setShowPanel(!showPanel)}
+          >
+            {showPanel ? 'Ẩn' : 'Hiện'} thông tin
+          </Button>
         </div>
 
         {/* Side Panel */}
-        <div className="w-full lg:w-[420px] bg-card border-l-2 border-border overflow-y-auto">
+        <aside className={cn(
+          "w-full lg:w-[420px] bg-card border-l-2 border-border overflow-y-auto transition-all duration-300",
+          !showPanel && "hidden lg:block"
+        )}>
           <div className="p-4 space-y-4">
             {/* Age Group Selector */}
-            <div className="p-4 rounded-2xl bg-muted/30 border-2 border-border">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Nhóm tuổi của bạn</p>
+            <Card className="p-4 bg-gradient-to-br from-primary/5 to-danger/5 border-2 border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <Activity className="h-4 w-4 text-primary" />
+                <p className="text-sm font-semibold">Nhóm tuổi của bạn</p>
+              </div>
               <AgeGroupSelector value={ageGroup} onChange={setAgeGroup} />
-            </div>
+            </Card>
 
-            {/* Stats */}
-            <RiskStatsPanel stats={stats} className="grid-cols-2" />
+            {/* Stats Grid */}
+            <RiskStatsPanel stats={stats} />
 
             {/* Charts */}
             <RiskCharts 
@@ -274,8 +339,54 @@ const StrokeRisk: React.FC = () => {
                 pressureChange: barometer.pressureChange1h || undefined
               }}
             />
+
+            {/* Selected Zone Info */}
+            {selectedZone && (
+              <Card className="p-4 bg-muted/30 border-2 border-primary/30">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    {selectedZone.district_id}
+                  </h3>
+                  <Badge className={getRiskColor(selectedZone.risk_level)}>
+                    {getRiskLabel(selectedZone.risk_level)}
+                  </Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Wind className="h-4 w-4 text-muted-foreground" />
+                    <span>AQI: {selectedZone.aqi}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Thermometer className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedZone.temperature?.toFixed(1)}°C</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Droplets className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedZone.humidity?.toFixed(0)}%</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Gauge className="h-4 w-4 text-muted-foreground" />
+                    <span>{selectedZone.pressure?.toFixed(0)} hPa</span>
+                  </div>
+                </div>
+                {selectedZone.ai_analysis && (
+                  <p className="mt-3 text-xs text-muted-foreground border-t border-border pt-3">
+                    {selectedZone.ai_analysis}
+                  </p>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full mt-3"
+                  onClick={() => setSelectedZone(null)}
+                >
+                  Đóng
+                </Button>
+              </Card>
+            )}
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );

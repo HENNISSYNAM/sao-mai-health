@@ -17,7 +17,6 @@ interface BarometerState {
 
 const STORAGE_KEY = 'stroke_barometer_history';
 const MAX_HISTORY_HOURS = 72;
-const READING_INTERVAL_MS = 60000; // 1 minute
 
 export function useBarometer() {
   const [state, setState] = useState<BarometerState>({
@@ -31,7 +30,7 @@ export function useBarometer() {
   });
 
   const sensorRef = useRef<any>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const historyRef = useRef<BarometerReading[]>([]);
 
   // Load history from localStorage
   const loadHistory = useCallback((): BarometerReading[] => {
@@ -88,27 +87,25 @@ export function useBarometer() {
       timestamp: Date.now()
     };
 
-    setState(prev => {
-      const newHistory = [...prev.pressureHistory, reading];
-      const changes = calculateChanges(newHistory, pressure);
-      
-      saveHistory(newHistory);
-      
-      return {
-        ...prev,
-        currentPressure: pressure,
-        pressureHistory: newHistory,
-        pressureChange1h: changes.change1h,
-        pressureChange24h: changes.change24h
-      };
-    });
+    const currentHistory = historyRef.current;
+    const newHistory = [...currentHistory, reading];
+    historyRef.current = newHistory;
+    
+    const changes = calculateChanges(newHistory, pressure);
+    saveHistory(newHistory);
+
+    setState(prev => ({
+      ...prev,
+      currentPressure: pressure,
+      pressureHistory: newHistory,
+      pressureChange1h: changes.change1h,
+      pressureChange24h: changes.change24h
+    }));
   }, [calculateChanges, saveHistory]);
 
   // Start barometer sensor
   const startBarometer = useCallback(async () => {
-    // Check for Web Sensor API support
     if (!('Barometer' in window)) {
-      // Fallback: use weather API pressure as estimate
       setState(prev => ({
         ...prev,
         isSupported: false,
@@ -118,24 +115,11 @@ export function useBarometer() {
     }
 
     try {
-      // Request permission for sensors
-      const result = await navigator.permissions.query({ name: 'ambient-pressure' as PermissionName });
-      
-      if (result.state === 'denied') {
-        setState(prev => ({
-          ...prev,
-          isSupported: true,
-          error: 'Quyền truy cập cảm biến bị từ chối'
-        }));
-        return false;
-      }
-
-      // Initialize sensor
       const Barometer = (window as any).Barometer;
       sensorRef.current = new Barometer({ frequency: 1 });
       
       sensorRef.current.addEventListener('reading', () => {
-        const pressure = sensorRef.current.pressure;
+        const pressure = sensorRef.current?.pressure;
         if (pressure) {
           addReading(pressure);
         }
@@ -144,7 +128,7 @@ export function useBarometer() {
       sensorRef.current.addEventListener('error', (event: any) => {
         setState(prev => ({
           ...prev,
-          error: `Lỗi cảm biến: ${event.error.message}`
+          error: `Lỗi cảm biến: ${event.error?.message || 'Unknown error'}`
         }));
       });
 
@@ -175,21 +159,32 @@ export function useBarometer() {
       sensorRef.current.stop();
       sensorRef.current = null;
     }
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
     setState(prev => ({ ...prev, isActive: false }));
   }, []);
 
   // Simulate pressure reading from weather API
-  const simulatePressureFromWeather = useCallback(async (pressure: number) => {
-    addReading(pressure);
+  const simulatePressureFromWeather = useCallback((pressure: number) => {
+    if (pressure && typeof pressure === 'number' && !isNaN(pressure)) {
+      addReading(pressure);
+    }
   }, [addReading]);
+
+  // Get latest trend
+  const getLatestTrend = useCallback(() => {
+    const { pressureChange1h, pressureChange24h } = state;
+    if (pressureChange1h !== null && Math.abs(pressureChange1h) > 3) {
+      return pressureChange1h < 0 ? 'rapid_drop' : 'rapid_rise';
+    }
+    if (pressureChange24h !== null && Math.abs(pressureChange24h) > 8) {
+      return pressureChange24h < 0 ? 'significant_drop' : 'significant_rise';
+    }
+    return 'stable';
+  }, [state]);
 
   // Initialize on mount
   useEffect(() => {
     const history = loadHistory();
+    historyRef.current = history;
     setState(prev => ({ ...prev, pressureHistory: history }));
     
     return () => {
@@ -202,15 +197,6 @@ export function useBarometer() {
     startBarometer,
     stopBarometer,
     simulatePressureFromWeather,
-    getLatestTrend: () => {
-      const { pressureChange1h, pressureChange24h } = state;
-      if (pressureChange1h !== null && Math.abs(pressureChange1h) > 3) {
-        return pressureChange1h < 0 ? 'rapid_drop' : 'rapid_rise';
-      }
-      if (pressureChange24h !== null && Math.abs(pressureChange24h) > 8) {
-        return pressureChange24h < 0 ? 'significant_drop' : 'significant_rise';
-      }
-      return 'stable';
-    }
+    getLatestTrend
   };
 }
