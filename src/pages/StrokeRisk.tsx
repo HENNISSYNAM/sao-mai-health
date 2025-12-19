@@ -25,14 +25,20 @@ const StrokeRisk: React.FC = () => {
     refreshData
   } = useStrokeRiskEngine();
 
-  // Initialize monitoring on mount
+  // Initialize monitoring on mount - only run once
   useEffect(() => {
+    let mounted = true;
     const init = async () => {
       await startMonitoring();
-      setIsInitialized(true);
+      if (mounted) {
+        setIsInitialized(true);
+      }
     };
     init();
-  }, [startMonitoring]);
+    return () => {
+      mounted = false;
+    };
+  }, []); // Empty dependency array - run only once
 
   // Show risk overlay when chat closes and risk is medium+
   useEffect(() => {
@@ -53,7 +59,7 @@ const StrokeRisk: React.FC = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-background overflow-hidden">
+    <div className="fixed inset-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, hsl(210 40% 8%) 0%, hsl(210 50% 12%) 50%, hsl(199 40% 15%) 100%)' }}>
       {/* Full Screen Map Background */}
       <FullScreenMap
         gps={userData.gps}
