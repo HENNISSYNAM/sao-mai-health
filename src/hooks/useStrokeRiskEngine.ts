@@ -111,8 +111,8 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
   const outdoorStartTimeRef = useRef<number | null>(null);
   const hasShownWarningRef = useRef<boolean>(false);
   const envCacheRef = useRef<{ data: EnvironmentData; timestamp: number; lat: number; lon: number } | null>(null);
-  const ENV_CACHE_DURATION = 60000; // 1 minute cache
-  const ENV_DISTANCE_THRESHOLD = 0.01; // ~1km - refetch if moved more than this
+  const ENV_CACHE_DURATION = 30000; // 30 seconds cache - faster updates
+  const ENV_DISTANCE_THRESHOLD = 0.005; // ~500m - refetch if moved more than this
 
   // Hash phone number for anonymization
   const hashPhone = useCallback(async (phone: string): Promise<string> => {
@@ -160,8 +160,8 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       return;
     }
 
-    // Throttle: only fetch every 15 seconds minimum (reduced from 20s)
-    if (!forceRefresh && now - lastEnvFetchRef.current < 15000) {
+    // Throttle: only fetch every 10 seconds minimum - faster updates
+    if (!forceRefresh && now - lastEnvFetchRef.current < 10000) {
       console.log('Throttling environment fetch');
       return;
     }
@@ -226,9 +226,9 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
 
   // Detect if user is indoor or outdoor using AI
   const detectLocationType = useCallback(async (lat: number, lon: number, gpsAccuracy: number | null, gpsHistory: GPSPoint[]) => {
-    // Throttle: only check every 60 seconds minimum
+    // Throttle: only check every 45 seconds minimum - faster detection
     const now = Date.now();
-    if (now - lastLocationCheckRef.current < 60000) {
+    if (now - lastLocationCheckRef.current < 45000) {
       return null;
     }
     lastLocationCheckRef.current = now;
@@ -473,10 +473,10 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
         }
       },
       {
-        // Maximum accuracy settings
+        // Optimized accuracy settings - balance speed vs accuracy
         enableHighAccuracy: true,
-        timeout: 30000, // Increased timeout for better accuracy
-        maximumAge: 0 // Always get fresh position, never use cached
+        timeout: 15000, // Faster timeout
+        maximumAge: 5000 // Allow 5 second cache for faster updates
       }
     );
   }, [generateGPSId, fetchEnvironment, applyKalmanFilter, requestWakeLock]);
@@ -743,9 +743,9 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     // Start barometer immediately (non-blocking)
     barometer.startBarometer();
     
-    // Try to use cached environment data immediately
+    // Try to use cached environment data immediately (any cache within 2 min)
     const cachedEnv = envCacheRef.current;
-    if (cachedEnv && Date.now() - cachedEnv.timestamp < ENV_CACHE_DURATION * 3) {
+    if (cachedEnv && Date.now() - cachedEnv.timestamp < 120000) {
       const devicePressure = barometer.currentPressure;
       setEnvironment({
         ...cachedEnv.data,
@@ -813,12 +813,12 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     // PRIORITY 2: Start GPS tracking for continuous updates
     startGPSTracking();
 
-    // Set up periodic environment refresh (every 60 seconds for real-time data)
+    // Set up periodic environment refresh (every 30 seconds for real-time data)
     refreshIntervalRef.current = setInterval(() => {
       if (userData.gps) {
-        fetchEnvironment(userData.gps.lat, userData.gps.lon);
+        fetchEnvironment(userData.gps.lat, userData.gps.lon, true); // Force refresh for periodic
       }
-    }, 60000);
+    }, 30000);
   }, [barometer, startGPSTracking, fetchEnvironment, userData.gps]);
 
   // Stop monitoring
