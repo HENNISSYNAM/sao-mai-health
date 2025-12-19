@@ -89,7 +89,7 @@ const StrokeRisk: React.FC = () => {
     setShowRiskOverlay(false);
   }, []);
 
-  // Statistics view
+  // Statistics view - pass tracking data for tight integration
   if (viewMode === 'statistics') {
     return (
       <div className="relative">
@@ -97,13 +97,21 @@ const StrokeRisk: React.FC = () => {
         <div className="fixed top-4 right-4 z-50">
           <Button
             onClick={() => setViewMode('tracking')}
-            className="bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg"
+            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
           >
             <Navigation className="h-4 w-4 mr-2" />
             Theo dõi
           </Button>
         </div>
-        <MLAnalyticsDashboard />
+        <MLAnalyticsDashboard 
+          gps={userData.gps}
+          environment={environment}
+          riskAssessment={riskAssessment}
+          ageGroup={userData.ageGroup}
+          isTracking={isTracking}
+          outdoorMinutes={userData.outdoorMinutes}
+          locationConfidence={userData.locationConfidence}
+        />
       </div>
     );
   }
