@@ -11,11 +11,13 @@ import {
 import { 
   Activity, Wind, Thermometer, Droplets, TrendingUp, TrendingDown, 
   RefreshCw, Brain, Building2, Ambulance, Clock, MapPin,
-  AlertTriangle, Users, Heart, Zap, BarChart3, Loader2
+  AlertTriangle, Users, Heart, Zap, BarChart3, Loader2, Navigation,
+  Shield, Target, DollarSign, Truck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { EnvironmentData, RiskAssessment, AgeGroup, GPSPoint } from '@/hooks/useStrokeRiskEngine';
 
 interface AnalyticsData {
   pollution: {
@@ -50,7 +52,26 @@ interface AnalyticsData {
   lastUpdated: string;
 }
 
-const MLAnalyticsDashboard: React.FC = () => {
+interface MLAnalyticsDashboardProps {
+  // Data from tracking view
+  gps?: { lat: number; lon: number } | null;
+  environment?: EnvironmentData;
+  riskAssessment?: RiskAssessment;
+  ageGroup?: AgeGroup;
+  isTracking?: boolean;
+  outdoorMinutes?: number;
+  locationConfidence?: number;
+}
+
+const MLAnalyticsDashboard: React.FC<MLAnalyticsDashboardProps> = ({
+  gps,
+  environment,
+  riskAssessment,
+  ageGroup = '36-55',
+  isTracking = false,
+  outdoorMinutes = 0,
+  locationConfidence = 0
+}) => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -60,8 +81,19 @@ const MLAnalyticsDashboard: React.FC = () => {
     try {
       if (showRefreshToast) setRefreshing(true);
       
+      // Use GPS location from tracking if available
+      const location = gps 
+        ? { lat: gps.lat, lon: gps.lon, name: 'Vị trí hiện tại' }
+        : { name: 'Ho Chi Minh City' };
+      
       const { data: result, error } = await supabase.functions.invoke('stroke-analytics-data', {
-        body: { location: 'Ho Chi Minh City' }
+        body: { 
+          location: location.name,
+          coordinates: gps ? { lat: gps.lat, lon: gps.lon } : null,
+          userEnvironment: environment,
+          userRisk: riskAssessment,
+          ageGroup
+        }
       });
 
       if (error) throw error;
@@ -79,9 +111,9 @@ const MLAnalyticsDashboard: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [gps, environment, riskAssessment, ageGroup]);
 
-  // Initial load
+  // Initial load and refetch when location changes
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -96,15 +128,24 @@ const MLAnalyticsDashboard: React.FC = () => {
     switch (risk) {
       case 'LOW': return 'hsl(142, 71%, 45%)';
       case 'MEDIUM': return 'hsl(38, 92%, 50%)';
-      case 'HIGH': return 'hsl(25, 95%, 53%)';
+      case 'HIGH': return 'hsl(0, 84%, 60%)';
       case 'CRITICAL': return 'hsl(0, 72%, 51%)';
       default: return 'hsl(215, 20%, 65%)';
     }
   };
 
+  const getRiskBadgeClass = (level: string) => {
+    switch (level) {
+      case 'LOW': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'MEDIUM': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'HIGH': return 'bg-red-100 text-red-700 border-red-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
+
   const getAQIColor = (aqi: number) => {
     if (aqi <= 50) return 'hsl(142, 71%, 45%)';
-    if (aqi <= 100) return 'hsl(55, 100%, 50%)';
+    if (aqi <= 100) return 'hsl(55, 100%, 45%)';
     if (aqi <= 150) return 'hsl(38, 92%, 50%)';
     if (aqi <= 200) return 'hsl(25, 95%, 53%)';
     return 'hsl(0, 72%, 51%)';
@@ -120,10 +161,10 @@ const MLAnalyticsDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
         <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-cyan-400 mx-auto" />
-          <p className="text-lg text-slate-300">Đang tải dữ liệu phân tích...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
+          <p className="text-lg text-slate-600">Đang tải dữ liệu phân tích...</p>
         </div>
       </div>
     );
@@ -131,25 +172,48 @@ const MLAnalyticsDashboard: React.FC = () => {
 
   if (!data) return null;
 
+  // Use real-time data from tracking if available
+  const currentAQI = environment?.aqi ?? data.pollution.current.aqi;
+  const currentTemp = environment?.temperature ?? data.weather.current.temp;
+  const currentHumidity = environment?.humidity ?? data.weather.current.humidity;
+  const currentPressure = environment?.pressure ?? data.weather.current.pressure;
+  const currentRiskScore = riskAssessment?.risk_score ?? 0;
+  const currentRiskLevel = riskAssessment?.risk_level ?? 'LOW';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-900 p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 p-4 md:p-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-800 flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-200">
               <Brain className="h-6 w-6 text-white" />
             </div>
-            Phân tích ML - Đột quỵ
+            Phân tích Thống kê
           </h1>
-          <p className="text-slate-400 mt-1">Dự đoán & Thống kê thời gian thực TP.HCM</p>
+          <p className="text-slate-500 mt-1 flex items-center gap-2">
+            {gps ? (
+              <>
+                <MapPin className="h-4 w-4 text-blue-500" />
+                <span>Vị trí: {gps.lat.toFixed(4)}, {gps.lon.toFixed(4)}</span>
+                {isTracking && (
+                  <Badge className="bg-green-100 text-green-700 text-xs ml-2">
+                    <Navigation className="h-3 w-3 mr-1" />
+                    Đang theo dõi
+                  </Badge>
+                )}
+              </>
+            ) : (
+              <span>TP. Hồ Chí Minh</span>
+            )}
+          </p>
         </div>
         
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-sm text-slate-300">Live</span>
-            <span className="text-xs text-slate-500">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow-sm border border-slate-200">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-sm font-medium text-slate-600">Trực tiếp</span>
+            <span className="text-xs text-slate-400">
               {lastUpdate?.toLocaleTimeString('vi-VN')}
             </span>
           </div>
@@ -158,7 +222,7 @@ const MLAnalyticsDashboard: React.FC = () => {
             size="sm" 
             onClick={() => fetchData(true)}
             disabled={refreshing}
-            className="bg-slate-800/50 border-slate-700 text-slate-300 hover:bg-slate-700"
+            className="bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-sm"
           >
             <RefreshCw className={cn("h-4 w-4 mr-2", refreshing && "animate-spin")} />
             Cập nhật
@@ -166,94 +230,167 @@ const MLAnalyticsDashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Real-time Status Banner */}
+      {riskAssessment && (
+        <div className={cn(
+          "mb-6 p-4 rounded-2xl border shadow-sm",
+          currentRiskLevel === 'HIGH' ? 'bg-red-50 border-red-200' :
+          currentRiskLevel === 'MEDIUM' ? 'bg-amber-50 border-amber-200' :
+          'bg-emerald-50 border-emerald-200'
+        )}>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "p-3 rounded-xl",
+                currentRiskLevel === 'HIGH' ? 'bg-red-100' :
+                currentRiskLevel === 'MEDIUM' ? 'bg-amber-100' :
+                'bg-emerald-100'
+              )}>
+                <Shield className={cn(
+                  "h-6 w-6",
+                  currentRiskLevel === 'HIGH' ? 'text-red-600' :
+                  currentRiskLevel === 'MEDIUM' ? 'text-amber-600' :
+                  'text-emerald-600'
+                )} />
+              </div>
+              <div>
+                <p className="font-semibold text-slate-800">Trạng thái rủi ro hiện tại</p>
+                <p className="text-sm text-slate-600">
+                  Điểm số: <span className="font-bold">{currentRiskScore}</span>/100 • 
+                  Độ tin cậy vị trí: {locationConfidence}%
+                </p>
+              </div>
+            </div>
+            <Badge className={cn("text-sm px-4 py-2", getRiskBadgeClass(currentRiskLevel))}>
+              {currentRiskLevel === 'HIGH' ? 'Rủi ro cao' : 
+               currentRiskLevel === 'MEDIUM' ? 'Rủi ro trung bình' : 'Rủi ro thấp'}
+            </Badge>
+          </div>
+          {riskAssessment.primary_factors.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {riskAssessment.primary_factors.map((factor, idx) => (
+                <Badge key={idx} variant="outline" className="bg-white/50 text-slate-600 text-xs">
+                  {factor}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <Card className="bg-gradient-to-br from-red-500/20 to-red-600/10 border-red-500/30 backdrop-blur-sm">
+        <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-red-200/80">Ca hôm nay</p>
-                <p className="text-3xl font-bold text-white mt-1">{data.strokeCases.today}</p>
+                <p className="text-sm text-slate-500 font-medium">Ca hôm nay</p>
+                <p className="text-3xl font-bold text-slate-800 mt-1">{data.strokeCases.today}</p>
                 <div className={cn(
-                  "flex items-center gap-1 mt-2 text-xs",
-                  data.strokeCases.trend >= 0 ? "text-red-400" : "text-green-400"
+                  "flex items-center gap-1 mt-2 text-xs font-medium",
+                  data.strokeCases.trend >= 0 ? "text-red-500" : "text-green-500"
                 )}>
                   {data.strokeCases.trend >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                   <span>{Math.abs(data.strokeCases.trend)}% so với tuần trước</span>
                 </div>
               </div>
-              <div className="p-2 rounded-lg bg-red-500/20">
-                <Heart className="h-5 w-5 text-red-400" />
+              <div className="p-2.5 rounded-xl bg-red-50">
+                <Heart className="h-5 w-5 text-red-500" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 border-amber-500/30 backdrop-blur-sm">
+        <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-amber-200/80">AQI hiện tại</p>
-                <p className="text-3xl font-bold text-white mt-1">{data.pollution.current.aqi}</p>
-                <p className="text-xs mt-2" style={{ color: getAQIColor(data.pollution.current.aqi) }}>
-                  {getAQILevel(data.pollution.current.aqi)}
+                <p className="text-sm text-slate-500 font-medium">AQI {gps ? '(thực tế)' : ''}</p>
+                <p className="text-3xl font-bold text-slate-800 mt-1">{currentAQI}</p>
+                <p className="text-xs mt-2 font-medium" style={{ color: getAQIColor(currentAQI) }}>
+                  {getAQILevel(currentAQI)}
                 </p>
               </div>
-              <div className="p-2 rounded-lg bg-amber-500/20">
-                <Wind className="h-5 w-5 text-amber-400" />
+              <div className="p-2.5 rounded-xl bg-amber-50">
+                <Wind className="h-5 w-5 text-amber-500" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 backdrop-blur-sm">
+        <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-cyan-200/80">Áp suất</p>
-                <p className="text-3xl font-bold text-white mt-1">{data.weather.current.pressure}</p>
-                <p className="text-xs text-cyan-300/70 mt-2">hPa</p>
+                <p className="text-sm text-slate-500 font-medium">Áp suất {gps ? '(thực tế)' : ''}</p>
+                <p className="text-3xl font-bold text-slate-800 mt-1">{currentPressure?.toFixed(0) ?? '--'}</p>
+                <p className="text-xs text-slate-400 mt-2 font-medium">hPa</p>
               </div>
-              <div className="p-2 rounded-lg bg-cyan-500/20">
-                <Activity className="h-5 w-5 text-cyan-400" />
+              <div className="p-2.5 rounded-xl bg-blue-50">
+                <Activity className="h-5 w-5 text-blue-500" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/10 border-purple-500/30 backdrop-blur-sm">
+        <Card className="bg-white border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-sm text-purple-200/80">Nhiệt độ</p>
-                <p className="text-3xl font-bold text-white mt-1">{data.weather.current.temp}°C</p>
-                <p className="text-xs text-purple-300/70 mt-2">Độ ẩm: {data.weather.current.humidity}%</p>
+                <p className="text-sm text-slate-500 font-medium">Nhiệt độ {gps ? '(thực tế)' : ''}</p>
+                <p className="text-3xl font-bold text-slate-800 mt-1">{currentTemp?.toFixed(0) ?? '--'}°C</p>
+                <p className="text-xs text-slate-400 mt-2 font-medium">Độ ẩm: {currentHumidity?.toFixed(0) ?? '--'}%</p>
               </div>
-              <div className="p-2 rounded-lg bg-purple-500/20">
-                <Thermometer className="h-5 w-5 text-purple-400" />
+              <div className="p-2.5 rounded-xl bg-purple-50">
+                <Thermometer className="h-5 w-5 text-purple-500" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Outdoor Time Card (if tracking) */}
+      {isTracking && outdoorMinutes > 0 && (
+        <Card className="mb-6 bg-gradient-to-r from-blue-500 to-indigo-600 border-0 text-white shadow-lg">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-white/20">
+                  <Clock className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="font-medium text-blue-100">Thời gian ngoài trời hôm nay</p>
+                  <p className="text-2xl font-bold">{outdoorMinutes} phút</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-blue-100">Nhóm tuổi</p>
+                <Badge className="bg-white/20 text-white border-white/30 mt-1">
+                  {ageGroup}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Content */}
       <Tabs defaultValue="predictions" className="space-y-4">
-        <TabsList className="bg-slate-800/50 border border-slate-700">
-          <TabsTrigger value="predictions" className="data-[state=active]:bg-cyan-600">
+        <TabsList className="bg-white border border-slate-200 shadow-sm p-1 rounded-xl">
+          <TabsTrigger value="predictions" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg">
             <Brain className="h-4 w-4 mr-2" />
             ML Predictions
           </TabsTrigger>
-          <TabsTrigger value="pollution" className="data-[state=active]:bg-cyan-600">
+          <TabsTrigger value="pollution" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg">
             <Wind className="h-4 w-4 mr-2" />
             Ô nhiễm
           </TabsTrigger>
-          <TabsTrigger value="cases" className="data-[state=active]:bg-cyan-600">
+          <TabsTrigger value="cases" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg">
             <Heart className="h-4 w-4 mr-2" />
             Ca bệnh
           </TabsTrigger>
-          <TabsTrigger value="commercial" className="data-[state=active]:bg-cyan-600">
-            <Building2 className="h-4 w-4 mr-2" />
+          <TabsTrigger value="commercial" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg">
+            <DollarSign className="h-4 w-4 mr-2" />
             Thương mại
           </TabsTrigger>
         </TabsList>
@@ -262,35 +399,36 @@ const MLAnalyticsDashboard: React.FC = () => {
         <TabsContent value="predictions" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Time Series Prediction */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-cyan-400" />
+                <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-blue-500" />
                   Dự đoán vs Thực tế (7 ngày)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[250px]">
+                <div className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={data.mlPredictions.timeSeries}>
                       <defs>
                         <linearGradient id="actualGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.3} />
-                          <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
                         </linearGradient>
                       </defs>
-                      <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: 'hsl(217, 33%, 17%)', 
-                          border: '1px solid hsl(217, 19%, 27%)',
-                          borderRadius: '8px',
-                          fontSize: '12px'
+                          backgroundColor: 'white', 
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                         }} 
                       />
                       <Legend />
-                      <Area type="monotone" dataKey="actual" name="Thực tế" stroke="#06b6d4" fill="url(#actualGradient)" strokeWidth={2} />
+                      <Area type="monotone" dataKey="actual" name="Thực tế" stroke="#3b82f6" fill="url(#actualGradient)" strokeWidth={2} />
                       <Line type="monotone" dataKey="predicted" name="Dự đoán" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={{ fill: '#f59e0b', r: 4 }} />
                     </ComposedChart>
                   </ResponsiveContainer>
@@ -299,31 +437,29 @@ const MLAnalyticsDashboard: React.FC = () => {
             </Card>
 
             {/* Risk by District */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-red-400" />
+                <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <Target className="h-4 w-4 text-red-500" />
                   Rủi ro theo quận (ML Score)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[250px]">
+                <div className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data.mlPredictions.riskByDistrict} layout="vertical">
-                      <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                      <YAxis dataKey="district" type="category" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={80} />
+                      <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis dataKey="district" type="category" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={90} />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: 'hsl(217, 33%, 17%)', 
-                          border: '1px solid hsl(217, 19%, 27%)',
-                          borderRadius: '8px'
+                          backgroundColor: 'white', 
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                         }}
-                        formatter={(value: number, name: string) => [
-                          `${value}%`,
-                          name === 'riskScore' ? 'Điểm rủi ro' : name
-                        ]}
+                        formatter={(value: number) => [`${value}%`, 'Điểm rủi ro']}
                       />
-                      <Bar dataKey="riskScore" radius={[0, 4, 4, 0]}>
+                      <Bar dataKey="riskScore" radius={[0, 6, 6, 0]}>
                         {data.mlPredictions.riskByDistrict.map((entry, index) => (
                           <Cell 
                             key={`cell-${index}`} 
@@ -339,32 +475,32 @@ const MLAnalyticsDashboard: React.FC = () => {
           </div>
 
           {/* Hotspots Table */}
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+          <Card className="bg-white border-slate-200 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-amber-400" />
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
                 Điểm nóng được dự đoán
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                 {data.mlPredictions.hotspots.map((hotspot, idx) => (
-                  <div key={idx} className="p-3 rounded-lg bg-slate-900/50 border border-slate-700">
+                  <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-slate-200">{hotspot.name}</span>
+                      <span className="text-sm font-semibold text-slate-700">{hotspot.name}</span>
                       <Badge 
                         variant="outline" 
                         className={cn(
-                          "text-xs",
-                          hotspot.risk > 70 ? "border-red-500 text-red-400" :
-                          hotspot.risk > 50 ? "border-amber-500 text-amber-400" :
-                          "border-green-500 text-green-400"
+                          "text-xs font-semibold",
+                          hotspot.risk > 70 ? "border-red-300 bg-red-50 text-red-600" :
+                          hotspot.risk > 50 ? "border-amber-300 bg-amber-50 text-amber-600" :
+                          "border-green-300 bg-green-50 text-green-600"
                         )}
                       >
                         {hotspot.risk}%
                       </Badge>
                     </div>
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-slate-400 font-mono">
                       {hotspot.lat.toFixed(4)}, {hotspot.lng.toFixed(4)}
                     </div>
                   </div>
@@ -378,94 +514,120 @@ const MLAnalyticsDashboard: React.FC = () => {
         <TabsContent value="pollution" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Pollution Forecast */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-amber-400" />
+                <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-amber-500" />
                   Dự báo ô nhiễm (24h)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[250px]">
+                <div className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.pollution.forecast.map(d => ({
                       ...d,
                       time: new Date(d.time).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
                     }))}>
                       <defs>
-                        <linearGradient id="aqiGradient" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id="aqiGradientLight" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.4} />
-                          <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                          <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.05} />
                         </linearGradient>
                       </defs>
-                      <XAxis dataKey="time" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ backgroundColor: 'hsl(217, 33%, 17%)', border: '1px solid hsl(217, 19%, 27%)', borderRadius: '8px' }} />
-                      <Area type="monotone" dataKey="aqi" name="AQI" stroke="#f59e0b" fill="url(#aqiGradient)" strokeWidth={2} />
-                      <Line type="monotone" dataKey="pm25" name="PM2.5" stroke="#ef4444" strokeWidth={2} dot={false} />
+                      <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                        }} 
+                      />
+                      <Area type="monotone" dataKey="aqi" name="AQI" stroke="#f59e0b" fill="url(#aqiGradientLight)" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Pollution by District */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            {/* AQI by District */}
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-cyan-400" />
+                <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-blue-500" />
                   AQI theo quận
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {data.pollution.byDistrict.map((district, idx) => (
-                    <div key={idx} className="flex items-center gap-3">
-                      <span className="text-sm text-slate-300 w-24 truncate">{district.district}</span>
-                      <div className="flex-1 h-6 bg-slate-900/50 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ 
-                            width: `${Math.min(district.aqi / 2, 100)}%`,
-                            backgroundColor: getAQIColor(district.aqi)
-                          }}
-                        />
-                      </div>
-                      <span className="text-sm font-medium text-slate-200 w-12 text-right">{district.aqi}</span>
-                      <Badge 
-                        variant="outline" 
-                        className="text-[10px] w-16 justify-center"
-                        style={{ borderColor: getRiskColor(district.risk), color: getRiskColor(district.risk) }}
-                      >
-                        {district.risk}
-                      </Badge>
-                    </div>
-                  ))}
+                <div className="h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.pollution.byDistrict}>
+                      <XAxis dataKey="district" tick={{ fontSize: 10, fill: '#64748b' }} axisLine={false} tickLine={false} angle={-45} textAnchor="end" height={60} />
+                      <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                        }} 
+                      />
+                      <Bar dataKey="aqi" name="AQI" radius={[6, 6, 0, 0]}>
+                        {data.pollution.byDistrict.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={getAQIColor(entry.aqi)} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Pollution Details */}
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+          {/* Current Pollution Details */}
+          <Card className="bg-white border-slate-200 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-200">Chi tiết ô nhiễm hiện tại</CardTitle>
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Droplets className="h-4 w-4 text-cyan-500" />
+                Chỉ số ô nhiễm chi tiết {gps ? '(tại vị trí của bạn)' : ''}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {[
-                  { label: 'PM2.5', value: data.pollution.current.pm25, unit: 'µg/m³', color: '#ef4444' },
-                  { label: 'PM10', value: data.pollution.current.pm10, unit: 'µg/m³', color: '#f59e0b' },
-                  { label: 'O₃', value: data.pollution.current.o3, unit: 'ppb', color: '#22c55e' },
-                  { label: 'NO₂', value: data.pollution.current.no2, unit: 'ppb', color: '#8b5cf6' },
-                  { label: 'AQI', value: data.pollution.current.aqi, unit: '', color: getAQIColor(data.pollution.current.aqi) }
-                ].map((item, idx) => (
-                  <div key={idx} className="p-4 rounded-xl bg-slate-900/50 border border-slate-700 text-center">
-                    <p className="text-xs text-slate-400 mb-1">{item.label}</p>
-                    <p className="text-2xl font-bold" style={{ color: item.color }}>{item.value}</p>
-                    <p className="text-xs text-slate-500">{item.unit}</p>
-                  </div>
-                ))}
+                <div className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100">
+                  <p className="text-xs text-amber-600 font-medium">PM2.5</p>
+                  <p className="text-2xl font-bold text-slate-800 mt-1">
+                    {environment?.pm25 ?? data.pollution.current.pm25}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">µg/m³</p>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-100">
+                  <p className="text-xs text-orange-600 font-medium">PM10</p>
+                  <p className="text-2xl font-bold text-slate-800 mt-1">
+                    {environment?.pm10 ?? data.pollution.current.pm10}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">µg/m³</p>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-purple-100/50 border border-purple-100">
+                  <p className="text-xs text-purple-600 font-medium">O₃</p>
+                  <p className="text-2xl font-bold text-slate-800 mt-1">{data.pollution.current.o3}</p>
+                  <p className="text-xs text-slate-500 mt-1">ppb</p>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-red-50 to-red-100/50 border border-red-100">
+                  <p className="text-xs text-red-600 font-medium">NO₂</p>
+                  <p className="text-2xl font-bold text-slate-800 mt-1">
+                    {environment?.no2 ?? data.pollution.current.no2}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">ppb</p>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-100">
+                  <p className="text-xs text-blue-600 font-medium">Wind</p>
+                  <p className="text-2xl font-bold text-slate-800 mt-1">
+                    {environment?.windSpeed ?? data.weather.current.wind}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">km/h</p>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -474,28 +636,35 @@ const MLAnalyticsDashboard: React.FC = () => {
         {/* Cases Tab */}
         <TabsContent value="cases" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Hourly Distribution */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            {/* Hourly Cases */}
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-cyan-400" />
+                <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-blue-500" />
                   Phân bố ca theo giờ
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[250px]">
+                <div className="h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data.strokeCases.hourly}>
                       <defs>
                         <linearGradient id="hourlyGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.4} />
-                          <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
+                          <stop offset="0%" stopColor="#ef4444" stopOpacity={0.3} />
+                          <stop offset="100%" stopColor="#ef4444" stopOpacity={0.05} />
                         </linearGradient>
                       </defs>
-                      <XAxis dataKey="hour" tick={{ fontSize: 9, fill: '#94a3b8' }} axisLine={false} tickLine={false} interval={3} />
-                      <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ backgroundColor: 'hsl(217, 33%, 17%)', border: '1px solid hsl(217, 19%, 27%)', borderRadius: '8px' }} />
-                      <Area type="monotone" dataKey="cases" name="Ca bệnh" stroke="#06b6d4" fill="url(#hourlyGradient)" strokeWidth={2} />
+                      <XAxis dataKey="hour" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                        }} 
+                      />
+                      <Area type="monotone" dataKey="cases" name="Số ca" stroke="#ef4444" fill="url(#hourlyGradient)" strokeWidth={2} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -503,32 +672,44 @@ const MLAnalyticsDashboard: React.FC = () => {
             </Card>
 
             {/* Age Distribution */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+            <Card className="bg-white border-slate-200 shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <Users className="h-4 w-4 text-purple-400" />
+                <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <Users className="h-4 w-4 text-purple-500" />
                   Phân bố theo độ tuổi
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[250px]">
+                <div className="h-[280px] flex items-center justify-center">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={data.strokeCases.byAge}
-                        dataKey="percentage"
-                        nameKey="ageGroup"
                         cx="50%"
                         cy="50%"
-                        outerRadius={80}
+                        innerRadius={60}
+                        outerRadius={100}
+                        paddingAngle={3}
+                        dataKey="cases"
+                        nameKey="ageGroup"
                         label={({ ageGroup, percentage }) => `${ageGroup}: ${percentage}%`}
-                        labelLine={{ stroke: '#64748b' }}
+                        labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}
                       >
-                        {data.strokeCases.byAge.map((_, idx) => (
-                          <Cell key={idx} fill={['#06b6d4', '#8b5cf6', '#f59e0b', '#ef4444'][idx % 4]} />
+                        {data.strokeCases.byAge.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b'][index % 4]} 
+                          />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ backgroundColor: 'hsl(217, 33%, 17%)', border: '1px solid hsl(217, 19%, 27%)', borderRadius: '8px' }} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'white', 
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                        }} 
+                      />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -537,22 +718,22 @@ const MLAnalyticsDashboard: React.FC = () => {
           </div>
 
           {/* Cases by District */}
-          <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
+          <Card className="bg-white border-slate-200 shadow-sm">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-red-400" />
-                Ca bệnh theo quận (tuần này)
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-red-500" />
+                Ca bệnh theo quận
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {data.strokeCases.byDistrict.map((district, idx) => (
-                  <div key={idx} className="p-3 rounded-lg bg-slate-900/50 border border-slate-700">
-                    <p className="text-xs text-slate-400 truncate">{district.district}</p>
-                    <p className="text-xl font-bold text-white mt-1">{district.cases}</p>
+                  <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors">
+                    <p className="text-sm font-semibold text-slate-700 truncate">{district.district}</p>
+                    <p className="text-2xl font-bold text-slate-800 mt-1">{district.cases}</p>
                     <div className={cn(
-                      "flex items-center gap-1 text-xs mt-1",
-                      district.change >= 0 ? "text-red-400" : "text-green-400"
+                      "flex items-center gap-1 text-xs mt-2 font-medium",
+                      district.change >= 0 ? "text-red-500" : "text-green-500"
                     )}>
                       {district.change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
                       <span>{Math.abs(district.change)}%</span>
@@ -566,116 +747,134 @@ const MLAnalyticsDashboard: React.FC = () => {
 
         {/* Commercial Tab */}
         <TabsContent value="commercial" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <Card className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-emerald-500/20">
-                    <Ambulance className="h-5 w-5 text-emerald-400" />
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="bg-gradient-to-br from-green-500 to-emerald-600 border-0 text-white shadow-lg">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-emerald-200/80">Xe cấp cứu sẵn sàng</p>
-                    <p className="text-2xl font-bold text-white">{data.commercialInsights.ambulanceAvailability}%</p>
+                    <p className="text-sm text-green-100 font-medium">Xe cứu thương</p>
+                    <p className="text-3xl font-bold mt-1">{data.commercialInsights.ambulanceAvailability}</p>
+                    <p className="text-xs text-green-200 mt-2">Sẵn sàng hoạt động</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/20">
+                    <Ambulance className="h-6 w-6" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/10 border-blue-500/30 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/20">
-                    <Clock className="h-5 w-5 text-blue-400" />
-                  </div>
+            <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 border-0 text-white shadow-lg">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-blue-200/80">Thời gian phản hồi TB</p>
-                    <p className="text-2xl font-bold text-white">{data.commercialInsights.emergencyResponseTime} phút</p>
+                    <p className="text-sm text-blue-100 font-medium">Thời gian phản hồi</p>
+                    <p className="text-3xl font-bold mt-1">{data.commercialInsights.emergencyResponseTime}</p>
+                    <p className="text-xs text-blue-200 mt-2">phút trung bình</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/20">
+                    <Clock className="h-6 w-6" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-violet-500/20 to-violet-600/10 border-violet-500/30 backdrop-blur-sm">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-violet-500/20">
-                    <Building2 className="h-5 w-5 text-violet-400" />
-                  </div>
+            <Card className="bg-gradient-to-br from-purple-500 to-pink-600 border-0 text-white shadow-lg">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-violet-200/80">Bệnh viện theo dõi</p>
-                    <p className="text-2xl font-bold text-white">{data.commercialInsights.hospitalCapacity.length}</p>
+                    <p className="text-sm text-purple-100 font-medium">Bệnh viện liên kết</p>
+                    <p className="text-3xl font-bold mt-1">{data.commercialInsights.hospitalCapacity.length}</p>
+                    <p className="text-xs text-purple-200 mt-2">Cơ sở y tế</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/20">
+                    <Building2 className="h-6 w-6" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-amber-500 to-orange-600 border-0 text-white shadow-lg">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-amber-100 font-medium">Dịch vụ vận chuyển</p>
+                    <p className="text-3xl font-bold mt-1">24/7</p>
+                    <p className="text-xs text-amber-200 mt-2">Hoạt động liên tục</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/20">
+                    <Truck className="h-6 w-6" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Hospital Capacity */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-cyan-400" />
-                  Công suất bệnh viện
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.commercialInsights.hospitalCapacity.map((hospital, idx) => {
-                    const utilization = (hospital.current / hospital.capacity) * 100;
-                    return (
-                      <div key={idx}>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-slate-300 truncate">{hospital.name}</span>
-                          <span className="text-slate-400">{hospital.current}/{hospital.capacity}</span>
-                        </div>
-                        <div className="h-2 bg-slate-900/50 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{ 
-                              width: `${utilization}%`,
-                              backgroundColor: utilization > 90 ? '#ef4444' : utilization > 70 ? '#f59e0b' : '#22c55e'
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Market Trends */}
-            <Card className="bg-slate-800/50 border-slate-700 backdrop-blur-sm">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-emerald-400" />
-                  Xu hướng thị trường y tế
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {data.commercialInsights.marketTrends.map((trend, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-slate-900/50 border border-slate-700">
-                      <span className="text-sm text-slate-300">{trend.metric}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg font-semibold text-white">{trend.value.toLocaleString()}M</span>
-                        <Badge 
-                          variant="outline"
-                          className={cn(
-                            "text-xs",
-                            trend.change >= 0 ? "border-green-500 text-green-400" : "border-red-500 text-red-400"
-                          )}
-                        >
-                          {trend.change >= 0 ? '+' : ''}{trend.change}%
-                        </Badge>
-                      </div>
+          {/* Hospital Capacity */}
+          <Card className="bg-white border-slate-200 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-blue-500" />
+                Công suất bệnh viện
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {data.commercialInsights.hospitalCapacity.map((hospital, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-sm font-semibold text-slate-700">{hospital.name}</span>
+                      <span className="text-sm font-bold text-slate-800">
+                        {hospital.current}/{hospital.capacity}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                      <div 
+                        className={cn(
+                          "h-full rounded-full transition-all",
+                          (hospital.current / hospital.capacity) > 0.9 ? "bg-red-500" :
+                          (hospital.current / hospital.capacity) > 0.7 ? "bg-amber-500" :
+                          "bg-green-500"
+                        )}
+                        style={{ width: `${Math.min(100, (hospital.current / hospital.capacity) * 100)}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                      Còn {hospital.capacity - hospital.current} giường trống
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Market Trends */}
+          <Card className="bg-white border-slate-200 shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-green-500" />
+                Xu hướng thị trường
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {data.commercialInsights.marketTrends.map((trend, idx) => (
+                  <div key={idx} className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 border border-slate-200">
+                    <p className="text-xs text-slate-500 font-medium">{trend.metric}</p>
+                    <p className="text-2xl font-bold text-slate-800 mt-2">
+                      {trend.value.toLocaleString('vi-VN')}
+                    </p>
+                    <div className={cn(
+                      "flex items-center gap-1 text-xs mt-2 font-semibold",
+                      trend.change >= 0 ? "text-green-600" : "text-red-600"
+                    )}>
+                      {trend.change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      <span>{trend.change >= 0 ? '+' : ''}{trend.change}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
