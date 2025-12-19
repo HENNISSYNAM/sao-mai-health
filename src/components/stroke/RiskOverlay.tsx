@@ -98,11 +98,19 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendations | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const lastNotifiedLevel = useRef<string | null>(null);
   const lastNotifiedPressureDrop = useRef<boolean>(false);
+  const lastAICallRef = useRef<number>(0);
+  const aiCooldownRef = useRef<number>(0);
 
   const { risk_score, risk_level, primary_factors, recommendations } = riskAssessment;
+
+  // Minimum 60 seconds between AI calls
+  const MIN_AI_INTERVAL = 60000;
+  // Cooldown after 429 error (2 minutes)
+  const ERROR_COOLDOWN = 120000;
 
   // Check notification permission on mount
   useEffect(() => {
@@ -163,11 +171,30 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
     }
   };
 
-  // Fetch AI recommendations
+  // Fetch AI recommendations with throttling
   const fetchAIRecommendations = useCallback(async () => {
     if (!gps) return;
     
+    const now = Date.now();
+    
+    // Check if we're in cooldown after 429 error
+    if (aiCooldownRef.current > now) {
+      const remainingSeconds = Math.ceil((aiCooldownRef.current - now) / 1000);
+      toast.info(`Vui lòng đợi ${remainingSeconds}s trước khi thử lại`);
+      return;
+    }
+    
+    // Check minimum interval between calls
+    if (now - lastAICallRef.current < MIN_AI_INTERVAL) {
+      const remainingSeconds = Math.ceil((MIN_AI_INTERVAL - (now - lastAICallRef.current)) / 1000);
+      toast.info(`AI tư vấn đã được cập nhật gần đây. Thử lại sau ${remainingSeconds}s`);
+      return;
+    }
+    
     setIsLoadingAI(true);
+    setAiError(null);
+    lastAICallRef.current = now;
+    
     try {
       const { data, error } = await supabase.functions.invoke('stroke-health-ai', {
         body: {
@@ -192,21 +219,51 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if it's a 429 error
+        if (error.message?.includes('429') || error.message?.includes('Quá nhiều')) {
+          aiCooldownRef.current = Date.now() + ERROR_COOLDOWN;
+          setAiError('Đang quá tải. Vui lòng thử lại sau 2 phút.');
+          toast.warning('AI đang bận, vui lòng thử lại sau 2 phút');
+          return;
+        }
+        throw error;
+      }
+      
+      // Check if response contains error
+      if (data?.error) {
+        if (data.error.includes('429') || data.error.includes('Quá nhiều')) {
+          aiCooldownRef.current = Date.now() + ERROR_COOLDOWN;
+          setAiError('Đang quá tải. Vui lòng thử lại sau 2 phút.');
+          toast.warning('AI đang bận, vui lòng thử lại sau 2 phút');
+          return;
+        }
+        // Use fallback if available
+        if (data.fallback) {
+          setAiRecommendations(data.fallback);
+          return;
+        }
+      }
+      
       setAiRecommendations(data);
     } catch (error) {
       console.error('Error fetching AI recommendations:', error);
+      setAiError('Không thể tải khuyến nghị AI');
     } finally {
       setIsLoadingAI(false);
     }
   }, [environment, pressureChange1h, pressureChange24h, ageGroup, risk_score, risk_level, primary_factors, gps, devicePressure]);
 
-  // Fetch AI recommendations when expanded
+  // Fetch AI recommendations when expanded (only once)
   useEffect(() => {
-    if (isExpanded && gps && !aiRecommendations) {
-      fetchAIRecommendations();
+    if (isExpanded && gps && !aiRecommendations && !isLoadingAI && !aiError) {
+      // Check if we can make the call
+      const now = Date.now();
+      if (now - lastAICallRef.current >= MIN_AI_INTERVAL && aiCooldownRef.current <= now) {
+        fetchAIRecommendations();
+      }
     }
-  }, [isExpanded, gps]);
+  }, [isExpanded, gps, aiRecommendations, isLoadingAI, aiError, fetchAIRecommendations]);
 
   // Get pressure trend info
   const getPressureTrend = () => {
@@ -428,12 +485,25 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
               </div>
             )}
 
+            {/* AI Error Message */}
+            {aiError && (
+              <div className="px-4 py-2 bg-amber-500/10 border-b border-border/30">
+                <div className="flex items-start gap-1.5">
+                  <AlertTriangle className="h-3 w-3 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-[10px] text-amber-600">{aiError}</p>
+                </div>
+              </div>
+            )}
+
             {/* Action Buttons */}
             <div className="px-4 py-2 flex gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex-1 text-[10px] h-7"
+                className={cn(
+                  "flex-1 text-[10px] h-7",
+                  aiError && "border-amber-500/30"
+                )}
                 onClick={fetchAIRecommendations}
                 disabled={isLoadingAI}
               >
@@ -442,7 +512,7 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
                 ) : (
                   <Sparkles className="h-3 w-3 mr-1" />
                 )}
-                AI Tư vấn
+                {aiError ? 'Thử lại' : (aiRecommendations ? 'Làm mới' : 'AI Tư vấn')}
               </Button>
               {/* Notification toggle */}
               <Button
