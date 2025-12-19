@@ -3384,9 +3384,12 @@ export type Database = {
           last_alert_sent: string | null
           last_barometer_data: Json | null
           last_gps_data: Json | null
+          last_push_sent: string | null
           lat: number | null
           lon: number | null
+          notification_enabled: boolean | null
           phone: string
+          push_subscription: Json | null
           updated_at: string
         }
         Insert: {
@@ -3402,9 +3405,12 @@ export type Database = {
           last_alert_sent?: string | null
           last_barometer_data?: Json | null
           last_gps_data?: Json | null
+          last_push_sent?: string | null
           lat?: number | null
           lon?: number | null
+          notification_enabled?: boolean | null
           phone: string
+          push_subscription?: Json | null
           updated_at?: string
         }
         Update: {
@@ -3420,9 +3426,12 @@ export type Database = {
           last_alert_sent?: string | null
           last_barometer_data?: Json | null
           last_gps_data?: Json | null
+          last_push_sent?: string | null
           lat?: number | null
           lon?: number | null
+          notification_enabled?: boolean | null
           phone?: string
+          push_subscription?: Json | null
           updated_at?: string
         }
         Relationships: []
