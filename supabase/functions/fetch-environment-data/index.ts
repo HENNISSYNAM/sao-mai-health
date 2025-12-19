@@ -17,65 +17,94 @@ serve(async (req) => {
     
     console.log(`Fetching environment data for location: ${lat}, ${lon}`);
 
-    const TOMORROW_API_KEY = Deno.env.get('TOMORROW_API_KEY');
+    const WINDY_API_KEY = Deno.env.get('WINDY_API_KEY');
     const AIR_QUALITY_API_KEY = Deno.env.get('AIR_QUALITY_API_KEY');
 
-    if (!TOMORROW_API_KEY) {
-      console.error('TOMORROW_API_KEY not configured');
-      throw new Error('Weather API key not configured');
-    }
-
-    // Fetch weather data from Tomorrow.io
+    // Fetch weather data from Windy API
     let weatherData = null;
-    try {
-      console.log('Fetching weather data from Tomorrow.io...');
-      const weatherResponse = await fetch(
-        `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${TOMORROW_API_KEY}`
-      );
-      
-      if (weatherResponse.ok) {
-        weatherData = await weatherResponse.json();
-        console.log('Weather data fetched successfully');
-      } else {
-        console.error('Weather API error:', weatherResponse.status, await weatherResponse.text());
+    if (WINDY_API_KEY) {
+      try {
+        console.log('Fetching weather data from Windy API...');
+        const windyResponse = await fetch('https://api.windy.com/api/point-forecast/v2', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            lat: lat,
+            lon: lon,
+            model: 'gfs',
+            parameters: ['temp', 'wind', 'pressure', 'rh', 'dewpoint', 'precip'],
+            levels: ['surface'],
+            key: WINDY_API_KEY,
+          }),
+        });
+        
+        if (windyResponse.ok) {
+          const windyData = await windyResponse.json();
+          console.log('Windy raw data:', JSON.stringify(windyData));
+          
+          // Extract the first (current) values from Windy response
+          if (windyData) {
+            const tempSurface = windyData['temp-surface'];
+            const windSurface = windyData['wind_u-surface'];
+            const pressureSurface = windyData['pressure-surface'];
+            const rhSurface = windyData['rh-surface'];
+            
+            weatherData = {
+              temperature: tempSurface?.[0] ? (tempSurface[0] - 273.15) : null, // Convert Kelvin to Celsius
+              humidity: rhSurface?.[0] || null,
+              pressure: pressureSurface?.[0] ? (pressureSurface[0] / 100) : null, // Convert Pa to hPa
+              windSpeed: windSurface?.[0] ? Math.abs(windSurface[0]) * 3.6 : null, // Convert m/s to km/h
+            };
+            console.log('Processed Windy weather data:', JSON.stringify(weatherData));
+          }
+        } else {
+          const errorText = await windyResponse.text();
+          console.error('Windy API error:', windyResponse.status, errorText);
+        }
+      } catch (error) {
+        console.error('Error fetching from Windy:', error);
       }
-    } catch (error) {
-      console.error('Error fetching weather:', error);
+    } else {
+      console.log('WINDY_API_KEY not configured, skipping weather data');
     }
 
-    // Fetch air quality data from IQAir (using the provided API key format)
+    // Fetch air quality data from IQAir
     let airQualityData = null;
-    try {
-      console.log('Fetching air quality data...');
-      const airQualityResponse = await fetch(
-        `https://api.airvisual.com/v2/nearest_city?lat=${lat}&lon=${lon}&key=${AIR_QUALITY_API_KEY}`
-      );
-      
-      if (airQualityResponse.ok) {
-        airQualityData = await airQualityResponse.json();
-        console.log('Air quality data fetched successfully');
-      } else {
-        console.error('Air quality API error:', airQualityResponse.status);
+    if (AIR_QUALITY_API_KEY) {
+      try {
+        console.log('Fetching air quality data from IQAir...');
+        const airQualityResponse = await fetch(
+          `https://api.airvisual.com/v2/nearest_city?lat=${lat}&lon=${lon}&key=${AIR_QUALITY_API_KEY}`
+        );
+        
+        if (airQualityResponse.ok) {
+          airQualityData = await airQualityResponse.json();
+          console.log('Air quality data fetched successfully');
+        } else {
+          console.error('Air quality API error:', airQualityResponse.status);
+        }
+      } catch (error) {
+        console.error('Error fetching air quality:', error);
       }
-    } catch (error) {
-      console.error('Error fetching air quality:', error);
     }
 
     // Process and combine the data
     const result = {
       timestamp: new Date().toISOString(),
       location: { lat, lon },
-      weather: weatherData?.data?.values ? {
-        temperature: weatherData.data.values.temperature,
-        humidity: weatherData.data.values.humidity,
-        pressure: weatherData.data.values.pressureSurfaceLevel,
-        windSpeed: weatherData.data.values.windSpeed,
-        uvIndex: weatherData.data.values.uvIndex,
+      weather: weatherData ? {
+        temperature: weatherData.temperature,
+        humidity: weatherData.humidity,
+        pressure: weatherData.pressure,
+        windSpeed: weatherData.windSpeed,
       } : null,
       airQuality: airQualityData?.data?.current?.pollution ? {
         aqi: airQualityData.data.current.pollution.aqius,
         mainPollutant: airQualityData.data.current.pollution.mainus,
-        pm25: airQualityData.data.current.pollution.aqius, // AQI US is based on PM2.5
+        pm25: airQualityData.data.current.pollution.aqius,
+        pm10: airQualityData.data.current.pollution.aqicn || null,
       } : null,
     };
 
