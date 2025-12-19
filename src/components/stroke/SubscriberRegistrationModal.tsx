@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, UserPlus, Brain, Shield, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Brain, Shield, CheckCircle2, Bell } from 'lucide-react';
 import healthLogo from '@/assets/health-logo.png';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 interface SubscriberRegistrationModalProps {
   isOpen: boolean;
@@ -17,7 +18,7 @@ interface SubscriberRegistrationModalProps {
   barometerData?: { pressure: number | null; change1h: number | null; change24h: number | null } | null;
 }
 
-type RegistrationStep = 'form' | 'analyzing' | 'success';
+type RegistrationStep = 'form' | 'analyzing' | 'enabling_push' | 'success';
 
 const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = ({
   isOpen,
@@ -32,6 +33,8 @@ const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = 
   const [step, setStep] = useState<RegistrationStep>('form');
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const { subscribe: subscribePush, isSupported: isPushSupported } = usePushNotifications();
 
   const calculateAgeGroup = (dob: string): string => {
     const birthDate = new Date(dob);
@@ -171,6 +174,17 @@ const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = 
       localStorage.setItem('stroke_subscriber_phone', formattedPhone);
       localStorage.setItem('stroke_subscriber_id', subscriberId);
 
+      // Enable push notifications
+      if (isPushSupported) {
+        setStep('enabling_push');
+        try {
+          await subscribePush(subscriberId);
+        } catch (pushError) {
+          console.error('Push subscription error:', pushError);
+          // Continue even if push fails
+        }
+      }
+
       setStep('success');
       
       setTimeout(() => {
@@ -210,15 +224,18 @@ const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = 
           <DialogTitle className="flex items-center gap-2 text-lg">
             {step === 'form' && <UserPlus className="h-5 w-5 text-primary" />}
             {step === 'analyzing' && <Brain className="h-5 w-5 text-amber-400" />}
+            {step === 'enabling_push' && <Bell className="h-5 w-5 text-blue-400" />}
             {step === 'success' && <CheckCircle2 className="h-5 w-5 text-emerald-400" />}
             {step === 'form' && 'Đăng ký nhận cảnh báo'}
             {step === 'analyzing' && 'Đang phân tích...'}
+            {step === 'enabling_push' && 'Bật thông báo đẩy'}
             {step === 'success' && 'Đăng ký thành công!'}
           </DialogTitle>
           <DialogDescription className="text-slate-400">
             {step === 'form' && 'Nhập thông tin để nhận cảnh báo nguy cơ đột quỵ cá nhân hóa'}
             {step === 'analyzing' && 'AI đang phân tích hồ sơ sức khỏe của bạn'}
-            {step === 'success' && 'Bạn sẽ nhận được cảnh báo dựa trên dữ liệu cá nhân'}
+            {step === 'enabling_push' && 'Cho phép gửi thông báo vào điện thoại của bạn'}
+            {step === 'success' && 'Bạn sẽ nhận được cảnh báo trực tiếp vào điện thoại'}
           </DialogDescription>
         </DialogHeader>
 
@@ -302,6 +319,20 @@ const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = 
           </div>
         )}
 
+        {step === 'enabling_push' && (
+          <div className="py-8 flex flex-col items-center justify-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center animate-pulse">
+              <Bell className="h-10 w-10 text-blue-400" />
+            </div>
+            <div className="text-center space-y-2">
+              <p className="text-slate-300">Đang bật thông báo đẩy...</p>
+              <p className="text-xs text-slate-500">
+                Cho phép ứng dụng gửi cảnh báo vào thanh thông báo điện thoại
+              </p>
+            </div>
+          </div>
+        )}
+
         {step === 'success' && (
           <div className="py-8 flex flex-col items-center justify-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
@@ -310,7 +341,7 @@ const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = 
             <div className="text-center space-y-2">
               <p className="text-slate-300 font-medium">Đăng ký thành công!</p>
               <p className="text-xs text-slate-500">
-                Bạn sẽ nhận được cảnh báo nguy cơ đột quỵ cá nhân hóa
+                Bạn sẽ nhận được cảnh báo nguy cơ đột quỵ trực tiếp vào điện thoại
               </p>
               {aiAnalysis?.summary && (
                 <p className="text-xs text-primary mt-2 px-4">{aiAnalysis.summary}</p>
