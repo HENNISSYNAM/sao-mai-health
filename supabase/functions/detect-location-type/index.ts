@@ -33,49 +33,83 @@ serve(async (req) => {
     let outdoorScore = 0;
     const factors: string[] = [];
     
-    // 1. GPS Accuracy - Indoor typically has worse accuracy (>30m)
-    if (gpsAccuracy !== null) {
-      if (gpsAccuracy > 50) {
-        indoorScore += 40;
-        factors.push(`GPS accuracy poor (${Math.round(gpsAccuracy)}m) - likely indoor`);
-      } else if (gpsAccuracy > 30) {
-        indoorScore += 25;
-        factors.push(`GPS accuracy medium (${Math.round(gpsAccuracy)}m) - possibly indoor`);
-      } else if (gpsAccuracy > 15) {
-        outdoorScore += 15;
-        factors.push(`GPS accuracy good (${Math.round(gpsAccuracy)}m)`);
-      } else {
-        outdoorScore += 35;
-        factors.push(`GPS accuracy excellent (${Math.round(gpsAccuracy)}m) - likely outdoor`);
-      }
-    }
+    // 1. Check GPS movement first - MOVEMENT = OUTDOOR (strongest signal)
+    let isMoving = false;
+    let totalDistance = 0;
+    let avgSpeed = 0;
     
-    // 2. GPS movement pattern - Indoor tends to have more erratic/static patterns
-    if (gpsHistory.length >= 3) {
+    if (gpsHistory.length >= 2) {
       const recentPoints = gpsHistory.slice(-10);
-      let totalVariation = 0;
-      let avgAccuracy = 0;
+      let sumDistance = 0;
+      let sumTime = 0;
       
       for (let i = 1; i < recentPoints.length; i++) {
         const dx = (recentPoints[i].lat - recentPoints[i-1].lat) * 111320; // meters
         const dy = (recentPoints[i].lon - recentPoints[i-1].lon) * 111320 * Math.cos(lat * Math.PI / 180);
         const distance = Math.sqrt(dx * dx + dy * dy);
+        const timeDiff = (recentPoints[i].timestamp - recentPoints[i-1].timestamp) / 1000; // seconds
         
-        // If position jumps around erratically with high accuracy variation, likely indoor
-        totalVariation += distance;
-        avgAccuracy += recentPoints[i].accuracy;
+        sumDistance += distance;
+        sumTime += timeDiff;
       }
       
-      avgAccuracy /= (recentPoints.length - 1);
-      const avgMovement = totalVariation / (recentPoints.length - 1);
+      totalDistance = sumDistance;
+      avgSpeed = sumTime > 0 ? (sumDistance / sumTime) * 3.6 : 0; // km/h
       
-      // Indoor typically: low movement but high accuracy variation
-      if (avgMovement < 2 && avgAccuracy > 30) {
-        indoorScore += 25;
-        factors.push('Static position with poor accuracy - indoor pattern');
-      } else if (avgMovement > 5 && avgAccuracy < 20) {
+      // If moving more than 10 meters total or speed > 1 km/h, consider outdoor
+      if (totalDistance > 10 || avgSpeed > 1) {
+        isMoving = true;
+        outdoorScore += 60; // Strong outdoor signal
+        factors.push(`Đang di chuyển (${totalDistance.toFixed(0)}m, ${avgSpeed.toFixed(1)} km/h) - ngoài trời`);
+      } else if (totalDistance > 3) {
+        // Small movement
         outdoorScore += 25;
-        factors.push('Active movement with good accuracy - outdoor pattern');
+        factors.push(`Di chuyển nhẹ (${totalDistance.toFixed(1)}m)`);
+      }
+    }
+    
+    // 2. GPS Accuracy - but give less weight if already moving
+    if (gpsAccuracy !== null && !isMoving) {
+      if (gpsAccuracy > 50) {
+        indoorScore += 40;
+        factors.push(`GPS kém (${Math.round(gpsAccuracy)}m) - có thể trong nhà`);
+      } else if (gpsAccuracy > 30) {
+        indoorScore += 25;
+        factors.push(`GPS trung bình (${Math.round(gpsAccuracy)}m)`);
+      } else if (gpsAccuracy > 15) {
+        outdoorScore += 20;
+        factors.push(`GPS tốt (${Math.round(gpsAccuracy)}m)`);
+      } else {
+        outdoorScore += 40;
+        factors.push(`GPS rất tốt (${Math.round(gpsAccuracy)}m) - ngoài trời`);
+      }
+    } else if (gpsAccuracy !== null && isMoving) {
+      // When moving, accuracy matters less but still a factor
+      if (gpsAccuracy < 30) {
+        outdoorScore += 15;
+        factors.push(`GPS ổn định khi di chuyển (${Math.round(gpsAccuracy)}m)`);
+      }
+    }
+    
+    // 3. Accuracy stability pattern analysis
+    if (gpsHistory.length >= 3) {
+      const recentPoints = gpsHistory.slice(-10);
+      let accuracyVariation = 0;
+      
+      for (let i = 1; i < recentPoints.length; i++) {
+        accuracyVariation += Math.abs(recentPoints[i].accuracy - recentPoints[i-1].accuracy);
+      }
+      
+      const avgVariation = accuracyVariation / (recentPoints.length - 1);
+      
+      // Indoor: high accuracy variation (GPS signal bouncing)
+      // Outdoor: stable accuracy
+      if (avgVariation > 20 && !isMoving) {
+        indoorScore += 20;
+        factors.push('Độ chính xác dao động nhiều - trong nhà');
+      } else if (avgVariation < 5 && totalDistance > 5) {
+        outdoorScore += 15;
+        factors.push('Độ chính xác ổn định - ngoài trời');
       }
     }
     
