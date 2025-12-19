@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { 
   AlertTriangle, 
   CheckCircle2, 
@@ -16,7 +17,9 @@ import {
   Sparkles,
   RefreshCw,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Bell,
+  BellOff
 } from 'lucide-react';
 import type { RiskAssessment, EnvironmentData, AgeGroup } from '@/hooks/useStrokeRiskEngine';
 
@@ -24,6 +27,7 @@ interface RiskOverlayProps {
   riskAssessment: RiskAssessment;
   environment: EnvironmentData;
   pressureChange1h: number | null;
+  pressureChange24h?: number | null;
   isVisible: boolean;
   ageGroup?: AgeGroup;
   gps?: { lat: number; lon: number } | null;
@@ -42,10 +46,47 @@ interface AIRecommendations {
   text?: string;
 }
 
+// Request notification permission
+const requestNotificationPermission = async (): Promise<boolean> => {
+  if (!('Notification' in window)) {
+    console.log('Browser does not support notifications');
+    return false;
+  }
+  
+  if (Notification.permission === 'granted') {
+    return true;
+  }
+  
+  if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission();
+    return permission === 'granted';
+  }
+  
+  return false;
+};
+
+// Send push notification
+const sendNotification = (title: string, body: string, urgency: 'low' | 'medium' | 'high' = 'medium') => {
+  if (Notification.permission === 'granted') {
+    const notification = new Notification(title, {
+      body,
+      icon: '/favicon.ico',
+      tag: 'stroke-risk-alert',
+      requireInteraction: urgency === 'high'
+    });
+    
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  }
+};
+
 const RiskOverlay: React.FC<RiskOverlayProps> = ({
   riskAssessment,
   environment,
   pressureChange1h,
+  pressureChange24h,
   isVisible,
   ageGroup = '36-55',
   gps,
@@ -54,8 +95,70 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendations | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const lastNotifiedLevel = useRef<string | null>(null);
+  const lastNotifiedPressureDrop = useRef<boolean>(false);
 
   const { risk_score, risk_level, primary_factors, recommendations } = riskAssessment;
+
+  // Check notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      setNotificationsEnabled(true);
+    }
+  }, []);
+
+  // Auto-notify when risk level changes to HIGH or pressure drops significantly
+  useEffect(() => {
+    if (!notificationsEnabled) return;
+
+    // Notify on HIGH risk level
+    if (risk_level === 'HIGH' && lastNotifiedLevel.current !== 'HIGH') {
+      sendNotification(
+        '⚠️ Cảnh báo nguy cơ đột quỵ CAO!',
+        `Điểm nguy cơ: ${risk_score}/100. ${primary_factors[0] || 'Điều kiện thời tiết bất lợi'}. Hãy cẩn thận!`,
+        'high'
+      );
+      lastNotifiedLevel.current = 'HIGH';
+    } else if (risk_level === 'MEDIUM' && lastNotifiedLevel.current !== 'MEDIUM' && lastNotifiedLevel.current === 'LOW') {
+      sendNotification(
+        '⚡ Nguy cơ đột quỵ tăng',
+        `Điểm nguy cơ: ${risk_score}/100. Hãy theo dõi sức khỏe.`,
+        'medium'
+      );
+      lastNotifiedLevel.current = 'MEDIUM';
+    } else if (risk_level === 'LOW') {
+      lastNotifiedLevel.current = 'LOW';
+    }
+
+    // Notify on rapid pressure drop (> 5 hPa in 1 hour)
+    if (pressureChange1h && pressureChange1h < -5 && !lastNotifiedPressureDrop.current) {
+      sendNotification(
+        '📉 Áp suất giảm nhanh!',
+        `Áp suất giảm ${Math.abs(pressureChange1h).toFixed(1)} hPa trong 1 giờ qua. Có thể gây đau đầu, mệt mỏi.`,
+        'medium'
+      );
+      lastNotifiedPressureDrop.current = true;
+    } else if (pressureChange1h && pressureChange1h >= -3) {
+      lastNotifiedPressureDrop.current = false;
+    }
+  }, [risk_level, risk_score, pressureChange1h, primary_factors, notificationsEnabled]);
+
+  // Toggle notifications
+  const toggleNotifications = async () => {
+    if (notificationsEnabled) {
+      setNotificationsEnabled(false);
+      toast.info('Đã tắt thông báo tự động');
+    } else {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        setNotificationsEnabled(true);
+        toast.success('Đã bật thông báo tự động');
+      } else {
+        toast.error('Không thể bật thông báo. Vui lòng cho phép trong cài đặt trình duyệt.');
+      }
+    }
+  };
 
   // Fetch AI recommendations
   const fetchAIRecommendations = useCallback(async () => {
@@ -70,6 +173,7 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
             humidity: environment.humidity,
             pressure: environment.pressure,
             pressureChange1h,
+            pressureChange24h,
             aqi: environment.aqi,
             pm25: environment.pm25,
             uvIndex: environment.uvIndex,
@@ -92,7 +196,7 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
     } finally {
       setIsLoadingAI(false);
     }
-  }, [environment, pressureChange1h, ageGroup, risk_score, risk_level, primary_factors, gps, devicePressure]);
+  }, [environment, pressureChange1h, pressureChange24h, ageGroup, risk_score, risk_level, primary_factors, gps, devicePressure]);
 
   // Fetch AI recommendations when expanded
   useEffect(() => {
@@ -100,6 +204,18 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
       fetchAIRecommendations();
     }
   }, [isExpanded, gps]);
+
+  // Get pressure trend info
+  const getPressureTrend = () => {
+    if (!pressureChange1h) return null;
+    if (pressureChange1h < -5) return { icon: TrendingDown, label: 'Giảm nhanh', color: 'text-red-500', warning: true };
+    if (pressureChange1h < -2) return { icon: TrendingDown, label: 'Giảm', color: 'text-amber-500', warning: false };
+    if (pressureChange1h > 5) return { icon: TrendingUp, label: 'Tăng nhanh', color: 'text-blue-500', warning: false };
+    if (pressureChange1h > 2) return { icon: TrendingUp, label: 'Tăng', color: 'text-emerald-500', warning: false };
+    return { icon: Gauge, label: 'Ổn định', color: 'text-muted-foreground', warning: false };
+  };
+
+  const pressureTrend = getPressureTrend();
 
   if (!isVisible) return null;
 
@@ -190,6 +306,37 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
               </div>
             )}
 
+            {/* Barometer Data - From device sensor */}
+            {(devicePressure || pressureTrend) && (
+              <div className="px-4 py-2 bg-blue-500/10 border-b border-border/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Gauge className="h-3 w-3 text-blue-400" />
+                    <span className="text-[10px] text-muted-foreground">Áp suất</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {devicePressure && (
+                      <span className="text-[11px] font-medium text-foreground">{devicePressure.toFixed(0)} hPa</span>
+                    )}
+                    {pressureTrend && (
+                      <div className={cn("flex items-center gap-0.5", pressureTrend.color)}>
+                        <pressureTrend.icon className="h-3 w-3" />
+                        <span className="text-[9px]">{pressureTrend.label}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {pressureChange1h && Math.abs(pressureChange1h) > 2 && (
+                  <div className={cn(
+                    "text-[9px] mt-1",
+                    pressureChange1h < -5 ? "text-red-400" : "text-amber-400"
+                  )}>
+                    {pressureChange1h < 0 ? '↓' : '↑'} {Math.abs(pressureChange1h).toFixed(1)} hPa/giờ
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* AI Warnings */}
             {displayWarnings.length > 0 && (
               <div className="px-4 py-2 bg-red-500/10 border-b border-border/30">
@@ -255,6 +402,20 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
                   <Sparkles className="h-3 w-3 mr-1" />
                 )}
                 AI Tư vấn
+              </Button>
+              {/* Notification toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn("h-7 px-2", notificationsEnabled && "bg-primary/10 border-primary/30")}
+                onClick={toggleNotifications}
+                title={notificationsEnabled ? "Tắt thông báo" : "Bật thông báo"}
+              >
+                {notificationsEnabled ? (
+                  <Bell className="h-3 w-3 text-primary" />
+                ) : (
+                  <BellOff className="h-3 w-3 text-muted-foreground" />
+                )}
               </Button>
               {/* Direct call 115 */}
               <a 
