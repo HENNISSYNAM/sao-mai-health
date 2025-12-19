@@ -119,8 +119,8 @@ const StrokeRisk: React.FC = () => {
         safeOutdoorMinutes={userData.safeOutdoorMinutes}
       />
 
-      {/* View Toggle Button - Top left */}
-      <div className="fixed top-4 left-4 z-50">
+      {/* View Toggle Button - Bottom left */}
+      <div className="fixed bottom-24 left-4 md:bottom-8 md:left-8 z-50">
         <Button
           onClick={() => setViewMode('statistics')}
           className="bg-slate-800/80 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600"
