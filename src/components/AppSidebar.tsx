@@ -1,4 +1,5 @@
-import { Activity, Bell, Brain, Heart, MapPin, Shield, AlertTriangle, BarChart3, Settings, HelpCircle } from "lucide-react";
+import { Activity, Bell, Brain, MapPin, Shield, AlertTriangle, BarChart3, Settings, HelpCircle } from "lucide-react";
+import logoImg from "@/assets/logo.png";
 import { NavLink, useLocation } from "react-router-dom";
 import { usePrefetch } from "@/hooks/usePrefetch";
 import { cn } from "@/lib/utils";
@@ -75,14 +76,18 @@ export function AppSidebar() {
         {/* Logo */}
         <div className="px-4 mb-8">
           {collapsed ? (
-            <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg animate-pulse-glow">
-              <Heart className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img 
+              src={logoImg} 
+              alt="Stroke Alert Logo" 
+              className="w-12 h-12 rounded-2xl shadow-lg animate-heartbeat object-contain"
+            />
           ) : (
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg animate-heartbeat">
-                <Heart className="h-6 w-6 text-primary-foreground" />
-              </div>
+              <img 
+                src={logoImg} 
+                alt="Stroke Alert Logo" 
+                className="w-12 h-12 rounded-2xl shadow-lg animate-heartbeat object-contain"
+              />
               <div>
                 <h2 className="font-bold text-lg text-sidebar-foreground tracking-tight">Stroke Alert</h2>
                 <div className="flex items-center gap-2">
