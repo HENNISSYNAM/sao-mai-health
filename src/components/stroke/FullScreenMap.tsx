@@ -51,8 +51,8 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     return mins > 0 ? `${hours}h ${mins}p` : `${hours} giờ`;
   };
 
-  // Windy embed URL với marker=true để hiện định vị
-  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=14&overlay=pm25&product=cams&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true`;
+  // Windy embed URL với marker và webcams
+  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=14&overlay=pm25&product=cams&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true&webcams=true`;
 
   return (
     <div className={cn(
