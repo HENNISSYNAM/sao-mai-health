@@ -1,9 +1,7 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { MapContainer, TileLayer, Circle, Marker, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import React from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment } from '@/hooks/useStrokeRiskEngine';
-import 'leaflet/dist/leaflet.css';
+import { Thermometer, Wind, Gauge, Droplets, MapPin, Navigation } from 'lucide-react';
 
 interface FullScreenMapProps {
   gps: { lat: number; lon: number } | null;
@@ -13,34 +11,6 @@ interface FullScreenMapProps {
   className?: string;
 }
 
-// Custom user location marker
-const userLocationIcon = L.divIcon({
-  className: 'user-location-marker',
-  html: `
-    <div class="relative">
-      <div class="w-6 h-6 bg-info rounded-full border-3 border-white shadow-lg flex items-center justify-center animate-pulse">
-        <div class="w-2 h-2 bg-white rounded-full"></div>
-      </div>
-      <div class="absolute -inset-2 bg-info/30 rounded-full animate-ping"></div>
-    </div>
-  `,
-  iconSize: [24, 24],
-  iconAnchor: [12, 12]
-});
-
-// Map controller for centering on user
-function MapController({ gps }: { gps: { lat: number; lon: number } | null }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (gps) {
-      map.setView([gps.lat, gps.lon], 13, { animate: true, duration: 1 });
-    }
-  }, [gps, map]);
-  
-  return null;
-}
-
 const FullScreenMap: React.FC<FullScreenMapProps> = ({
   gps,
   environment,
@@ -48,132 +18,182 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
   isBlurred = false,
   className
 }) => {
-  const [mapReady, setMapReady] = useState(false);
-
-  // Default center (HCMC)
-  const defaultCenter: [number, number] = [10.7769, 106.7009];
-  const center: [number, number] = gps ? [gps.lat, gps.lon] : defaultCenter;
-
   // Risk zone color
   const getRiskColor = (level: string) => {
     switch (level) {
-      case 'HIGH': return '#ef4444';
-      case 'MEDIUM': return '#f59e0b';
-      default: return '#22c55e';
+      case 'HIGH': return 'bg-danger/30 border-danger';
+      case 'MEDIUM': return 'bg-warning/30 border-warning';
+      default: return 'bg-success/30 border-success';
     }
   };
 
-  // Risk zone radius based on score
-  const getRiskRadius = (score: number) => {
-    return Math.max(1000, score * 50);
+  const getRiskGlow = (level: string) => {
+    switch (level) {
+      case 'HIGH': return 'shadow-[0_0_100px_50px_rgba(239,68,68,0.3)]';
+      case 'MEDIUM': return 'shadow-[0_0_80px_40px_rgba(245,158,11,0.25)]';
+      default: return 'shadow-[0_0_60px_30px_rgba(34,197,94,0.2)]';
+    }
   };
+
+  // Generate map URL for static map background
+  const mapUrl = gps 
+    ? `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${gps.lon},${gps.lat},13,0/1200x800@2x?access_token=pk.eyJ1IjoibG92YWJsZWRldiIsImEiOiJjbTRxbTcyZWkwMXR6Mmtwd29vZnBuY3U1In0.Iqry8aOnpAa0Uu2gkDCl-g`
+    : `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/106.7009,10.7769,11,0/1200x800@2x?access_token=pk.eyJ1IjoibG92YWJsZWRldiIsImEiOiJjbTRxbTcyZWkwMXR6Mmtwd29vZnBuY3U1In0.Iqry8aOnpAa0Uu2gkDCl-g`;
 
   return (
     <div className={cn(
-      "absolute inset-0 transition-all duration-500",
-      isBlurred && "blur-sm scale-105 brightness-50",
+      "absolute inset-0 transition-all duration-700 overflow-hidden",
+      isBlurred && "blur-md scale-[1.02] brightness-[0.3]",
       className
     )}>
-      <MapContainer
-        center={center}
-        zoom={gps ? 13 : 11}
-        className="w-full h-full z-0"
-        zoomControl={false}
-        attributionControl={false}
-        whenReady={() => setMapReady(true)}
-      >
-        <MapController gps={gps} />
-        
-        {/* Dark map tiles */}
-        <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; OpenStreetMap'
-        />
+      {/* Map Background */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ 
+          backgroundImage: `url(${mapUrl})`,
+          backgroundColor: 'hsl(var(--background))'
+        }}
+      />
+      
+      {/* Dark overlay for better readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/60" />
 
-        {/* Risk heatmap zone around user */}
-        {gps && riskAssessment.visual_state.map === 'heatmap_active' && (
-          <>
-            {/* Outer glow */}
-            <Circle
-              center={[gps.lat, gps.lon]}
-              radius={getRiskRadius(riskAssessment.risk_score) * 1.5}
-              pathOptions={{
-                color: getRiskColor(riskAssessment.risk_level),
-                fillColor: getRiskColor(riskAssessment.risk_level),
-                fillOpacity: 0.1,
-                weight: 0
-              }}
-            />
-            {/* Inner zone */}
-            <Circle
-              center={[gps.lat, gps.lon]}
-              radius={getRiskRadius(riskAssessment.risk_score)}
-              pathOptions={{
-                color: getRiskColor(riskAssessment.risk_level),
-                fillColor: getRiskColor(riskAssessment.risk_level),
-                fillOpacity: 0.25,
-                weight: 2,
-                dashArray: '10, 5'
-              }}
-            />
-          </>
-        )}
+      {/* Animated grid overlay */}
+      <div className="absolute inset-0 opacity-10">
+        <div className="w-full h-full" style={{
+          backgroundImage: `
+            linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(59, 130, 246, 0.3) 1px, transparent 1px)
+          `,
+          backgroundSize: '50px 50px'
+        }} />
+      </div>
 
-        {/* User location marker */}
-        {gps && (
-          <Marker 
-            position={[gps.lat, gps.lon]} 
-            icon={userLocationIcon}
-          />
-        )}
-      </MapContainer>
-
-      {/* Weather overlay widgets */}
-      {!isBlurred && environment.temperature !== null && (
-        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-          {/* Temperature */}
-          <div className="px-4 py-2 bg-card/80 backdrop-blur-md rounded-xl border border-border/50 shadow-lg">
-            <div className="text-xs text-muted-foreground uppercase tracking-wider">Nhiệt độ</div>
-            <div className="text-2xl font-bold text-foreground">{environment.temperature?.toFixed(0)}°C</div>
+      {/* GPS Location Indicator */}
+      {gps && !isBlurred && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          {/* Risk zone circle */}
+          <div className={cn(
+            "absolute rounded-full border-2 border-dashed transition-all duration-1000",
+            getRiskColor(riskAssessment.risk_level),
+            getRiskGlow(riskAssessment.risk_level),
+            riskAssessment.risk_level === 'HIGH' ? 'w-80 h-80' :
+            riskAssessment.risk_level === 'MEDIUM' ? 'w-64 h-64' : 'w-48 h-48'
+          )} style={{ animation: 'pulse 3s infinite' }} />
+          
+          {/* Pulse rings */}
+          <div className="absolute w-32 h-32 rounded-full border border-info/50 animate-ping" />
+          <div className="absolute w-24 h-24 rounded-full border-2 border-info/30 animate-pulse" />
+          
+          {/* Center marker */}
+          <div className="relative">
+            <div className="w-6 h-6 bg-info rounded-full border-4 border-white shadow-2xl flex items-center justify-center">
+              <Navigation className="h-3 w-3 text-white" />
+            </div>
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap">
+              <span className="text-xs bg-card/90 px-3 py-1 rounded-full text-muted-foreground border border-border/50 shadow-lg">
+                {gps.lat.toFixed(4)}, {gps.lon.toFixed(4)}
+              </span>
+            </div>
           </div>
+        </div>
+      )}
 
-          {/* Air Quality */}
-          {environment.aqi !== null && (
-            <div className={cn(
-              "px-4 py-2 rounded-xl border shadow-lg backdrop-blur-md",
-              environment.aqi > 150 ? "bg-danger/20 border-danger/50" :
-              environment.aqi > 100 ? "bg-warning/20 border-warning/50" :
-              "bg-card/80 border-border/50"
-            )}>
-              <div className="text-xs text-muted-foreground uppercase tracking-wider">Chất lượng KK</div>
-              <div className="text-2xl font-bold">AQI {environment.aqi}</div>
+      {/* Weather overlay widgets - Enhanced */}
+      {!isBlurred && (
+        <div className="absolute top-4 left-4 flex flex-col gap-3 z-10">
+          {/* Temperature Card */}
+          {environment.temperature !== null && (
+            <div className="px-5 py-4 bg-card/90 backdrop-blur-xl rounded-2xl border border-border/50 shadow-2xl min-w-[140px] animate-fade-in">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 rounded-lg bg-orange-500/20">
+                  <Thermometer className="h-4 w-4 text-orange-400" />
+                </div>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Nhiệt độ</span>
+              </div>
+              <div className="text-4xl font-bold text-foreground">{environment.temperature?.toFixed(0)}<span className="text-2xl">°C</span></div>
             </div>
           )}
 
-          {/* Pressure */}
+          {/* Air Quality Card */}
+          {environment.aqi !== null && (
+            <div className={cn(
+              "px-5 py-4 rounded-2xl border shadow-2xl backdrop-blur-xl min-w-[140px] animate-fade-in",
+              environment.aqi > 150 ? "bg-danger/30 border-danger/50" :
+              environment.aqi > 100 ? "bg-warning/30 border-warning/50" :
+              environment.aqi > 50 ? "bg-yellow-500/20 border-yellow-500/50" :
+              "bg-success/20 border-success/50"
+            )} style={{ animationDelay: '0.1s' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className={cn(
+                  "p-2 rounded-lg",
+                  environment.aqi > 100 ? "bg-warning/30" : "bg-purple-500/20"
+                )}>
+                  <Wind className="h-4 w-4 text-purple-400" />
+                </div>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Chất lượng KK</span>
+              </div>
+              <div className="text-4xl font-bold">{environment.aqi}</div>
+              <div className={cn(
+                "text-sm font-medium mt-1",
+                environment.aqi <= 50 ? 'text-success' : 
+                environment.aqi <= 100 ? 'text-yellow-500' :
+                environment.aqi <= 150 ? 'text-warning' : 'text-danger'
+              )}>
+                {environment.aqi <= 50 ? 'Tốt' : 
+                 environment.aqi <= 100 ? 'Trung bình' :
+                 environment.aqi <= 150 ? 'Nhạy cảm' : 'Không tốt'}
+              </div>
+            </div>
+          )}
+
+          {/* Pressure Card */}
           {environment.pressure !== null && (
-            <div className="px-4 py-2 bg-card/80 backdrop-blur-md rounded-xl border border-border/50 shadow-lg">
-              <div className="text-xs text-muted-foreground uppercase tracking-wider">Áp suất</div>
-              <div className="text-xl font-bold text-foreground">{environment.pressure?.toFixed(0)} hPa</div>
+            <div className="px-5 py-4 bg-card/90 backdrop-blur-xl rounded-2xl border border-border/50 shadow-2xl min-w-[140px] animate-fade-in" style={{ animationDelay: '0.2s' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 rounded-lg bg-teal-500/20">
+                  <Gauge className="h-4 w-4 text-teal-400" />
+                </div>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Áp suất</span>
+              </div>
+              <div className="text-3xl font-bold text-foreground">{environment.pressure?.toFixed(0)} <span className="text-lg font-normal text-muted-foreground">hPa</span></div>
+            </div>
+          )}
+
+          {/* Humidity Card */}
+          {environment.humidity !== null && (
+            <div className="px-5 py-4 bg-card/90 backdrop-blur-xl rounded-2xl border border-border/50 shadow-2xl min-w-[140px] animate-fade-in" style={{ animationDelay: '0.3s' }}>
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 rounded-lg bg-blue-500/20">
+                  <Droplets className="h-4 w-4 text-blue-400" />
+                </div>
+                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Độ ẩm</span>
+              </div>
+              <div className="text-3xl font-bold text-foreground">{environment.humidity?.toFixed(0)}<span className="text-lg">%</span></div>
             </div>
           )}
         </div>
       )}
 
       {/* Data source label */}
-      <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-card/60 backdrop-blur-sm rounded-lg border border-border/30 z-10">
-        <span className="text-[10px] text-muted-foreground">
-          Live • Tomorrow.io • IQAir
-        </span>
-      </div>
+      {!isBlurred && (
+        <div className="absolute bottom-4 right-4 px-4 py-2 bg-card/80 backdrop-blur-md rounded-xl border border-border/30 z-10">
+          <span className="text-xs text-muted-foreground flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            Live Data • Tomorrow.io • IQAir
+          </span>
+        </div>
+      )}
 
-      {/* Custom styles for user marker */}
-      <style>{`
-        .user-location-marker {
-          background: transparent;
-          border: none;
-        }
-      `}</style>
+      {/* Location badge */}
+      {!isBlurred && gps && (
+        <div className="absolute top-4 right-4 px-4 py-2 bg-card/80 backdrop-blur-md rounded-xl border border-border/30 z-10">
+          <span className="text-xs text-muted-foreground flex items-center gap-2">
+            <MapPin className="h-3 w-3 text-info" />
+            Vị trí của bạn
+          </span>
+        </div>
+      )}
     </div>
   );
 };
