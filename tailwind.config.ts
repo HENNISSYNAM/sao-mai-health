@@ -140,10 +140,12 @@ export default {
 					'50%': { transform: 'translateY(-6px)' }
 				},
 				'heartbeat': {
-					'0%, 100%': { transform: 'scale(1)' },
-					'25%': { transform: 'scale(1.05)' },
-					'50%': { transform: 'scale(1)' },
-					'75%': { transform: 'scale(1.05)' }
+					'0%': { transform: 'scale(1)' },
+					'14%': { transform: 'scale(1.15)' },
+					'28%': { transform: 'scale(1)' },
+					'42%': { transform: 'scale(1.15)' },
+					'70%': { transform: 'scale(1)' },
+					'100%': { transform: 'scale(1)' }
 				}
 			},
 			animation: {
@@ -156,7 +158,7 @@ export default {
 				'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
 				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
 				'float': 'float 3s ease-in-out infinite',
-				'heartbeat': 'heartbeat 1.5s ease-in-out infinite'
+				'heartbeat': 'heartbeat 0.85s ease-in-out infinite'
 			}
 		}
 	},
