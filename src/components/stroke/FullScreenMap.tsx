@@ -147,29 +147,32 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
           <div className="bg-card/90 backdrop-blur-xl rounded-2xl shadow-xl border border-border/20 overflow-hidden w-[140px]">
             {/* Data Grid */}
             <div className="divide-y divide-border/30">
-              {/* AQI - Clickable */}
-              {environment.aqi !== null && (
-                <button
-                  onClick={toggleAQILayer}
-                  className={cn(
-                    "w-full px-3 py-2 text-left transition-all",
-                    showAQILayer ? aqiInfo.color : "hover:bg-muted/50"
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Wind className={cn("h-3.5 w-3.5", showAQILayer ? "text-white" : "text-purple-400")} />
-                      <span className={cn("text-[10px] uppercase", showAQILayer ? "text-white/80" : "text-muted-foreground")}>AQI</span>
-                    </div>
-                    {showAQILayer ? (
-                      <Eye className="h-3 w-3 text-white" />
-                    ) : (
-                      <EyeOff className="h-3 w-3 text-muted-foreground/50" />
-                    )}
+              {/* AQI - Clickable - Always show */}
+              <button
+                onClick={toggleAQILayer}
+                className={cn(
+                  "w-full px-3 py-2 text-left transition-all",
+                  showAQILayer ? aqiInfo.color : "hover:bg-muted/50"
+                )}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Wind className={cn("h-3.5 w-3.5", showAQILayer ? "text-white" : "text-purple-400")} />
+                    <span className={cn("text-[10px] uppercase", showAQILayer ? "text-white/80" : "text-muted-foreground")}>PM2.5</span>
                   </div>
-                  <div className={cn("text-lg font-bold", showAQILayer ? "text-white" : "text-foreground")}>{environment.aqi}</div>
-                </button>
-              )}
+                  {showAQILayer ? (
+                    <Eye className="h-3 w-3 text-white" />
+                  ) : (
+                    <EyeOff className="h-3 w-3 text-muted-foreground/50" />
+                  )}
+                </div>
+                <div className={cn("text-lg font-bold", showAQILayer ? "text-white" : "text-foreground")}>
+                  {environment.aqi !== null ? environment.aqi : (environment.pm25 !== null ? environment.pm25 : '--')}
+                </div>
+                {environment.aqi !== null && (
+                  <div className={cn("text-[9px]", showAQILayer ? "text-white/70" : "text-muted-foreground")}>{aqiInfo.label}</div>
+                )}
+              </button>
 
               {/* Location Type & Outdoor Time */}
               <div className={cn(
