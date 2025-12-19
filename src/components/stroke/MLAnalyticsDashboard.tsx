@@ -11,13 +11,14 @@ import {
 import { 
   Activity, Wind, Thermometer, Droplets, TrendingUp, TrendingDown, 
   RefreshCw, Brain, Building2, Ambulance, Clock, MapPin,
-  AlertTriangle, Users, Heart, Zap, BarChart3, Loader2, Navigation,
+  AlertTriangle, Users, Heart, Zap, BarChart3, Navigation,
   Shield, Target, DollarSign, Truck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { EnvironmentData, RiskAssessment, AgeGroup, GPSPoint } from '@/hooks/useStrokeRiskEngine';
+import healthLogo from '@/assets/health-logo.png';
 
 interface AnalyticsData {
   pollution: {
@@ -172,7 +173,11 @@ const MLAnalyticsDashboard: React.FC<MLAnalyticsDashboardProps> = ({
     return (
       <div className="flex items-center justify-center h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
         <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
+          <img 
+            src={healthLogo} 
+            alt="Loading" 
+            className="w-24 h-24 mx-auto animate-heartbeat drop-shadow-lg"
+          />
           <p className="text-lg text-slate-600">Đang tải dữ liệu phân tích...</p>
         </div>
       </div>
