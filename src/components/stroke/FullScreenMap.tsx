@@ -1,8 +1,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
-import { Thermometer, Wind, Gauge, Droplets, Navigation, Activity, Radio, Clock, MapPin } from 'lucide-react';
-import UserLocationMap from './UserLocationMap';
+import { Thermometer, Wind, Gauge, Droplets, Activity, Radio, Clock, MapPin } from 'lucide-react';
 
 interface FullScreenMapProps {
   gps: { lat: number; lon: number } | null;
@@ -29,6 +28,9 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
   outdoorMinutes = 0,
   className
 }) => {
+  const lat = gps?.lat || 10.7769;
+  const lon = gps?.lon || 106.7009;
+
   // Get AQI color and label
   const getAQIInfo = (aqi: number | null) => {
     if (aqi === null) return { color: 'bg-muted', label: '--', textColor: 'text-muted-foreground' };
@@ -52,22 +54,100 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     return mins > 0 ? `${hours}h ${mins}p` : `${hours} giờ`;
   };
 
+  // Risk color for marker
+  const getRiskColor = () => {
+    switch (riskAssessment.risk_level) {
+      case 'HIGH': return '#ef4444';
+      case 'MEDIUM': return '#f59e0b';
+      default: return '#22c55e';
+    }
+  };
+
+  // Windy embed URL with PM2.5 overlay
+  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=14&overlay=pm25&product=cams&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&message=true`;
+
   return (
     <div className={cn(
       "absolute inset-0 transition-all duration-700 overflow-hidden",
       isBlurred && "scale-[1.02] brightness-[0.3] blur-sm",
       className
     )}>
-      {/* MapLibre Map with user location */}
-      <UserLocationMap
-        gps={gps}
-        gpsHistory={gpsHistory}
-        gpsAccuracy={gpsAccuracy}
-        riskLevel={riskAssessment.risk_level}
+      {/* Windy Map as background - weather animations */}
+      <iframe
+        src={windyUrl}
+        className="absolute inset-0 w-full h-full border-0"
+        style={{ minHeight: '100vh', minWidth: '100vw' }}
+        allow="geolocation"
+        title="Windy Weather Map"
       />
 
+      {/* GPS Position Marker Overlay - fixed at center */}
+      {gps && !isBlurred && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          {/* Accuracy circle */}
+          {gpsAccuracy && gpsAccuracy < 100 && (
+            <div 
+              className="absolute rounded-full border border-blue-400/30 bg-blue-400/10 animate-pulse"
+              style={{
+                width: Math.min(gpsAccuracy * 2, 120),
+                height: Math.min(gpsAccuracy * 2, 120)
+              }}
+            />
+          )}
+          
+          {/* Pulse animation */}
+          <div 
+            className="absolute rounded-full animate-ping"
+            style={{
+              width: 48,
+              height: 48,
+              backgroundColor: `${getRiskColor()}30`
+            }}
+          />
+          
+          {/* GPS dot marker */}
+          <div 
+            className="relative w-5 h-5 rounded-full border-[3px] border-white shadow-lg z-20"
+            style={{ backgroundColor: getRiskColor() }}
+          >
+            {/* Inner glow */}
+            <div 
+              className="absolute inset-0 rounded-full animate-pulse"
+              style={{ boxShadow: `0 0 12px 4px ${getRiskColor()}60` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* GPS Trail dots - show recent positions */}
+      {!isBlurred && gpsHistory.length > 1 && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-5">
+          {gpsHistory.slice(-10, -1).map((point, index) => {
+            const latDiff = (point.lat - lat) * 5000; // Scale for visibility
+            const lonDiff = (point.lon - lon) * 5000;
+            const opacity = 0.2 + (index / 10) * 0.5;
+            const size = 4 + (index / 10) * 4;
+            
+            return (
+              <div
+                key={point.id}
+                className="absolute rounded-full bg-blue-400 border border-white/50"
+                style={{
+                  left: `calc(50% + ${lonDiff}px)`,
+                  top: `calc(50% - ${latDiff}px)`,
+                  opacity,
+                  width: size,
+                  height: size,
+                  transform: 'translate(-50%, -50%)'
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
       {/* Top gradient overlay */}
-      <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-background/60 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/50 to-transparent pointer-events-none z-15" />
 
       {/* Left panel - Compact environmental data */}
       {!isBlurred && (
