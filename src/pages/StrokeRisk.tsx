@@ -7,14 +7,11 @@ import { BarChart3, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import healthLogo from '@/assets/health-logo.png';
-
 type ViewMode = 'tracking' | 'statistics';
-
 const StrokeRisk: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('tracking');
   const [showRiskOverlay, setShowRiskOverlay] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-
   const {
     userData,
     environment,
@@ -24,7 +21,7 @@ const StrokeRisk: React.FC = () => {
     gpsLoading,
     isTracking,
     startMonitoring,
-    setAgeGroup,
+    setAgeGroup
   } = useStrokeRiskEngine();
 
   // Initialize monitoring on mount - only run once
@@ -49,13 +46,16 @@ const StrokeRisk: React.FC = () => {
       safeMinutes: number;
       warning: string;
     }>) => {
-      const { minutes, safeMinutes, warning } = event.detail;
+      const {
+        minutes,
+        safeMinutes,
+        warning
+      } = event.detail;
       toast.warning('⚠️ Cảnh báo thời gian ngoài trời', {
         description: `${warning}. Bạn đã ở ngoài trời ${minutes} phút (giới hạn an toàn: ${safeMinutes} phút)`,
-        duration: 10000,
+        duration: 10000
       });
     };
-
     window.addEventListener('outdoor-time-warning', handleOutdoorWarning as EventListener);
     return () => {
       window.removeEventListener('outdoor-time-warning', handleOutdoorWarning as EventListener);
@@ -73,73 +73,38 @@ const StrokeRisk: React.FC = () => {
 
   // Statistics view - pass tracking data for tight integration
   if (viewMode === 'statistics') {
-    return (
-      <div className="relative">
+    return <div className="relative">
         {/* View Toggle Button */}
         <div className="fixed top-4 right-4 z-50">
-          <Button
-            onClick={() => setViewMode('tracking')}
-            className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-          >
+          <Button onClick={() => setViewMode('tracking')} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
             <Navigation className="h-4 w-4 mr-2" />
             Theo dõi
           </Button>
         </div>
-        <MLAnalyticsDashboard 
-          gps={userData.gps}
-          environment={environment}
-          riskAssessment={riskAssessment}
-          ageGroup={userData.ageGroup}
-          isTracking={isTracking}
-          outdoorMinutes={userData.outdoorMinutes}
-          locationConfidence={userData.locationConfidence}
-          pressureChange1h={barometer.pressureChange1h}
-          pressureChange24h={barometer.pressureChange24h}
-        />
-      </div>
-    );
+        <MLAnalyticsDashboard gps={userData.gps} environment={environment} riskAssessment={riskAssessment} ageGroup={userData.ageGroup} isTracking={isTracking} outdoorMinutes={userData.outdoorMinutes} locationConfidence={userData.locationConfidence} pressureChange1h={barometer.pressureChange1h} pressureChange24h={barometer.pressureChange24h} />
+      </div>;
   }
 
   // Tracking view
-  return (
-    <div className="fixed inset-0 overflow-hidden" style={{ background: 'linear-gradient(135deg, hsl(210 40% 8%) 0%, hsl(210 50% 12%) 50%, hsl(199 40% 15%) 100%)' }}>
+  return <div className="fixed inset-0 overflow-hidden" style={{
+    background: 'linear-gradient(135deg, hsl(210 40% 8%) 0%, hsl(210 50% 12%) 50%, hsl(199 40% 15%) 100%)'
+  }}>
       {/* Full Screen Map Background */}
-      <FullScreenMap
-        gps={userData.gps}
-        gpsHistory={userData.gpsHistory}
-        gpsAccuracy={userData.gpsAccuracy}
-        environment={environment}
-        riskAssessment={riskAssessment}
-        isBlurred={false}
-        isTracking={isTracking}
-        devicePressure={userData.devicePressure}
-        outdoorMinutes={userData.outdoorMinutes}
-        isOutdoor={userData.isOutdoor}
-        locationConfidence={userData.locationConfidence}
-        safeOutdoorMinutes={userData.safeOutdoorMinutes}
-      />
+      <FullScreenMap gps={userData.gps} gpsHistory={userData.gpsHistory} gpsAccuracy={userData.gpsAccuracy} environment={environment} riskAssessment={riskAssessment} isBlurred={false} isTracking={isTracking} devicePressure={userData.devicePressure} outdoorMinutes={userData.outdoorMinutes} isOutdoor={userData.isOutdoor} locationConfidence={userData.locationConfidence} safeOutdoorMinutes={userData.safeOutdoorMinutes} />
 
       {/* View Toggle Button - Bottom left */}
-      <div className="fixed bottom-24 left-4 md:bottom-8 md:left-8 z-50">
-        <Button
-          onClick={() => setViewMode('statistics')}
-          className="bg-slate-800/80 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600"
-        >
+      <div className="fixed bottom-24 left-4 md:bottom-8 md:left-8 z-50 mt-0">
+        <Button onClick={() => setViewMode('statistics')} className="bg-slate-800/80 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600 mx-0 ml-0 px-[14px] mr-0 my-[250px]">
           <BarChart3 className="h-4 w-4 mr-2" />
           Thống kê
         </Button>
       </div>
 
       {/* Loading Overlay */}
-      {(isLoading || (gpsLoading && !userData.gps)) && (
-        <div className="absolute inset-0 bg-background/90 backdrop-blur-md flex items-center justify-center z-40">
+      {(isLoading || gpsLoading && !userData.gps) && <div className="absolute inset-0 bg-background/90 backdrop-blur-md flex items-center justify-center z-40">
           <div className="text-center space-y-4">
             <div className="relative">
-              <img 
-                src={healthLogo} 
-                alt="Loading" 
-                className="w-24 h-24 mx-auto animate-heartbeat drop-shadow-lg"
-              />
+              <img src={healthLogo} alt="Loading" className="w-24 h-24 mx-auto animate-heartbeat drop-shadow-lg" />
             </div>
             <div>
               <p className="text-lg font-semibold text-foreground">Đang khởi tạo...</p>
@@ -148,23 +113,10 @@ const StrokeRisk: React.FC = () => {
               </p>
             </div>
           </div>
-        </div>
-      )}
+        </div>}
 
       {/* Risk Overlay - Stats panel at bottom right */}
-      <RiskOverlay
-        riskAssessment={riskAssessment}
-        environment={environment}
-        pressureChange1h={barometer.pressureChange1h}
-        pressureChange24h={barometer.pressureChange24h}
-        isVisible={showRiskOverlay}
-        ageGroup={userData.ageGroup}
-        gps={userData.gps}
-        devicePressure={userData.devicePressure}
-        gpsAccuracy={userData.gpsAccuracy}
-      />
-    </div>
-  );
+      <RiskOverlay riskAssessment={riskAssessment} environment={environment} pressureChange1h={barometer.pressureChange1h} pressureChange24h={barometer.pressureChange24h} isVisible={showRiskOverlay} ageGroup={userData.ageGroup} gps={userData.gps} devicePressure={userData.devicePressure} gpsAccuracy={userData.gpsAccuracy} />
+    </div>;
 };
-
 export default StrokeRisk;
