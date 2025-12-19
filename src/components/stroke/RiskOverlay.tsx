@@ -15,11 +15,8 @@ import {
   Phone,
   Sparkles,
   RefreshCw,
-  Hospital,
-  X,
   ChevronUp,
-  ChevronDown,
-  Activity
+  ChevronDown
 } from 'lucide-react';
 import type { RiskAssessment, EnvironmentData, AgeGroup } from '@/hooks/useStrokeRiskEngine';
 
@@ -57,7 +54,6 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState<AIRecommendations | null>(null);
   const [isLoadingAI, setIsLoadingAI] = useState(false);
-  const [showEmergency, setShowEmergency] = useState(false);
 
   const { risk_score, risk_level, primary_factors, recommendations } = riskAssessment;
 
@@ -147,10 +143,13 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
   const displayRecommendations = aiRecommendations?.recommendations || recommendations;
   const displayWarnings = aiRecommendations?.warnings || [];
 
+  // Only show expanded panel when there are warnings or high risk
+  const shouldAutoShow = risk_level === 'HIGH' || displayWarnings.length > 0;
+
   return (
     <>
-      {/* Collapsed Badge - Bottom Left (avoid Windy controls at bottom-right) */}
-      {!isExpanded && (
+      {/* Only show when needed: high risk or has warnings */}
+      {shouldAutoShow && !isExpanded && (
         <button
           onClick={() => setIsExpanded(true)}
           className={cn(
@@ -159,34 +158,26 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
             styles.pulse
           )}
         >
-          <Icon className="h-4 w-4 text-white" />
-          <span className="text-white font-bold">{risk_score}</span>
+          <AlertTriangle className="h-4 w-4 text-white" />
+          <span className="text-white font-bold text-sm">Cảnh báo</span>
           <ChevronUp className="h-3 w-3 text-white/70" />
         </button>
       )}
 
-      {/* Expanded Panel - Left side to avoid Windy controls */}
+      {/* Expanded Panel - Only shows recommendations/warnings */}
       {isExpanded && (
         <div className="fixed bottom-4 left-4 right-4 sm:right-auto sm:w-80 z-30 animate-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-card/95 backdrop-blur-xl rounded-2xl border border-border/50 shadow-2xl overflow-hidden max-h-[70vh] overflow-y-auto">
+          <div className="bg-card/95 backdrop-blur-xl rounded-2xl border border-border/50 shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto">
             {/* Header - Collapsible */}
             <button
               onClick={() => setIsExpanded(false)}
               className={cn("w-full px-4 py-3 flex items-center justify-between", styles.bg)}
             >
               <div className="flex items-center gap-3">
-                <div className="p-1.5 bg-white/20 rounded-lg">
-                  <Icon className="h-4 w-4 text-white" />
-                </div>
-                <div className="text-left">
-                  <div className="text-white font-semibold text-sm">Nguy cơ {styles.label.toLowerCase()}</div>
-                  <div className="text-white/70 text-xs">Nhấn để thu gọn</div>
-                </div>
+                <Icon className="h-4 w-4 text-white" />
+                <span className="text-white font-semibold text-sm">Cảnh báo sức khỏe</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-bold text-white">{risk_score}</span>
-                <ChevronDown className="h-4 w-4 text-white/70" />
-              </div>
+              <ChevronDown className="h-4 w-4 text-white/70" />
             </button>
 
             {/* Primary Factors */}
@@ -202,41 +193,10 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
               </div>
             )}
 
-            {/* PM2.5 & Pressure */}
-            {(environment.pm25 !== null || pressureChange1h !== null) && (
-              <div className="px-4 py-2 border-b border-border/30 flex items-center gap-4">
-                {environment.pm25 !== null && (
-                  <div className="flex items-center gap-2">
-                    <Wind className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="text-[10px] text-muted-foreground">PM2.5</div>
-                      <div className="text-lg font-bold">{environment.pm25}</div>
-                    </div>
-                  </div>
-                )}
-                {pressureChange1h !== null && (
-                  <div className="flex items-center gap-2">
-                    <Gauge className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="text-[10px] text-muted-foreground">Áp suất</div>
-                      <div className="flex items-center gap-1 font-medium">
-                        {environment.pressure?.toFixed(0) || '--'}
-                        {pressureChange1h < 0 ? (
-                          <TrendingDown className="h-3 w-3 text-red-500" />
-                        ) : (
-                          <TrendingUp className="h-3 w-3 text-emerald-500" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* AI Warnings */}
             {displayWarnings.length > 0 && (
               <div className="px-4 py-2 bg-red-500/10 border-b border-border/30">
-                {displayWarnings.slice(0, 2).map((warning, i) => (
+                {displayWarnings.slice(0, 3).map((warning, i) => (
                   <div key={i} className="text-[11px] text-red-400 flex items-start gap-1.5 py-0.5">
                     <AlertTriangle className="h-3 w-3 mt-0.5 flex-shrink-0" />
                     {warning}
@@ -299,15 +259,14 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
                 )}
                 AI Tư vấn
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1 text-[10px] h-7 text-red-500 border-red-500/30 hover:bg-red-500/10"
-                onClick={() => setShowEmergency(true)}
+              {/* Direct call 115 */}
+              <a 
+                href="tel:115"
+                className="flex-1 inline-flex items-center justify-center text-[10px] h-7 px-3 rounded-md border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors"
               >
-                <Hospital className="h-3 w-3 mr-1" />
-                Cấp cứu
-              </Button>
+                <Phone className="h-3 w-3 mr-1" />
+                Gọi 115
+              </a>
             </div>
 
             {/* Footer note */}
@@ -315,51 +274,6 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
               <p className="text-[9px] text-muted-foreground text-center">
                 ⚠️ Cảnh báo sớm, không phải chẩn đoán y tế
               </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Emergency Modal */}
-      {showEmergency && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={() => setShowEmergency(false)} />
-          <div className="relative bg-card border border-border rounded-2xl shadow-2xl p-4 w-full max-w-xs animate-in zoom-in-95 duration-200">
-            <button 
-              className="absolute top-3 right-3 p-1 rounded-full hover:bg-muted"
-              onClick={() => setShowEmergency(false)}
-            >
-              <X className="h-4 w-4" />
-            </button>
-            
-            <div className="text-center mb-4">
-              <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
-                <Hospital className="h-6 w-6 text-red-500" />
-              </div>
-              <h3 className="font-bold text-lg">Cấp cứu</h3>
-            </div>
-
-            <div className="space-y-2">
-              <a 
-                href="tel:115" 
-                className="flex items-center gap-3 p-3 bg-red-500 text-white rounded-xl"
-              >
-                <Phone className="h-5 w-5" />
-                <div>
-                  <div className="font-bold">115</div>
-                  <div className="text-xs text-white/80">Cấp cứu quốc gia</div>
-                </div>
-              </a>
-
-              <div className="pt-2 border-t border-border">
-                <div className="text-xs font-medium mb-2">Dấu hiệu FAST</div>
-                <div className="grid grid-cols-2 gap-1 text-[10px]">
-                  <div className="bg-muted/50 p-1.5 rounded"><b className="text-red-500">F</b>ace - Méo mặt</div>
-                  <div className="bg-muted/50 p-1.5 rounded"><b className="text-red-500">A</b>rm - Yếu tay</div>
-                  <div className="bg-muted/50 p-1.5 rounded"><b className="text-red-500">S</b>peech - Nói khó</div>
-                  <div className="bg-muted/50 p-1.5 rounded"><b className="text-red-500">T</b>ime - Gọi 115</div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
