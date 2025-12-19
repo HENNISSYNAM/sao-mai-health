@@ -2,7 +2,7 @@ import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavbar } from "@/components/TopNavbar";
@@ -42,7 +42,8 @@ const MainLayout = () => (
         <TopNavbar />
         <main className="flex-1 p-6 bg-background">
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            <Route path="/" element={<Navigate to="/stroke-risk" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/surveillance" element={<Surveillance />} />
             <Route path="/case-intake" element={<CaseIntake />} />
             <Route path="/lab-import" element={<LabImport />} />
