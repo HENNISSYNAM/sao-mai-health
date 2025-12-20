@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from 'react';
 import { useStrokeRiskEngine } from '@/hooks/useStrokeRiskEngine';
 import FullScreenMap from '@/components/stroke/FullScreenMap';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
@@ -13,6 +13,8 @@ const StrokeRisk: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('tracking');
   const [showRiskOverlay, setShowRiskOverlay] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const initRef = useRef(false);
+  
   const {
     userData,
     environment,
@@ -25,20 +27,22 @@ const StrokeRisk: React.FC = () => {
     setAgeGroup
   } = useStrokeRiskEngine();
 
+  // Stable view mode toggle to prevent re-renders
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+  }, []);
+
   // Initialize monitoring on mount - only run once
   useEffect(() => {
-    let mounted = true;
+    if (initRef.current) return;
+    initRef.current = true;
+    
     const init = async () => {
       await startMonitoring();
-      if (mounted) {
-        setIsInitialized(true);
-      }
+      setIsInitialized(true);
     };
     init();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  }, [startMonitoring]);
 
   // Listen for outdoor time warning events
   useEffect(() => {
@@ -95,8 +99,11 @@ const StrokeRisk: React.FC = () => {
 
       {/* View Toggle Button - Bottom left - Only show when initialized */}
       {isInitialized && !isLoading && !gpsLoading && (
-        <div className="fixed bottom-24 left-4 md:bottom-8 md:left-8 z-50 mt-[140px]">
-          <Button onClick={() => setViewMode('statistics')} className="bg-slate-800/80 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600 mx-0 ml-0 px-[14px] mr-0 my-[250px]">
+        <div className="fixed bottom-36 left-4 md:bottom-8 md:left-8 z-40">
+          <Button 
+            onClick={() => setViewMode('statistics')} 
+            className="bg-slate-800/90 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600/50 px-4 py-2"
+          >
             <BarChart3 className="h-4 w-4 mr-2" />
             Thống kê
           </Button>

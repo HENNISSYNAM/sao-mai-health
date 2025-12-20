@@ -87,19 +87,26 @@ const MLAnalyticsDashboard: React.FC<MLAnalyticsDashboardProps> = ({
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
+  // Memoize location to prevent unnecessary refetches
+  const locationRef = React.useRef<{ lat: number; lon: number } | null>(null);
+  
   const fetchData = useCallback(async (showRefreshToast = false) => {
     try {
       if (showRefreshToast) setRefreshing(true);
       
-      // Use GPS location from tracking if available
-      const location = gps 
-        ? { lat: gps.lat, lon: gps.lon, name: 'Vị trí hiện tại' }
+      // Use cached GPS if available, or use current GPS
+      const currentGps = gps || locationRef.current;
+      const location = currentGps 
+        ? { lat: currentGps.lat, lon: currentGps.lon, name: 'Vị trí hiện tại' }
         : { name: 'Ho Chi Minh City' };
+      
+      // Update cache
+      if (gps) locationRef.current = gps;
       
       const { data: result, error } = await supabase.functions.invoke('stroke-analytics-data', {
         body: { 
           location: location.name,
-          coordinates: gps ? { lat: gps.lat, lon: gps.lon } : null,
+          coordinates: currentGps ? { lat: currentGps.lat, lon: currentGps.lon } : null,
           userEnvironment: environment,
           userRisk: riskAssessment,
           ageGroup
@@ -121,18 +128,32 @@ const MLAnalyticsDashboard: React.FC<MLAnalyticsDashboardProps> = ({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [gps, environment, riskAssessment, ageGroup]);
+  }, []); // Remove dependencies to prevent re-creation on every prop change
 
-  // Initial load and refetch when location changes
+  // Initial load only - don't refetch on every GPS/environment change
+  const initialLoadRef = React.useRef(false);
+  const lastFetchTimeRef = React.useRef<number>(0);
+  
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    // Only fetch on initial mount, not on every prop change
+    if (!initialLoadRef.current) {
+      initialLoadRef.current = true;
+      fetchData();
+    }
+  }, []); // Empty dependency - only run once on mount
 
-  // Auto refresh every 5 minutes
+  // Auto refresh every 5 minutes - with debounce to prevent rapid refetches
   useEffect(() => {
-    const interval = setInterval(() => fetchData(), 5 * 60 * 1000);
+    const interval = setInterval(() => {
+      const now = Date.now();
+      // Prevent refetch if less than 30 seconds since last fetch
+      if (now - lastFetchTimeRef.current > 30000) {
+        lastFetchTimeRef.current = now;
+        fetchData();
+      }
+    }, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [fetchData]);
+  }, []);
 
   const getRiskColor = (risk: string) => {
     switch (risk) {
