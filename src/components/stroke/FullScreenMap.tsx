@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
-import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2, X, LayoutDashboard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface GeocodedLocation {
@@ -63,6 +63,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
   className
 }) => {
   const [showAQILayer, setShowAQILayer] = useState(false);
+  const [showDataPanel, setShowDataPanel] = useState(false); // Collapsed by default
   const [mapKey, setMapKey] = useState(0);
   const [geocodedLocation, setGeocodedLocation] = useState<GeocodedLocation | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -173,10 +174,28 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
       {/* Top gradient overlay */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/50 to-transparent pointer-events-none z-15" />
 
-      {/* Left panel - Environment data only */}
-      {!isBlurred && (
+      {/* Floating Toggle Button - Shows when panel is hidden */}
+      {!isBlurred && !showDataPanel && (
+        <button
+          onClick={() => setShowDataPanel(true)}
+          className="absolute top-4 left-4 z-20 animate-fade-in bg-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-border/20 p-3 hover:bg-card transition-all active:scale-95"
+        >
+          <LayoutDashboard className="h-5 w-5 text-foreground" />
+        </button>
+      )}
+
+      {/* Left panel - Environment data - Collapsible */}
+      {!isBlurred && showDataPanel && (
         <div className="absolute top-4 left-4 z-20 animate-fade-in">
           <div className="bg-card/90 backdrop-blur-xl rounded-2xl shadow-xl border border-border/20 overflow-hidden w-[140px]">
+            {/* Close button */}
+            <button 
+              onClick={() => setShowDataPanel(false)}
+              className="absolute top-1 right-1 z-10 p-1 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+            >
+              <X className="h-3 w-3 text-muted-foreground" />
+            </button>
+            
             {/* Data Grid */}
             <div className="divide-y divide-border/30">
               {/* AQI - Clickable - Always show */}
