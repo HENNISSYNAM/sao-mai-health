@@ -29,6 +29,7 @@ serve(async (req) => {
     const { lat, lon, gpsAccuracy, gpsHistory = [], environment } = locationData;
     
     // Indoor/Outdoor detection heuristics
+    // PRIORITY: When stationary (not moving), prefer INDOOR for demo/home use
     let indoorScore = 0;
     let outdoorScore = 0;
     const factors: string[] = [];
@@ -56,38 +57,48 @@ serve(async (req) => {
       totalDistance = sumDistance;
       avgSpeed = sumTime > 0 ? (sumDistance / sumTime) * 3.6 : 0; // km/h
       
-      // If moving more than 10 meters total or speed > 1 km/h, consider outdoor
-      if (totalDistance > 10 || avgSpeed > 1) {
+      // If moving more than 15 meters total or speed > 2 km/h, consider outdoor
+      if (totalDistance > 15 || avgSpeed > 2) {
         isMoving = true;
-        outdoorScore += 60; // Strong outdoor signal
+        outdoorScore += 70; // Strong outdoor signal
         factors.push(`Đang di chuyển (${totalDistance.toFixed(0)}m, ${avgSpeed.toFixed(1)} km/h) - ngoài trời`);
-      } else if (totalDistance > 3) {
-        // Small movement
-        outdoorScore += 25;
+      } else if (totalDistance > 8) {
+        // Small movement - could still be indoor walking
+        outdoorScore += 20;
         factors.push(`Di chuyển nhẹ (${totalDistance.toFixed(1)}m)`);
+      } else {
+        // Stationary or minimal movement = likely INDOOR (priority for demo)
+        indoorScore += 35;
+        factors.push('Đứng yên/di chuyển rất ít - ưu tiên trong nhà');
       }
+    } else {
+      // No history = assume indoor for demo purposes
+      indoorScore += 25;
+      factors.push('Không có lịch sử di chuyển - ưu tiên trong nhà');
     }
     
-    // 2. GPS Accuracy - but give less weight if already moving
+    // 2. GPS Accuracy - adjusted for indoor priority when stationary
     if (gpsAccuracy !== null && !isMoving) {
       if (gpsAccuracy > 50) {
-        indoorScore += 40;
-        factors.push(`GPS kém (${Math.round(gpsAccuracy)}m) - có thể trong nhà`);
-      } else if (gpsAccuracy > 30) {
-        indoorScore += 25;
-        factors.push(`GPS trung bình (${Math.round(gpsAccuracy)}m)`);
-      } else if (gpsAccuracy > 15) {
-        outdoorScore += 20;
-        factors.push(`GPS tốt (${Math.round(gpsAccuracy)}m)`);
+        indoorScore += 45;
+        factors.push(`GPS kém (${Math.round(gpsAccuracy)}m) - trong nhà`);
+      } else if (gpsAccuracy > 25) {
+        indoorScore += 30;
+        factors.push(`GPS trung bình (${Math.round(gpsAccuracy)}m) - có thể trong nhà`);
+      } else if (gpsAccuracy > 10) {
+        // Good GPS but stationary = could still be indoor near window
+        indoorScore += 15;
+        factors.push(`GPS tốt nhưng đứng yên (${Math.round(gpsAccuracy)}m)`);
       } else {
-        outdoorScore += 40;
-        factors.push(`GPS rất tốt (${Math.round(gpsAccuracy)}m) - ngoài trời`);
+        // Excellent GPS + stationary = outdoor or near window
+        outdoorScore += 25;
+        factors.push(`GPS rất tốt (${Math.round(gpsAccuracy)}m)`);
       }
     } else if (gpsAccuracy !== null && isMoving) {
-      // When moving, accuracy matters less but still a factor
+      // When moving, accuracy confirms outdoor
       if (gpsAccuracy < 30) {
-        outdoorScore += 15;
-        factors.push(`GPS ổn định khi di chuyển (${Math.round(gpsAccuracy)}m)`);
+        outdoorScore += 25;
+        factors.push(`GPS ổn định khi di chuyển (${Math.round(gpsAccuracy)}m) - ngoài trời`);
       }
     }
     
@@ -124,15 +135,17 @@ serve(async (req) => {
     let locationType: 'indoor' | 'outdoor' | 'uncertain';
     let confidence: number;
     
-    if (indoorProbability >= 65) {
+    // Lower threshold for indoor detection (priority for demo/home use)
+    if (indoorProbability >= 55) {
       locationType = 'indoor';
-      confidence = indoorProbability;
-    } else if (indoorProbability <= 35) {
+      confidence = Math.min(100, indoorProbability + 10);
+    } else if (indoorProbability <= 30) {
       locationType = 'outdoor';
       confidence = 100 - indoorProbability;
     } else {
-      locationType = 'uncertain';
-      confidence = 50 + Math.abs(50 - indoorProbability);
+      // Default to indoor for uncertain cases (demo priority)
+      locationType = 'indoor';
+      confidence = 60;
     }
     
     // Determine if it's safe to be outside based on environment
