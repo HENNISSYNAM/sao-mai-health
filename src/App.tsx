@@ -76,7 +76,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             {/* Stroke Risk - Full screen without sidebar */}
-            <Route path="/stroke-risk" element={<StrokeRisk />} />
+            <Route path="/stroke-risk/*" element={<StrokeRisk />} />
             {/* All other routes with sidebar layout */}
             <Route path="/*" element={<MainLayout />} />
           </Routes>
