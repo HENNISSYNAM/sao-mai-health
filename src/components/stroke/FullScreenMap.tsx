@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
 import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -28,7 +28,26 @@ interface FullScreenMapProps {
   className?: string;
 }
 
-const FullScreenMap: React.FC<FullScreenMapProps> = ({
+// Memoized stable coordinates to prevent unnecessary re-renders
+const useStableCoords = (gps: { lat: number; lon: number } | null) => {
+  const prevRef = useRef<{ lat: number; lon: number } | null>(null);
+  
+  return useMemo(() => {
+    if (!gps) return null;
+    // Only update if moved more than ~10m
+    if (prevRef.current) {
+      const latDiff = Math.abs(gps.lat - prevRef.current.lat);
+      const lonDiff = Math.abs(gps.lon - prevRef.current.lon);
+      if (latDiff < 0.0001 && lonDiff < 0.0001) {
+        return prevRef.current;
+      }
+    }
+    prevRef.current = gps;
+    return gps;
+  }, [gps?.lat, gps?.lon]);
+};
+
+const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
   gps,
   gpsHistory = [],
   gpsAccuracy,
@@ -44,17 +63,20 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
   className
 }) => {
   const [showAQILayer, setShowAQILayer] = useState(false);
-  const [mapKey, setMapKey] = useState(0); // Force iframe reload
+  const [mapKey, setMapKey] = useState(0);
   const [geocodedLocation, setGeocodedLocation] = useState<GeocodedLocation | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const lastGeocodedRef = React.useRef<string>('');
+  const lastGeocodedRef = useRef<string>('');
+  const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const lat = gps?.lat || 10.7769;
-  const lon = gps?.lon || 106.7009;
+  // Use stable coordinates to reduce re-renders
+  const stableGps = useStableCoords(gps);
+  const lat = stableGps?.lat || 10.7769;
+  const lon = stableGps?.lon || 106.7009;
 
-  // Geocode GPS to address using AI
+  // Geocode GPS to address using AI - with debouncing
   const geocodeLocation = useCallback(async (lat: number, lon: number) => {
-    const key = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    const key = `${lat.toFixed(3)},${lon.toFixed(3)}`; // Less precision = less API calls
     if (lastGeocodedRef.current === key) return;
     
     setIsGeocoding(true);
@@ -80,15 +102,24 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     }
   }, []);
 
-  // Geocode when GPS changes (throttled)
+  // Geocode when GPS changes - with longer debounce to reduce stuttering
   useEffect(() => {
-    if (gps) {
-      const timer = setTimeout(() => {
-        geocodeLocation(gps.lat, gps.lon);
-      }, 1000);
-      return () => clearTimeout(timer);
+    if (stableGps) {
+      // Clear any pending geocode
+      if (geocodeTimeoutRef.current) {
+        clearTimeout(geocodeTimeoutRef.current);
+      }
+      // Debounce geocoding by 2 seconds
+      geocodeTimeoutRef.current = setTimeout(() => {
+        geocodeLocation(stableGps.lat, stableGps.lon);
+      }, 2000);
+      return () => {
+        if (geocodeTimeoutRef.current) {
+          clearTimeout(geocodeTimeoutRef.current);
+        }
+      };
     }
-  }, [gps, geocodeLocation]);
+  }, [stableGps, geocodeLocation]);
 
   // Toggle AQI layer with forced reload
   const toggleAQILayer = () => {
@@ -342,5 +373,23 @@ const FullScreenMap: React.FC<FullScreenMapProps> = ({
     </div>
   );
 };
+
+// Memoize the entire component to prevent unnecessary re-renders
+const FullScreenMap = memo(FullScreenMapInner, (prevProps, nextProps) => {
+  // Custom comparison - only re-render when significant changes occur
+  const gpsChanged = prevProps.gps?.lat !== nextProps.gps?.lat || 
+                     prevProps.gps?.lon !== nextProps.gps?.lon;
+  const envChanged = prevProps.environment.aqi !== nextProps.environment.aqi ||
+                     prevProps.environment.temperature !== nextProps.environment.temperature ||
+                     prevProps.environment.humidity !== nextProps.environment.humidity ||
+                     prevProps.environment.pressure !== nextProps.environment.pressure;
+  const trackingChanged = prevProps.isTracking !== nextProps.isTracking;
+  const blurChanged = prevProps.isBlurred !== nextProps.isBlurred;
+  const outdoorChanged = prevProps.isOutdoor !== nextProps.isOutdoor ||
+                         prevProps.outdoorMinutes !== nextProps.outdoorMinutes;
+  
+  // Return true if props are EQUAL (no re-render needed)
+  return !gpsChanged && !envChanged && !trackingChanged && !blurChanged && !outdoorChanged;
+});
 
 export default FullScreenMap;

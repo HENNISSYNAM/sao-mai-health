@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, memo } from 'react';
 import { useStrokeRiskEngine } from '@/hooks/useStrokeRiskEngine';
 import FullScreenMap from '@/components/stroke/FullScreenMap';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
@@ -7,6 +7,7 @@ import { BarChart3, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import healthLogo from '@/assets/health-logo.png';
+
 type ViewMode = 'tracking' | 'statistics';
 const StrokeRisk: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('tracking');
