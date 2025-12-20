@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -591,4 +591,15 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
   );
 };
 
-export default RiskOverlay;
+// Memoize to prevent unnecessary re-renders
+export default memo(RiskOverlay, (prevProps, nextProps) => {
+  // Only re-render when significant props change
+  const visChanged = prevProps.isVisible !== nextProps.isVisible;
+  const riskChanged = prevProps.riskAssessment.risk_level !== nextProps.riskAssessment.risk_level ||
+                      prevProps.riskAssessment.risk_score !== nextProps.riskAssessment.risk_score;
+  const envChanged = prevProps.environment.aqi !== nextProps.environment.aqi ||
+                     prevProps.environment.pm25 !== nextProps.environment.pm25;
+  const pressureChanged = prevProps.pressureChange1h !== nextProps.pressureChange1h;
+  
+  return !visChanged && !riskChanged && !envChanged && !pressureChanged;
+});

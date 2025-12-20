@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useBarometer } from './useBarometer';
 import { supabase } from '@/integrations/supabase/client';
+import { flushSync } from 'react-dom';
 
 export type AgeGroup = '<18' | '18-35' | '36-55' | '>55';
 
@@ -111,8 +112,14 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
   const outdoorStartTimeRef = useRef<number | null>(null);
   const hasShownWarningRef = useRef<boolean>(false);
   const envCacheRef = useRef<{ data: EnvironmentData; timestamp: number; lat: number; lon: number } | null>(null);
-  const ENV_CACHE_DURATION = 30000; // 30 seconds cache - faster updates
-  const ENV_DISTANCE_THRESHOLD = 0.005; // ~500m - refetch if moved more than this
+  const ENV_CACHE_DURATION = 45000; // 45 seconds cache - balance between fresh data and performance
+  const ENV_DISTANCE_THRESHOLD = 0.008; // ~800m - refetch if moved more than this
+  
+  // Batch update refs to prevent rapid state updates
+  const pendingEnvUpdateRef = useRef<EnvironmentData | null>(null);
+  const envUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastEnvRenderRef = useRef<number>(0);
+  const ENV_RENDER_THROTTLE = 2000; // Only update UI every 2 seconds
 
   // Hash phone number for anonymization
   const hashPhone = useCallback(async (phone: string): Promise<string> => {
@@ -143,16 +150,42 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     return isRecent && isNearby;
   }, []);
 
-  // Fetch environment data - OPTIMIZED for real-time updates
+  // Throttled environment state update - prevents UI stuttering
+  const updateEnvironmentThrottled = useCallback((envData: EnvironmentData) => {
+    const now = Date.now();
+    
+    // Store pending update
+    pendingEnvUpdateRef.current = envData;
+    
+    // If we updated recently, wait for throttle
+    if (now - lastEnvRenderRef.current < ENV_RENDER_THROTTLE) {
+      // Schedule update if not already scheduled
+      if (!envUpdateTimeoutRef.current) {
+        envUpdateTimeoutRef.current = setTimeout(() => {
+          if (pendingEnvUpdateRef.current) {
+            setEnvironment(pendingEnvUpdateRef.current);
+            lastEnvRenderRef.current = Date.now();
+          }
+          envUpdateTimeoutRef.current = null;
+        }, ENV_RENDER_THROTTLE - (now - lastEnvRenderRef.current));
+      }
+      return;
+    }
+    
+    // Update immediately
+    setEnvironment(envData);
+    lastEnvRenderRef.current = now;
+  }, []);
+
+  // Fetch environment data - OPTIMIZED to prevent stuttering
   const fetchEnvironment = useCallback(async (lat: number, lon: number, forceRefresh = false) => {
     const now = Date.now();
     
     // Check cache first (skip if force refresh)
     if (!forceRefresh && shouldUseCachedEnv(lat, lon)) {
       const cache = envCacheRef.current!;
-      // Apply device barometer pressure if available
       const devicePressure = barometer.currentPressure;
-      setEnvironment({
+      updateEnvironmentThrottled({
         ...cache.data,
         pressure: devicePressure || cache.data.pressure
       });
@@ -160,8 +193,8 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       return;
     }
 
-    // Throttle: only fetch every 10 seconds minimum - faster updates
-    if (!forceRefresh && now - lastEnvFetchRef.current < 10000) {
+    // Throttle: only fetch every 15 seconds minimum
+    if (!forceRefresh && now - lastEnvFetchRef.current < 15000) {
       console.log('Throttling environment fetch');
       return;
     }
@@ -202,7 +235,8 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
         lon
       };
 
-      setEnvironment(envData);
+      // Update environment with throttling to prevent UI stuttering
+      updateEnvironmentThrottled(envData);
       console.log('Environment data updated:', envData);
 
       // Feed API pressure to barometer for tracking if device doesn't have barometer
@@ -214,7 +248,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
       // If fetch fails but we have cache, use it
       if (envCacheRef.current) {
         const devicePressure = barometer.currentPressure;
-        setEnvironment({
+        updateEnvironmentThrottled({
           ...envCacheRef.current.data,
           pressure: devicePressure || envCacheRef.current.data.pressure
         });
@@ -222,7 +256,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     } finally {
       setEnvLoading(false);
     }
-  }, [barometer, shouldUseCachedEnv]);
+  }, [barometer, shouldUseCachedEnv, updateEnvironmentThrottled]);
 
   // Detect if user is indoor or outdoor using AI
   const detectLocationType = useCallback(async (lat: number, lon: number, gpsAccuracy: number | null, gpsHistory: GPSPoint[]) => {
@@ -321,7 +355,7 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     }
   }, []);
 
-  // Start continuous GPS tracking with maximum accuracy
+  // Start continuous GPS tracking with maximum accuracy - OPTIMIZED to reduce stuttering
   const startGPSTracking = useCallback(() => {
     if (!navigator.geolocation) {
       console.error('Geolocation not supported');
@@ -348,6 +382,10 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     // Track best accuracy achieved
     let bestAccuracy = Infinity;
     let consecutiveGoodReadings = 0;
+    
+    // Throttle GPS UI updates to prevent stuttering
+    let lastGpsRender = 0;
+    const GPS_RENDER_THROTTLE = 3000; // Only update GPS UI every 3 seconds
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       async (position) => {
@@ -390,17 +428,24 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
           label: speed !== null ? `${(speed * 3.6).toFixed(1)} km/h` : undefined
         };
 
-        // Update GPS data with enhanced metadata
-        setUserData(prev => {
-          const newHistory = [...prev.gpsHistory, newPoint].slice(-100);
-          return {
-            ...prev,
-            gps: { lat: smoothed.lat, lon: smoothed.lon },
-            gpsHistory: newHistory,
-            gpsAccuracy: effectiveAccuracy,
-            timestamp: Date.now()
-          };
-        });
+        const now = Date.now();
+        
+        // Throttle GPS state updates to prevent UI stuttering
+        if (now - lastGpsRender >= GPS_RENDER_THROTTLE) {
+          lastGpsRender = now;
+          
+          // Update GPS data with enhanced metadata
+          setUserData(prev => {
+            const newHistory = [...prev.gpsHistory, newPoint].slice(-100);
+            return {
+              ...prev,
+              gps: { lat: smoothed.lat, lon: smoothed.lon },
+              gpsHistory: newHistory,
+              gpsAccuracy: effectiveAccuracy,
+              timestamp: now
+            };
+          });
+        }
 
         setGpsLoading(false);
 
@@ -718,23 +763,41 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     };
   }, [userData.ageGroup, userData.outdoorMinutes, environment, barometer.pressureChange1h]);
 
-  // Update risk when data changes
+  // Update risk when data changes - with debouncing to prevent rapid updates
+  const riskUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
-    const newRisk = calculateRisk();
-    setRiskAssessment(newRisk);
+    // Debounce risk calculation to prevent rapid UI updates
+    if (riskUpdateTimeoutRef.current) {
+      clearTimeout(riskUpdateTimeoutRef.current);
+    }
+    riskUpdateTimeoutRef.current = setTimeout(() => {
+      const newRisk = calculateRisk();
+      setRiskAssessment(newRisk);
+    }, 500); // Wait 500ms before updating risk
+    
+    return () => {
+      if (riskUpdateTimeoutRef.current) {
+        clearTimeout(riskUpdateTimeoutRef.current);
+      }
+    };
   }, [userData.ageGroup, userData.outdoorMinutes, environment.aqi, environment.pm25, environment.temperature, environment.humidity, barometer.pressureChange1h]);
 
-  // Update device pressure from barometer
+  // Update device pressure from barometer - throttled
+  const lastPressureUpdateRef = useRef<number>(0);
   useEffect(() => {
     if (barometer.currentPressure) {
+      const now = Date.now();
+      // Only update pressure UI every 5 seconds
+      if (now - lastPressureUpdateRef.current < 5000) return;
+      lastPressureUpdateRef.current = now;
+      
       setUserData(prev => ({ ...prev, devicePressure: barometer.currentPressure }));
-      // Update environment pressure with device barometer
-      setEnvironment(prev => ({
-        ...prev,
+      updateEnvironmentThrottled({
+        ...environment,
         pressure: barometer.currentPressure
-      }));
+      });
     }
-  }, [barometer.currentPressure]);
+  }, [barometer.currentPressure, environment, updateEnvironmentThrottled]);
 
   // Initialize and start continuous monitoring - OPTIMIZED for instant data display
   const startMonitoring = useCallback(async () => {
@@ -813,12 +876,12 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     // PRIORITY 2: Start GPS tracking for continuous updates
     startGPSTracking();
 
-    // Set up periodic environment refresh (every 30 seconds for real-time data)
+    // Set up periodic environment refresh (every 60 seconds - reduced frequency for better performance)
     refreshIntervalRef.current = setInterval(() => {
       if (userData.gps) {
         fetchEnvironment(userData.gps.lat, userData.gps.lon, true); // Force refresh for periodic
       }
-    }, 30000);
+    }, 60000); // 60 seconds instead of 30 for better performance
   }, [barometer, startGPSTracking, fetchEnvironment, userData.gps]);
 
   // Stop monitoring
@@ -846,11 +909,17 @@ export function useStrokeRiskEngine({ onRiskChange }: UseStrokeRiskEngineProps =
     }
   }, [hashPhone]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - including all timeout refs
   useEffect(() => {
     return () => {
       if (refreshIntervalRef.current) {
         clearInterval(refreshIntervalRef.current);
+      }
+      if (envUpdateTimeoutRef.current) {
+        clearTimeout(envUpdateTimeoutRef.current);
+      }
+      if (riskUpdateTimeoutRef.current) {
+        clearTimeout(riskUpdateTimeoutRef.current);
       }
       stopGPSTracking();
       releaseWakeLock();
