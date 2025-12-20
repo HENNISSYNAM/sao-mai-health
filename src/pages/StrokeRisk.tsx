@@ -97,9 +97,9 @@ const StrokeRisk: React.FC = () => {
       {/* Full Screen Map Background */}
       <FullScreenMap gps={userData.gps} gpsHistory={userData.gpsHistory} gpsAccuracy={userData.gpsAccuracy} environment={environment} riskAssessment={riskAssessment} isBlurred={false} isTracking={isTracking} devicePressure={userData.devicePressure} outdoorMinutes={userData.outdoorMinutes} isOutdoor={userData.isOutdoor} locationConfidence={userData.locationConfidence} safeOutdoorMinutes={userData.safeOutdoorMinutes} />
 
-      {/* View Toggle Button - Bottom left - Only show when initialized */}
+      {/* View Toggle Button - Top left, below data panel toggle - Only show when initialized */}
       {isInitialized && !isLoading && !gpsLoading && (
-        <div className="fixed bottom-36 left-4 md:bottom-8 md:left-8 z-40">
+        <div className="fixed top-20 left-4 z-30">
           <Button 
             onClick={() => setViewMode('statistics')} 
             className="bg-slate-800/90 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600/50 px-4 py-2"
