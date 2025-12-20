@@ -43,7 +43,7 @@ const MainLayout = () => (
         <main className="flex-1 p-6 bg-background">
           <Routes>
             {/* Default route always goes to stroke-risk for QR code scanning */}
-            <Route path="/" element={<Navigate to="/stroke-risk" replace />} />
+            <Route index element={<Navigate to="/stroke-risk" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/surveillance" element={<Surveillance />} />
             <Route path="/case-intake" element={<CaseIntake />} />
