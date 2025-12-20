@@ -149,9 +149,10 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
 
   // Windy embed URL - use different overlay and product for AQI
   // pm25 overlay with cams product shows PM2.5 pollution data
+  // menu=false hides the layer picker, detail=false hides detail panel
   const overlay = showAQILayer ? 'pm25' : 'wind';
   const product = showAQILayer ? 'cams' : 'ecmwf';
-  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=11&overlay=${overlay}&product=${product}&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=true`;
+  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=11&overlay=${overlay}&product=${product}&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=false&menu=false&detail=false`;
 
   return (
     <div className={cn(
