@@ -62,8 +62,8 @@ const GestureCameraController: React.FC<GestureCameraControllerProps> = ({
     toggle,
   } = useHandGestureController({
     onAction: handleAction,
-    minConfidence: 0.7,
-    debounceMs: 150,
+    minConfidence: 0.6,
+    debounceMs: 80,  // Faster response for map control
   });
 
   // Auto-start camera when video element is ready
