@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from '
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
 import type { MapAction } from '@/hooks/useHandGestureController';
-import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2, X, LayoutDashboard, ZoomIn, ZoomOut, Move } from 'lucide-react';
+import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2, X, LayoutDashboard, ZoomIn, ZoomOut, Move, BarChart3 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -28,6 +29,8 @@ interface FullScreenMapProps {
   locationConfidence?: number;
   safeOutdoorMinutes?: number;
   mapCommand?: { action: MapAction; timestamp: number } | null;
+  onViewStatistics?: () => void;
+  showStatisticsButton?: boolean;
   className?: string;
 }
 
@@ -64,6 +67,8 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
   locationConfidence = 50,
   safeOutdoorMinutes = 120,
   mapCommand,
+  onViewStatistics,
+  showStatisticsButton = false,
   className
 }) => {
   const [showAQILayer, setShowAQILayer] = useState(false);
@@ -241,18 +246,32 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
           </div>
         </div>
       )}
+      {/* Top left controls - Panel toggle and Statistics button */}
       {!isBlurred && !showDataPanel && (
-        <button
-          onClick={() => setShowDataPanel(true)}
-          className="absolute top-4 left-4 z-20 animate-fade-in bg-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-border/20 p-3 hover:bg-card transition-all active:scale-95"
-        >
-          <LayoutDashboard className="h-5 w-5 text-foreground" />
-        </button>
+        <div className="absolute top-4 left-4 z-20 animate-fade-in flex flex-col gap-2">
+          <button
+            onClick={() => setShowDataPanel(true)}
+            className="bg-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-border/20 p-3 hover:bg-card transition-all active:scale-95"
+          >
+            <LayoutDashboard className="h-5 w-5 text-foreground" />
+          </button>
+          
+          {/* Statistics button - below panel toggle when panel is closed */}
+          {showStatisticsButton && onViewStatistics && (
+            <Button 
+              onClick={onViewStatistics} 
+              className="bg-slate-800/90 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600/50 px-3 py-2"
+              size="sm"
+            >
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              Thống kê
+            </Button>
+          )}
+        </div>
       )}
-
       {/* Left panel - Environment data - Collapsible */}
       {!isBlurred && showDataPanel && (
-        <div className="absolute top-4 left-4 z-20 animate-fade-in">
+        <div className="absolute top-4 left-4 z-20 animate-fade-in flex flex-col gap-2">
           <div className="bg-card/90 backdrop-blur-xl rounded-2xl shadow-xl border border-border/20 overflow-hidden w-[140px]">
             {/* Close button */}
             <button 
@@ -369,6 +388,18 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
               </div>
             </div>
           </div>
+          
+          {/* Statistics button - below panel when panel is open */}
+          {showStatisticsButton && onViewStatistics && (
+            <Button 
+              onClick={onViewStatistics} 
+              className="bg-slate-800/90 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600/50 px-3 py-2 w-[140px]"
+              size="sm"
+            >
+              <BarChart3 className="h-4 w-4 mr-1.5" />
+              Thống kê
+            </Button>
+          )}
         </div>
       )}
 
