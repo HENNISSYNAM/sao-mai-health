@@ -1,7 +1,7 @@
 /**
  * useHandGestureController Hook
  * 
- * Sử dụng MediaPipe Hands để nhận diện cử động tay và điều khiển bản đồ.
+ * Sử dụng MediaPipe Hands (CDN) để nhận diện cử động tay và điều khiển bản đồ.
  * 
  * Pipeline:
  * Camera Stream → Hand Detection (keypoints) → Gesture Classification → Action Mapping → Map Control
@@ -14,8 +14,6 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Hands, Results, NormalizedLandmark } from '@mediapipe/hands';
-import { Camera } from '@mediapipe/camera_utils';
 
 // Gesture types that can be detected
 export type GestureType = 
@@ -53,6 +51,12 @@ const LANDMARK = {
   PINKY_MCP: 17,
 };
 
+interface NormalizedLandmark {
+  x: number;
+  y: number;
+  z?: number;
+}
+
 interface GestureState {
   gesture: GestureType;
   action: MapAction;
@@ -80,6 +84,39 @@ interface UseHandGestureControllerReturn {
   toggle: () => Promise<void>;
 }
 
+// Load MediaPipe scripts from CDN
+const loadMediaPipeScripts = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    // Check if already loaded
+    if ((window as any).Hands && (window as any).Camera) {
+      resolve();
+      return;
+    }
+
+    const loadScript = (src: string): Promise<void> => {
+      return new Promise((res, rej) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.onload = () => res();
+        script.onerror = () => rej(new Error(`Failed to load ${src}`));
+        document.head.appendChild(script);
+      });
+    };
+
+    // Load MediaPipe scripts in order
+    Promise.all([
+      loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js'),
+      loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js'),
+    ])
+      .then(() => {
+        // Wait a bit for scripts to initialize
+        setTimeout(resolve, 100);
+      })
+      .catch(reject);
+  });
+};
+
 export function useHandGestureController(
   options: UseHandGestureControllerOptions = {}
 ): UseHandGestureControllerReturn {
@@ -103,14 +140,12 @@ export function useHandGestureController(
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const handsRef = useRef<Hands | null>(null);
-  const cameraRef = useRef<Camera | null>(null);
+  const handsRef = useRef<any>(null);
+  const cameraRef = useRef<any>(null);
   const lastActionRef = useRef<MapAction>('idle');
   const lastActionTimeRef = useRef<number>(0);
   const lastPalmPositionRef = useRef<{ x: number; y: number } | null>(null);
   const lastFingerDistanceRef = useRef<number | null>(null);
-  const frameCountRef = useRef(0);
-  const animationFrameRef = useRef<number | null>(null);
 
   // Calculate distance between two landmarks
   const getDistance = useCallback((p1: NormalizedLandmark, p2: NormalizedLandmark): number => {
@@ -211,9 +246,7 @@ export function useHandGestureController(
   }, []);
 
   // Process MediaPipe results
-  const onResults = useCallback((results: Results) => {
-    frameCountRef.current++;
-    
+  const onResults = useCallback((results: any) => {
     // Draw to canvas for visual feedback
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -226,10 +259,6 @@ export function useHandGestureController(
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         // Draw hand landmarks
         for (const landmarks of results.multiHandLandmarks) {
-          // Draw connections
-          ctx.strokeStyle = '#00FF00';
-          ctx.lineWidth = 2;
-          
           // Draw points
           for (const landmark of landmarks) {
             ctx.beginPath();
@@ -314,6 +343,16 @@ export function useHandGestureController(
         throw new Error('Video element not available');
       }
 
+      // Load MediaPipe scripts from CDN
+      await loadMediaPipeScripts();
+
+      const HandsClass = (window as any).Hands;
+      const CameraClass = (window as any).Camera;
+
+      if (!HandsClass || !CameraClass) {
+        throw new Error('MediaPipe not loaded');
+      }
+
       // Request camera permission - prefer rear camera for mobile
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -327,8 +366,8 @@ export function useHandGestureController(
       await videoRef.current.play();
 
       // Initialize MediaPipe Hands
-      const hands = new Hands({
-        locateFile: (file) => {
+      const hands = new HandsClass({
+        locateFile: (file: string) => {
           return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
         }
       });
@@ -344,7 +383,7 @@ export function useHandGestureController(
       handsRef.current = hands;
 
       // Start camera processing
-      const camera = new Camera(videoRef.current, {
+      const camera = new CameraClass(videoRef.current, {
         onFrame: async () => {
           if (handsRef.current && videoRef.current) {
             await handsRef.current.send({ image: videoRef.current });
@@ -385,12 +424,6 @@ export function useHandGestureController(
     if (handsRef.current) {
       handsRef.current.close();
       handsRef.current = null;
-    }
-
-    // Cancel animation frame
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
     }
 
     setIsEnabled(false);
