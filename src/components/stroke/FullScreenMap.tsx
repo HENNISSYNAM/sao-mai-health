@@ -139,6 +139,17 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
         updateMapNow({ lat: -panStep, lon: 0 }, 0);
         feedbackText = '↓';
         break;
+      case 'toggle_layer':
+        setShowAQILayer(prev => !prev);
+        setMapKey(prev => prev + 1);
+        feedbackText = showAQILayer ? '🌬️ Gió' : '💨 PM2.5';
+        break;
+      case 'reset_view':
+        setMapOffset({ lat: 0, lon: 0 });
+        setZoomLevel(11);
+        setMapKey(prev => prev + 1);
+        feedbackText = '📍 Reset';
+        break;
       case 'pause':
         feedbackText = '✊';
         break;
@@ -149,7 +160,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
       setGestureActionFeedback(feedbackText);
       setTimeout(() => setGestureActionFeedback(null), 300);
     }
-  }, [mapCommand, updateMapNow]);
+  }, [mapCommand, updateMapNow, showAQILayer]);
 
   // Geocode GPS to address using AI - with debouncing
   const geocodeLocation = useCallback(async (lat: number, lon: number) => {
