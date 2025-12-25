@@ -3,7 +3,7 @@ import { useStrokeRiskEngine } from '@/hooks/useStrokeRiskEngine';
 import FullScreenMap from '@/components/stroke/FullScreenMap';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
 import MLAnalyticsDashboard from '@/components/stroke/MLAnalyticsDashboard';
-import GestureCameraController from '@/components/stroke/GestureCameraController';
+
 import { BarChart3, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -122,8 +122,6 @@ const StrokeRisk: React.FC = () => {
         showStatisticsButton={isInitialized && !isLoading && !gpsLoading}
       />
 
-      {/* Gesture Camera Controller - Hand gesture map control */}
-      <GestureCameraController onMapAction={handleMapAction} />
 
       {/* Loading Overlay */}
       {(isLoading || gpsLoading && !userData.gps) && <div className="absolute inset-0 bg-background/90 backdrop-blur-md flex items-center justify-center z-40">
