@@ -374,37 +374,74 @@ export function useMapHandCursor(options: UseMapHandCursorOptions): UseMapHandCu
       setError(null);
       setStatus('initializing');
 
-      // Wait for video element
+      // Wait for video element with longer timeout
       let retries = 0;
-      while (!videoRef.current && retries < 10) {
+      while (!videoRef.current && retries < 20) {
         await new Promise(resolve => setTimeout(resolve, 100));
         retries++;
       }
 
       if (!videoRef.current) {
-        throw new Error('Video element not available');
+        throw new Error('Video element chưa sẵn sàng');
       }
 
+      console.log('Loading MediaPipe scripts...');
       await loadMediaPipeScripts();
 
       const HandsClass = (window as any).Hands;
       const CameraClass = (window as any).Camera;
 
       if (!HandsClass || !CameraClass) {
-        throw new Error('MediaPipe not loaded');
+        throw new Error('Không thể tải MediaPipe');
       }
 
-      // Request camera - prefer rear
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 640 },
-          height: { ideal: 480 },
+      console.log('Requesting camera access...');
+      
+      // Try rear camera first, fallback to front camera
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+          }
+        });
+      } catch (rearCameraError) {
+        console.log('Rear camera failed, trying front camera...');
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user',
+              width: { ideal: 640 },
+              height: { ideal: 480 },
+            }
+          });
+        } catch (frontCameraError) {
+          // Final fallback - any camera
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true
+          });
         }
+      }
+
+      console.log('Camera stream obtained');
+      videoRef.current.srcObject = stream;
+      
+      // Wait for video to be ready
+      await new Promise<void>((resolve, reject) => {
+        const video = videoRef.current!;
+        video.onloadedmetadata = () => {
+          video.play()
+            .then(() => resolve())
+            .catch(reject);
+        };
+        video.onerror = () => reject(new Error('Video error'));
+        // Timeout
+        setTimeout(() => reject(new Error('Video timeout')), 10000);
       });
 
-      videoRef.current.srcObject = stream;
-      await videoRef.current.play();
+      console.log('Video playing, initializing MediaPipe Hands...');
 
       // Initialize MediaPipe Hands
       const hands = new HandsClass({
@@ -414,12 +451,14 @@ export function useMapHandCursor(options: UseMapHandCursorOptions): UseMapHandCu
       hands.setOptions({
         maxNumHands: 2,
         modelComplexity: 1,
-        minDetectionConfidence: 0.7,
+        minDetectionConfidence: 0.65,
         minTrackingConfidence: 0.5,
       });
 
       hands.onResults(onResults);
       handsRef.current = hands;
+
+      console.log('Starting camera processing...');
 
       // Start camera processing
       const camera = new CameraClass(videoRef.current, {
@@ -434,10 +473,30 @@ export function useMapHandCursor(options: UseMapHandCursorOptions): UseMapHandCu
 
       await camera.start();
       cameraRef.current = camera;
+      
+      console.log('Hand tracking started successfully');
       setStatus('active');
     } catch (err) {
       console.error('Failed to start hand cursor:', err);
-      setError(err instanceof Error ? err.message : 'Failed to initialize camera');
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'Không thể khởi tạo camera';
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError' || err.message.includes('Permission')) {
+          errorMessage = 'Vui lòng cho phép truy cập camera';
+        } else if (err.name === 'NotFoundError' || err.message.includes('not found')) {
+          errorMessage = 'Không tìm thấy camera';
+        } else if (err.name === 'NotReadableError') {
+          errorMessage = 'Camera đang được sử dụng bởi ứng dụng khác';
+        } else if (err.message.includes('MediaPipe')) {
+          errorMessage = 'Không thể tải thư viện nhận diện tay';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
+      setStatus('error');
       setStatus('error');
     }
   }, [onResults]);
