@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
-import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2, X, LayoutDashboard } from 'lucide-react';
+import type { MapAction } from '@/hooks/useHandGestureController';
+import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2, X, LayoutDashboard, ZoomIn, ZoomOut, Move } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface GeocodedLocation {
   address: string;
@@ -25,6 +27,7 @@ interface FullScreenMapProps {
   isOutdoor?: boolean;
   locationConfidence?: number;
   safeOutdoorMinutes?: number;
+  mapCommand?: { action: MapAction; timestamp: number } | null;
   className?: string;
 }
 
@@ -60,6 +63,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
   isOutdoor = true,
   locationConfidence = 50,
   safeOutdoorMinutes = 120,
+  mapCommand,
   className
 }) => {
   const [showAQILayer, setShowAQILayer] = useState(false);
@@ -67,13 +71,68 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
   const [mapKey, setMapKey] = useState(0);
   const [geocodedLocation, setGeocodedLocation] = useState<GeocodedLocation | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(11);
+  const [mapOffset, setMapOffset] = useState({ lat: 0, lon: 0 });
+  const [gestureActionFeedback, setGestureActionFeedback] = useState<string | null>(null);
   const lastGeocodedRef = useRef<string>('');
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastMapCommandRef = useRef<number>(0);
   
   // Use stable coordinates to reduce re-renders
   const stableGps = useStableCoords(gps);
-  const lat = stableGps?.lat || 10.7769;
-  const lon = stableGps?.lon || 106.7009;
+  const baseLatLon = stableGps || { lat: 10.7769, lon: 106.7009 };
+  const lat = baseLatLon.lat + mapOffset.lat;
+  const lon = baseLatLon.lon + mapOffset.lon;
+
+  // Handle gesture-based map commands
+  useEffect(() => {
+    if (!mapCommand || mapCommand.timestamp === lastMapCommandRef.current) return;
+    lastMapCommandRef.current = mapCommand.timestamp;
+
+    const { action } = mapCommand;
+    let feedbackText: string | null = null;
+
+    switch (action) {
+      case 'zoom_in':
+        setZoomLevel(prev => Math.min(prev + 1, 18));
+        setMapKey(prev => prev + 1); // Force iframe reload
+        feedbackText = '🔍+ Phóng to';
+        break;
+      case 'zoom_out':
+        setZoomLevel(prev => Math.max(prev - 1, 3));
+        setMapKey(prev => prev + 1);
+        feedbackText = '🔍- Thu nhỏ';
+        break;
+      case 'pan_left':
+        setMapOffset(prev => ({ ...prev, lon: prev.lon - 0.005 }));
+        setMapKey(prev => prev + 1);
+        feedbackText = '← Sang trái';
+        break;
+      case 'pan_right':
+        setMapOffset(prev => ({ ...prev, lon: prev.lon + 0.005 }));
+        setMapKey(prev => prev + 1);
+        feedbackText = '→ Sang phải';
+        break;
+      case 'pan_up':
+        setMapOffset(prev => ({ ...prev, lat: prev.lat + 0.005 }));
+        setMapKey(prev => prev + 1);
+        feedbackText = '↑ Lên trên';
+        break;
+      case 'pan_down':
+        setMapOffset(prev => ({ ...prev, lat: prev.lat - 0.005 }));
+        setMapKey(prev => prev + 1);
+        feedbackText = '↓ Xuống dưới';
+        break;
+      case 'pause':
+        feedbackText = '✊ Tạm dừng';
+        break;
+    }
+
+    if (feedbackText) {
+      setGestureActionFeedback(feedbackText);
+      setTimeout(() => setGestureActionFeedback(null), 800);
+    }
+  }, [mapCommand]);
 
   // Geocode GPS to address using AI - with debouncing
   const geocodeLocation = useCallback(async (lat: number, lon: number) => {
@@ -153,7 +212,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
   // menu=false hides the layer picker, detail=false hides detail panel
   const overlay = showAQILayer ? 'pm25' : 'wind';
   const product = showAQILayer ? 'cams' : 'ecmwf';
-  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=11&overlay=${overlay}&product=${product}&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=false&menu=false&detail=false`;
+  const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=${zoomLevel}&overlay=${overlay}&product=${product}&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=false&menu=false&detail=false`;
 
   return (
     <div className={cn(
@@ -174,7 +233,14 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
       {/* Top gradient overlay */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/50 to-transparent pointer-events-none z-15" />
 
-      {/* Floating Toggle Button - Shows when panel is hidden */}
+      {/* Gesture Action Feedback - Center screen */}
+      {gestureActionFeedback && (
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 animate-fade-in pointer-events-none">
+          <div className="px-6 py-3 bg-black/70 backdrop-blur-md rounded-2xl text-white text-lg font-semibold shadow-2xl">
+            {gestureActionFeedback}
+          </div>
+        </div>
+      )}
       {!isBlurred && !showDataPanel && (
         <button
           onClick={() => setShowDataPanel(true)}
