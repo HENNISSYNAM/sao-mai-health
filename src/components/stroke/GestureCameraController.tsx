@@ -9,9 +9,10 @@
  * - Hand landmark visualization
  * - Gesture status display
  * - Action feedback
+ * - Auto-start camera on mount
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useHandGestureController, MapAction, GestureStatus } from '@/hooks/useHandGestureController';
 import { getGestureInfo, getActionDetails } from '@/lib/gestureToMapAction';
 import { Button } from '@/components/ui/button';
@@ -21,10 +22,6 @@ import {
   VideoOff, 
   Loader2, 
   AlertCircle, 
-  ZoomIn, 
-  ZoomOut,
-  MoveHorizontal,
-  Pause,
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -41,6 +38,8 @@ const GestureCameraController: React.FC<GestureCameraControllerProps> = ({
 }) => {
   const [showPreview, setShowPreview] = useState(true);
   const [lastAction, setLastAction] = useState<MapAction>('idle');
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const autoStartAttempted = useRef(false);
 
   // Handle gesture actions
   const handleAction = useCallback((action: MapAction, data?: { deltaX?: number; deltaY?: number }) => {
@@ -67,16 +66,17 @@ const GestureCameraController: React.FC<GestureCameraControllerProps> = ({
     debounceMs: 150,
   });
 
-  // Auto-start camera on mount
+  // Auto-start camera when video element is ready
   useEffect(() => {
-    // Small delay to ensure component is ready
-    const timer = setTimeout(() => {
-      if (status === 'inactive') {
+    if (isVideoReady && !autoStartAttempted.current && status === 'inactive') {
+      autoStartAttempted.current = true;
+      // Small delay to ensure everything is mounted
+      const timer = setTimeout(() => {
         start();
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isVideoReady, status, start]);
 
   // Show toast on start/stop
   useEffect(() => {
@@ -125,6 +125,16 @@ const GestureCameraController: React.FC<GestureCameraControllerProps> = ({
 
   return (
     <div className={cn("fixed z-50", className)}>
+      {/* Hidden video element - always rendered for ref access */}
+      <video 
+        ref={videoRef}
+        onLoadedMetadata={() => setIsVideoReady(true)}
+        className="fixed -top-[9999px] -left-[9999px] w-1 h-1 opacity-0 pointer-events-none"
+        playsInline
+        muted
+        autoPlay
+      />
+
       {/* Toggle Button - Always visible */}
       <div className="fixed bottom-36 right-4 z-50">
         <Button
@@ -158,14 +168,6 @@ const GestureCameraController: React.FC<GestureCameraControllerProps> = ({
           <div className="relative">
             {/* Video/Canvas container */}
             <div className="relative w-48 h-36 md:w-56 md:h-42 rounded-xl overflow-hidden shadow-2xl border-2 border-border/50 bg-black">
-              {/* Hidden video element for camera input */}
-              <video 
-                ref={videoRef}
-                className="absolute inset-0 w-full h-full object-cover opacity-0"
-                playsInline
-                muted
-              />
-              
               {/* Canvas for drawing hand landmarks */}
               <canvas 
                 ref={canvasRef}
@@ -267,8 +269,8 @@ const GestureCameraController: React.FC<GestureCameraControllerProps> = ({
         </button>
       )}
 
-      {/* Gesture guide - Bottom sheet style on first use */}
-      {isEnabled && status === 'detecting' && (
+      {/* Gesture guide - Bottom sheet style when detecting */}
+      {isEnabled && status === 'detecting' && showPreview && (
         <div className="fixed bottom-72 right-4 z-30 w-48 animate-fade-in">
           <div className="bg-card/95 backdrop-blur-xl rounded-xl p-3 shadow-xl border border-border/30">
             <h4 className="text-xs font-semibold text-foreground mb-2">Hướng dẫn cử chỉ</h4>
