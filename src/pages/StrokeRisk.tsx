@@ -104,23 +104,26 @@ const StrokeRisk: React.FC = () => {
     background: 'linear-gradient(135deg, hsl(210 40% 8%) 0%, hsl(210 50% 12%) 50%, hsl(199 40% 15%) 100%)'
   }}>
       {/* Full Screen Map Background */}
-      <FullScreenMap gps={userData.gps} gpsHistory={userData.gpsHistory} gpsAccuracy={userData.gpsAccuracy} environment={environment} riskAssessment={riskAssessment} isBlurred={false} isTracking={isTracking} devicePressure={userData.devicePressure} outdoorMinutes={userData.outdoorMinutes} isOutdoor={userData.isOutdoor} locationConfidence={userData.locationConfidence} safeOutdoorMinutes={userData.safeOutdoorMinutes} mapCommand={mapCommand} />
+      <FullScreenMap 
+        gps={userData.gps} 
+        gpsHistory={userData.gpsHistory} 
+        gpsAccuracy={userData.gpsAccuracy} 
+        environment={environment} 
+        riskAssessment={riskAssessment} 
+        isBlurred={false} 
+        isTracking={isTracking} 
+        devicePressure={userData.devicePressure} 
+        outdoorMinutes={userData.outdoorMinutes} 
+        isOutdoor={userData.isOutdoor} 
+        locationConfidence={userData.locationConfidence} 
+        safeOutdoorMinutes={userData.safeOutdoorMinutes} 
+        mapCommand={mapCommand}
+        onViewStatistics={() => setViewMode('statistics')}
+        showStatisticsButton={isInitialized && !isLoading && !gpsLoading}
+      />
 
       {/* Gesture Camera Controller - Hand gesture map control */}
       <GestureCameraController onMapAction={handleMapAction} />
-
-      {/* View Toggle Button - Top left, below data panel toggle - Only show when initialized */}
-      {isInitialized && !isLoading && !gpsLoading && (
-        <div className="fixed top-20 left-4 z-30">
-          <Button 
-            onClick={() => setViewMode('statistics')} 
-            className="bg-slate-800/90 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600/50 px-4 py-2"
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Thống kê
-          </Button>
-        </div>
-      )}
 
       {/* Loading Overlay */}
       {(isLoading || gpsLoading && !userData.gps) && <div className="absolute inset-0 bg-background/90 backdrop-blur-md flex items-center justify-center z-40">
