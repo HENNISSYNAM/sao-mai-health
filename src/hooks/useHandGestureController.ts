@@ -122,8 +122,8 @@ export function useHandGestureController(
 ): UseHandGestureControllerReturn {
   const {
     onAction,
-    minConfidence = 0.6,  // Lower for easier detection
-    debounceMs = 80,      // Faster response
+    minConfidence = 0.55,  // Lower for faster detection
+    debounceMs = 50,       // Much faster response
   } = options;
 
   const [status, setStatus] = useState<GestureStatus>('inactive');
