@@ -146,6 +146,11 @@ export function useHandGestureController(
   const lastActionTimeRef = useRef<number>(0);
   const lastPalmPositionRef = useRef<{ x: number; y: number } | null>(null);
   const lastFingerDistanceRef = useRef<number | null>(null);
+  
+  // Smoothing buffers for more stable readings
+  const palmHistoryRef = useRef<Array<{ x: number; y: number }>>([]);
+  const fingerDistHistoryRef = useRef<number[]>([]);
+  const SMOOTH_SAMPLES = 3; // Number of samples to average
 
   // Calculate distance between two landmarks
   const getDistance = useCallback((p1: NormalizedLandmark, p2: NormalizedLandmark): number => {
@@ -290,26 +295,44 @@ export function useHandGestureController(
     const landmarks = results.multiHandLandmarks[0];
     const { gesture, confidence } = classifyGesture(landmarks);
 
-    // Calculate palm position (wrist)
-    const palmPosition = {
+    // Calculate raw palm position (wrist)
+    const rawPalmPosition = {
       x: landmarks[LANDMARK.WRIST].x,
       y: landmarks[LANDMARK.WRIST].y,
     };
 
-    // Calculate finger distance for peace sign zoom
+    // Smooth palm position using moving average
+    palmHistoryRef.current.push(rawPalmPosition);
+    if (palmHistoryRef.current.length > SMOOTH_SAMPLES) {
+      palmHistoryRef.current.shift();
+    }
+    const palmPosition = {
+      x: palmHistoryRef.current.reduce((sum, p) => sum + p.x, 0) / palmHistoryRef.current.length,
+      y: palmHistoryRef.current.reduce((sum, p) => sum + p.y, 0) / palmHistoryRef.current.length,
+    };
+
+    // Calculate finger distance for peace sign zoom with smoothing
     let fingerDistance: number | null = null;
     if (gesture === 'peace_sign') {
-      fingerDistance = getDistance(landmarks[LANDMARK.INDEX_TIP], landmarks[LANDMARK.MIDDLE_TIP]);
+      const rawDist = getDistance(landmarks[LANDMARK.INDEX_TIP], landmarks[LANDMARK.MIDDLE_TIP]);
+      fingerDistHistoryRef.current.push(rawDist);
+      if (fingerDistHistoryRef.current.length > SMOOTH_SAMPLES) {
+        fingerDistHistoryRef.current.shift();
+      }
+      fingerDistance = fingerDistHistoryRef.current.reduce((sum, d) => sum + d, 0) / fingerDistHistoryRef.current.length;
+    } else {
+      // Reset history when not in peace sign
+      fingerDistHistoryRef.current = [];
     }
 
     // Get map action
     const { action, deltaX, deltaY } = gestureToMapAction(gesture, palmPosition, fingerDistance);
 
-    // Debounce actions
+    // Debounce actions - allow same action to repeat for continuous control
     const now = Date.now();
-    if (action !== 'idle' && 
-        action !== lastActionRef.current && 
-        now - lastActionTimeRef.current > debounceMs) {
+    const shouldTrigger = action !== 'idle' && now - lastActionTimeRef.current > debounceMs;
+    
+    if (shouldTrigger) {
       lastActionRef.current = action;
       lastActionTimeRef.current = now;
       
