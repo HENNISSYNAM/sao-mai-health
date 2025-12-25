@@ -119,13 +119,11 @@ CursorOverlay.displayName = 'CursorOverlay';
 
 // Camera preview component
 const CameraPreview = memo(({ 
-  videoRef, 
   canvasRef, 
   isActive,
   onClose,
   handCount,
 }: { 
-  videoRef: React.RefObject<HTMLVideoElement>;
   canvasRef: React.RefObject<HTMLCanvasElement>;
   isActive: boolean;
   onClose: () => void;
@@ -139,16 +137,7 @@ const CameraPreview = memo(({
       isExpanded ? "w-72 h-52" : "w-36 h-28",
     )}>
       <div className="relative w-full h-full rounded-2xl overflow-hidden shadow-2xl border-2 border-white/30 bg-black">
-        {/* Video feed (hidden, used for processing) */}
-        <video
-          ref={videoRef}
-          className="hidden"
-          playsInline
-          muted
-          autoPlay
-        />
-        
-        {/* Canvas preview with hand tracking overlay */}
+        {/* Canvas preview with hand tracking overlay - using the shared canvasRef */}
         <canvas
           ref={canvasRef}
           className="w-full h-full object-cover"
@@ -447,6 +436,16 @@ export const MapHandControlLayer: React.FC<MapHandControlLayerProps> = ({
         />
       )}
 
+      {/* Hidden video element - always mounted for camera access */}
+      <video
+        ref={videoRef}
+        className="hidden"
+        playsInline
+        muted
+        autoPlay
+      />
+      <canvas ref={canvasRef} className="hidden" />
+
       {/* Active state components */}
       {isActive && (
         <>
@@ -462,7 +461,6 @@ export const MapHandControlLayer: React.FC<MapHandControlLayerProps> = ({
           {/* Camera preview */}
           <div className="pointer-events-auto">
             <CameraPreview
-              videoRef={videoRef}
               canvasRef={canvasRef}
               isActive={status === 'active'}
               onClose={stop}
