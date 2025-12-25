@@ -82,6 +82,9 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
   const lastGeocodedRef = useRef<string>('');
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastMapCommandRef = useRef<number>(0);
+  const pendingUpdateRef = useRef<NodeJS.Timeout | null>(null);
+  const accumulatedOffsetRef = useRef({ lat: 0, lon: 0 });
+  const accumulatedZoomRef = useRef(0);
   
   // Use stable coordinates to reduce re-renders
   const stableGps = useStableCoords(gps);
@@ -89,55 +92,82 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
   const lat = baseLatLon.lat + mapOffset.lat;
   const lon = baseLatLon.lon + mapOffset.lon;
 
-  // Handle gesture-based map commands
+  // Batch map updates for smoother gestures - debounce iframe reloads
+  const flushMapUpdates = useCallback(() => {
+    const hasOffsetChange = accumulatedOffsetRef.current.lat !== 0 || accumulatedOffsetRef.current.lon !== 0;
+    const hasZoomChange = accumulatedZoomRef.current !== 0;
+    
+    if (hasOffsetChange || hasZoomChange) {
+      if (hasOffsetChange) {
+        setMapOffset(prev => ({
+          lat: prev.lat + accumulatedOffsetRef.current.lat,
+          lon: prev.lon + accumulatedOffsetRef.current.lon
+        }));
+      }
+      if (hasZoomChange) {
+        setZoomLevel(prev => Math.min(18, Math.max(3, prev + accumulatedZoomRef.current)));
+      }
+      
+      // Only reload iframe once for batched updates
+      setMapKey(prev => prev + 1);
+      
+      // Reset accumulators
+      accumulatedOffsetRef.current = { lat: 0, lon: 0 };
+      accumulatedZoomRef.current = 0;
+    }
+  }, []);
+
+  // Handle gesture-based map commands with batching for smoothness
   useEffect(() => {
     if (!mapCommand || mapCommand.timestamp === lastMapCommandRef.current) return;
     lastMapCommandRef.current = mapCommand.timestamp;
 
     const { action } = mapCommand;
     let feedbackText: string | null = null;
+    const panStep = 0.003; // Smaller steps for smoother panning
 
     switch (action) {
       case 'zoom_in':
-        setZoomLevel(prev => Math.min(prev + 1, 18));
-        setMapKey(prev => prev + 1); // Force iframe reload
+        accumulatedZoomRef.current += 1;
         feedbackText = '🔍+ Phóng to';
         break;
       case 'zoom_out':
-        setZoomLevel(prev => Math.max(prev - 1, 3));
-        setMapKey(prev => prev + 1);
+        accumulatedZoomRef.current -= 1;
         feedbackText = '🔍- Thu nhỏ';
         break;
       case 'pan_left':
-        setMapOffset(prev => ({ ...prev, lon: prev.lon - 0.005 }));
-        setMapKey(prev => prev + 1);
-        feedbackText = '← Sang trái';
+        accumulatedOffsetRef.current.lon -= panStep;
+        feedbackText = '← Trái';
         break;
       case 'pan_right':
-        setMapOffset(prev => ({ ...prev, lon: prev.lon + 0.005 }));
-        setMapKey(prev => prev + 1);
-        feedbackText = '→ Sang phải';
+        accumulatedOffsetRef.current.lon += panStep;
+        feedbackText = '→ Phải';
         break;
       case 'pan_up':
-        setMapOffset(prev => ({ ...prev, lat: prev.lat + 0.005 }));
-        setMapKey(prev => prev + 1);
-        feedbackText = '↑ Lên trên';
+        accumulatedOffsetRef.current.lat += panStep;
+        feedbackText = '↑ Lên';
         break;
       case 'pan_down':
-        setMapOffset(prev => ({ ...prev, lat: prev.lat - 0.005 }));
-        setMapKey(prev => prev + 1);
-        feedbackText = '↓ Xuống dưới';
+        accumulatedOffsetRef.current.lat -= panStep;
+        feedbackText = '↓ Xuống';
         break;
       case 'pause':
-        feedbackText = '✊ Tạm dừng';
+        feedbackText = '✊ Dừng';
         break;
     }
 
+    // Show feedback immediately
     if (feedbackText) {
       setGestureActionFeedback(feedbackText);
-      setTimeout(() => setGestureActionFeedback(null), 800);
+      setTimeout(() => setGestureActionFeedback(null), 400);
     }
-  }, [mapCommand]);
+
+    // Debounce the actual map update to batch rapid gestures
+    if (pendingUpdateRef.current) {
+      clearTimeout(pendingUpdateRef.current);
+    }
+    pendingUpdateRef.current = setTimeout(flushMapUpdates, 150);
+  }, [mapCommand, flushMapUpdates]);
 
   // Geocode GPS to address using AI - with debouncing
   const geocodeLocation = useCallback(async (lat: number, lon: number) => {
