@@ -67,6 +67,17 @@ const GestureCameraController: React.FC<GestureCameraControllerProps> = ({
     debounceMs: 150,
   });
 
+  // Auto-start camera on mount
+  useEffect(() => {
+    // Small delay to ensure component is ready
+    const timer = setTimeout(() => {
+      if (status === 'inactive') {
+        start();
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Show toast on start/stop
   useEffect(() => {
     if (status === 'detecting') {
