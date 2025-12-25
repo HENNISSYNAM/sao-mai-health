@@ -271,21 +271,34 @@ const GestureCameraController: React.FC<GestureCameraControllerProps> = ({
 
       {/* Gesture guide - Bottom sheet style when detecting */}
       {isEnabled && status === 'detecting' && showPreview && (
-        <div className="fixed bottom-72 right-4 z-30 w-48 animate-fade-in">
+        <div className="fixed bottom-72 right-4 z-30 w-52 animate-fade-in">
           <div className="bg-card/95 backdrop-blur-xl rounded-xl p-3 shadow-xl border border-border/30">
-            <h4 className="text-xs font-semibold text-foreground mb-2">Hướng dẫn cử chỉ</h4>
+            <h4 className="text-xs font-semibold text-foreground mb-2">🖐️ Điều khiển bằng tay</h4>
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                <span className="w-5 text-center">✌️</span>
-                <span>Zoom bản đồ</span>
+                <span className="w-5 text-center">✋</span>
+                <span className="flex-1">Di chuyển bản đồ</span>
+                <span className="text-[8px] bg-blue-500/20 text-blue-400 px-1 rounded">Pan</span>
               </div>
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                <span className="w-5 text-center">✋</span>
-                <span>Di chuyển bản đồ</span>
+                <span className="w-5 text-center">✌️</span>
+                <span className="flex-1">Thu phóng (mở/khép)</span>
+                <span className="text-[8px] bg-green-500/20 text-green-400 px-1 rounded">Zoom</span>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                <span className="w-5 text-center">👆</span>
+                <span className="flex-1">Chuyển PM2.5/Gió</span>
+                <span className="text-[8px] bg-purple-500/20 text-purple-400 px-1 rounded">Layer</span>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                <span className="w-5 text-center">👍</span>
+                <span className="flex-1">Về vị trí hiện tại</span>
+                <span className="text-[8px] bg-orange-500/20 text-orange-400 px-1 rounded">Reset</span>
               </div>
               <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                 <span className="w-5 text-center">✊</span>
-                <span>Tạm dừng</span>
+                <span className="flex-1">Tạm dừng</span>
+                <span className="text-[8px] bg-red-500/20 text-red-400 px-1 rounded">Pause</span>
               </div>
             </div>
           </div>

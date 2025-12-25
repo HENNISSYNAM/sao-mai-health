@@ -18,9 +18,11 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 // Gesture types that can be detected
 export type GestureType = 
   | 'none'
-  | 'peace_sign'      // ✌️ Two fingers extended
-  | 'open_palm'       // ✋ All fingers extended
-  | 'fist'            // ✊ All fingers closed
+  | 'peace_sign'      // ✌️ Two fingers extended - Zoom mode
+  | 'open_palm'       // ✋ All fingers extended - Pan mode
+  | 'fist'            // ✊ All fingers closed - Pause
+  | 'pointing'        // 👆 Index finger only - Toggle layer
+  | 'thumbs_up'       // 👍 Thumb extended - Reset view
   | 'pinch';          // 👌 Thumb and index close together
 
 // Map actions that gestures can trigger
@@ -32,7 +34,9 @@ export type MapAction =
   | 'pan_right'
   | 'pan_up'
   | 'pan_down'
-  | 'pause';
+  | 'pause'
+  | 'toggle_layer'    // Toggle AQI/Wind layer
+  | 'reset_view';     // Reset to current GPS location
 
 // Gesture controller status
 export type GestureStatus = 'inactive' | 'initializing' | 'detecting' | 'active' | 'paused' | 'error';
@@ -177,12 +181,27 @@ export function useHandGestureController(
     const middleExtended = isFingerExtended(landmarks, LANDMARK.MIDDLE_TIP, LANDMARK.MIDDLE_MCP);
     const ringExtended = isFingerExtended(landmarks, LANDMARK.RING_TIP, LANDMARK.RING_MCP);
     const pinkyExtended = isFingerExtended(landmarks, LANDMARK.PINKY_TIP, LANDMARK.PINKY_MCP);
+    
+    // Check thumb - it's different, check if thumb is away from palm
+    const thumbTip = landmarks[LANDMARK.THUMB_TIP];
+    const indexMcp = landmarks[LANDMARK.INDEX_MCP];
+    const thumbExtended = Math.abs(thumbTip.x - indexMcp.x) > 0.1;
 
     const extendedCount = [indexExtended, middleExtended, ringExtended, pinkyExtended].filter(Boolean).length;
 
     // ✊ Fist - no fingers extended
-    if (extendedCount === 0) {
+    if (extendedCount === 0 && !thumbExtended) {
       return { gesture: 'fist', confidence: 0.9 };
+    }
+
+    // 👍 Thumbs up - only thumb extended
+    if (thumbExtended && extendedCount === 0) {
+      return { gesture: 'thumbs_up', confidence: 0.85 };
+    }
+
+    // 👆 Pointing - only index finger extended
+    if (indexExtended && !middleExtended && !ringExtended && !pinkyExtended) {
+      return { gesture: 'pointing', confidence: 0.85 };
     }
 
     // ✌️ Peace sign - only index and middle extended
@@ -213,6 +232,16 @@ export function useHandGestureController(
     // Fist = pause
     if (gesture === 'fist') {
       return { action: 'pause' };
+    }
+
+    // Pointing = toggle layer
+    if (gesture === 'pointing') {
+      return { action: 'toggle_layer' };
+    }
+
+    // Thumbs up = reset view
+    if (gesture === 'thumbs_up') {
+      return { action: 'reset_view' };
     }
 
     // Peace sign - zoom based on finger distance change (more sensitive)
