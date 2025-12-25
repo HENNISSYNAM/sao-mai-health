@@ -3,16 +3,19 @@ import { useStrokeRiskEngine } from '@/hooks/useStrokeRiskEngine';
 import FullScreenMap from '@/components/stroke/FullScreenMap';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
 import MLAnalyticsDashboard from '@/components/stroke/MLAnalyticsDashboard';
+import GestureCameraController from '@/components/stroke/GestureCameraController';
 import { BarChart3, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import healthLogo from '@/assets/health-logo.png';
+import type { MapAction } from '@/hooks/useHandGestureController';
 
 type ViewMode = 'tracking' | 'statistics';
 const StrokeRisk: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('tracking');
   const [showRiskOverlay, setShowRiskOverlay] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [mapCommand, setMapCommand] = useState<{ action: MapAction; timestamp: number } | null>(null);
   const initRef = useRef(false);
   
   const {
@@ -26,6 +29,12 @@ const StrokeRisk: React.FC = () => {
     startMonitoring,
     setAgeGroup
   } = useStrokeRiskEngine();
+
+  // Handle gesture-based map actions
+  const handleMapAction = useCallback((action: MapAction, data?: { deltaX?: number; deltaY?: number }) => {
+    // Dispatch custom event for map control
+    setMapCommand({ action, timestamp: Date.now() });
+  }, []);
 
   // Stable view mode toggle to prevent re-renders
   const handleViewModeChange = useCallback((mode: ViewMode) => {
@@ -95,7 +104,10 @@ const StrokeRisk: React.FC = () => {
     background: 'linear-gradient(135deg, hsl(210 40% 8%) 0%, hsl(210 50% 12%) 50%, hsl(199 40% 15%) 100%)'
   }}>
       {/* Full Screen Map Background */}
-      <FullScreenMap gps={userData.gps} gpsHistory={userData.gpsHistory} gpsAccuracy={userData.gpsAccuracy} environment={environment} riskAssessment={riskAssessment} isBlurred={false} isTracking={isTracking} devicePressure={userData.devicePressure} outdoorMinutes={userData.outdoorMinutes} isOutdoor={userData.isOutdoor} locationConfidence={userData.locationConfidence} safeOutdoorMinutes={userData.safeOutdoorMinutes} />
+      <FullScreenMap gps={userData.gps} gpsHistory={userData.gpsHistory} gpsAccuracy={userData.gpsAccuracy} environment={environment} riskAssessment={riskAssessment} isBlurred={false} isTracking={isTracking} devicePressure={userData.devicePressure} outdoorMinutes={userData.outdoorMinutes} isOutdoor={userData.isOutdoor} locationConfidence={userData.locationConfidence} safeOutdoorMinutes={userData.safeOutdoorMinutes} mapCommand={mapCommand} />
+
+      {/* Gesture Camera Controller - Hand gesture map control */}
+      <GestureCameraController onMapAction={handleMapAction} />
 
       {/* View Toggle Button - Top left, below data panel toggle - Only show when initialized */}
       {isInitialized && !isLoading && !gpsLoading && (
