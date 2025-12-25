@@ -339,6 +339,13 @@ export function useHandGestureController(
       setError(null);
       setStatus('initializing');
 
+      // Wait for video element to be available with retry
+      let retries = 0;
+      while (!videoRef.current && retries < 10) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        retries++;
+      }
+
       if (!videoRef.current) {
         throw new Error('Video element not available');
       }
