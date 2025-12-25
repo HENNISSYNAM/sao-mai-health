@@ -122,8 +122,8 @@ export function useHandGestureController(
 ): UseHandGestureControllerReturn {
   const {
     onAction,
-    minConfidence = 0.7,
-    debounceMs = 100,
+    minConfidence = 0.6,  // Lower for easier detection
+    debounceMs = 80,      // Faster response
   } = options;
 
   const [status, setStatus] = useState<GestureStatus>('inactive');
@@ -210,10 +210,10 @@ export function useHandGestureController(
       return { action: 'pause' };
     }
 
-    // Peace sign - zoom based on finger distance change
+    // Peace sign - zoom based on finger distance change (more sensitive)
     if (gesture === 'peace_sign' && fingerDistance !== null && lastFingerDistanceRef.current !== null) {
       const distDelta = fingerDistance - lastFingerDistanceRef.current;
-      const threshold = 0.02; // Sensitivity threshold
+      const threshold = 0.012; // Lower threshold for easier zoom
       
       if (distDelta > threshold) {
         return { action: 'zoom_in' };
@@ -222,22 +222,22 @@ export function useHandGestureController(
       }
     }
 
-    // Open palm - pan based on palm movement
+    // Open palm - pan based on palm movement (more sensitive)
     if (gesture === 'open_palm' && palmPosition && lastPalmPositionRef.current) {
       const deltaX = palmPosition.x - lastPalmPositionRef.current.x;
       const deltaY = palmPosition.y - lastPalmPositionRef.current.y;
-      const panThreshold = 0.03;
+      const panThreshold = 0.015; // Lower threshold for easier panning
 
       if (Math.abs(deltaX) > panThreshold || Math.abs(deltaY) > panThreshold) {
         if (Math.abs(deltaX) > Math.abs(deltaY)) {
           // Invert X because camera is mirrored
           return deltaX > 0 
-            ? { action: 'pan_left', deltaX: deltaX * 100 } 
-            : { action: 'pan_right', deltaX: deltaX * 100 };
+            ? { action: 'pan_left', deltaX: Math.abs(deltaX) * 150 } 
+            : { action: 'pan_right', deltaX: Math.abs(deltaX) * 150 };
         } else {
           return deltaY > 0 
-            ? { action: 'pan_down', deltaY: deltaY * 100 } 
-            : { action: 'pan_up', deltaY: deltaY * 100 };
+            ? { action: 'pan_down', deltaY: Math.abs(deltaY) * 150 } 
+            : { action: 'pan_up', deltaY: Math.abs(deltaY) * 150 };
         }
       }
     }
