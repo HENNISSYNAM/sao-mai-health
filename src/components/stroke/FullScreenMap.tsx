@@ -5,6 +5,7 @@ import type { MapAction } from '@/hooks/useHandGestureController';
 import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2, X, LayoutDashboard, ZoomIn, ZoomOut, Move, BarChart3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { MapHandControlLayer } from './MapHandControlLayer';
 import { toast } from 'sonner';
 
 interface GeocodedLocation {
@@ -82,6 +83,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
   const lastGeocodedRef = useRef<string>('');
   const geocodeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastMapCommandRef = useRef<number>(0);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   
   // Use stable coordinates to reduce re-renders
   const stableGps = useStableCoords(gps);
@@ -242,12 +244,36 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
   const product = showAQILayer ? 'cams' : 'ecmwf';
   const windyUrl = `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=km/h&zoom=${zoomLevel}&overlay=${overlay}&product=${product}&level=surface&lat=${lat}&lon=${lon}&detailLat=${lat}&detailLon=${lon}&marker=true&message=false&menu=false&detail=false`;
 
+  // Hand cursor map controls
+  const handleHandPan = useCallback((deltaX: number, deltaY: number) => {
+    const panFactor = 0.00005; // Convert pixel delta to lat/lon
+    setMapOffset(prev => ({
+      lat: prev.lat - deltaY * panFactor,
+      lon: prev.lon + deltaX * panFactor,
+    }));
+    setMapKey(prev => prev + 1);
+  }, []);
+
+  const handleHandZoom = useCallback((delta: number) => {
+    setZoomLevel(prev => Math.min(18, Math.max(3, prev + delta)));
+    setMapKey(prev => prev + 1);
+  }, []);
+
+  const handleHandContextMenu = useCallback((x: number, y: number) => {
+    // Toggle layer on right click
+    setShowAQILayer(prev => !prev);
+    setMapKey(prev => prev + 1);
+  }, []);
+
   return (
-    <div className={cn(
-      "absolute inset-0 transition-all duration-700 overflow-hidden",
-      isBlurred && "scale-[1.02] brightness-[0.3] blur-sm",
-      className
-    )}>
+    <div 
+      ref={mapContainerRef}
+      className={cn(
+        "absolute inset-0 transition-all duration-700 overflow-hidden",
+        isBlurred && "scale-[1.02] brightness-[0.3] blur-sm",
+        className
+      )}
+    >
       {/* Windy Map - key forces complete reload when switching layers */}
       <iframe
         key={`windy-map-${mapKey}`}
@@ -257,6 +283,16 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
         allow="geolocation"
         title={showAQILayer ? "Windy AQI Map" : "Windy Weather Map"}
       />
+      
+      {/* Hand Control Layer - pluggable input layer */}
+      {!isBlurred && (
+        <MapHandControlLayer
+          containerRef={mapContainerRef}
+          onPan={handleHandPan}
+          onZoom={handleHandZoom}
+          onContextMenu={handleHandContextMenu}
+        />
+      )}
 
       {/* Top gradient overlay */}
       <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-background/50 to-transparent pointer-events-none z-15" />
