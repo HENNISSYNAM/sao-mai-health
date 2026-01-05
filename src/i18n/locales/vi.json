@@ -1,0 +1,186 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "edit": "Chỉnh sửa",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "export": "Xuất",
+    "refresh": "Làm mới",
+    "close": "Đóng",
+    "submit": "Gửi",
+    "back": "Quay lại",
+    "next": "Tiếp theo",
+    "yes": "Có",
+    "no": "Không",
+    "all": "Tất cả",
+    "none": "Không có",
+    "noData": "Không có dữ liệu",
+    "error": "Đã xảy ra lỗi",
+    "success": "Thành công",
+    "warning": "Cảnh báo",
+    "info": "Thông tin"
+  },
+  "nav": {
+    "dashboard": "Tổng quan",
+    "surveillance": "Giám sát",
+    "maps": "Theo dõi dịch bệnh",
+    "alerts": "Cảnh báo",
+    "patients": "Bệnh nhân",
+    "facilities": "Cơ sở y tế",
+    "campaigns": "Chiến dịch",
+    "inventory": "Kho vật tư",
+    "appointments": "Lịch hẹn",
+    "labImport": "Nhập xét nghiệm",
+    "strokeRisk": "Nguy cơ đột quỵ",
+    "settings": "Cài đặt"
+  },
+  "dashboard": {
+    "title": "Tổng quan hệ thống",
+    "subtitle": "Giám sát y tế công cộng",
+    "todayCases": "Ca bệnh hôm nay",
+    "openAlerts": "Cảnh báo đang mở",
+    "diseaseTypes": "Loại bệnh (7 ngày)",
+    "vaccinationRate": "Tỷ lệ tiêm chủng",
+    "caseTrend": "Xu hướng ca bệnh (7 ngày)",
+    "diseaseDistribution": "Phân bố theo loại bệnh",
+    "districtDistribution": "Phân bố theo quận/huyện",
+    "recentAlerts": "Cảnh báo gần đây",
+    "fetchNews": "Thu thập tin tức",
+    "live": "Trực tiếp",
+    "offline": "Ngoại tuyến"
+  },
+  "alerts": {
+    "title": "Quản lý cảnh báo",
+    "subtitle": "Giám sát và phản hồi thời gian thực",
+    "total": "Tổng cảnh báo",
+    "critical": "Nghiêm trọng",
+    "high": "Ưu tiên cao",
+    "open": "Đang mở",
+    "acknowledged": "Đã xác nhận",
+    "closed": "Đã đóng",
+    "level": {
+      "critical": "Nghiêm trọng",
+      "high": "Cao",
+      "medium": "Trung bình",
+      "low": "Thấp"
+    },
+    "actions": {
+      "acknowledge": "Xác nhận",
+      "close": "Đóng cảnh báo",
+      "dispatchTeam": "Điều phối đội",
+      "notifyAuthorities": "Thông báo cơ quan",
+      "exportReport": "Xuất báo cáo"
+    },
+    "environmentalFactors": "Yếu tố môi trường",
+    "pressure": "Áp suất khí quyển",
+    "humidity": "Độ ẩm",
+    "temperature": "Nhiệt độ"
+  },
+  "maps": {
+    "title": "Theo dõi dịch bệnh",
+    "subtitle": "Bản đồ giám sát sức khỏe toàn cầu",
+    "riskLevel": "Mức độ nguy cơ",
+    "cases": "Ca bệnh",
+    "hotspots": "Điểm nóng",
+    "heatmap": "Bản đồ nhiệt",
+    "clustering": "Xem theo cụm",
+    "layers": {
+      "disease": "Mật độ bệnh",
+      "population": "Dân số",
+      "weather": "Thời tiết"
+    },
+    "aiAgent": {
+      "title": "AI Map Agent",
+      "placeholder": "Hỏi bằng ngôn ngữ tự nhiên (VD: 'Hiển thị nguy cơ sốt xuất huyết ở Đông Nam Á')",
+      "processing": "Đang xử lý lệnh..."
+    },
+    "prediction": {
+      "title": "Dự đoán nguy cơ",
+      "clickToPredict": "Nhấp vào bản đồ để dự đoán nguy cơ",
+      "riskScore": "Điểm nguy cơ",
+      "topDiseases": "Bệnh phổ biến"
+    }
+  },
+  "surveillance": {
+    "title": "Giám sát dịch bệnh",
+    "subtitle": "Theo dõi và phân tích ca bệnh",
+    "totalCases": "Tổng ca bệnh",
+    "confirmed": "Đã xác nhận",
+    "suspected": "Nghi ngờ",
+    "todayCases": "Ca hôm nay",
+    "exportCSV": "Xuất CSV"
+  },
+  "patients": {
+    "title": "Danh sách bệnh nhân",
+    "subtitle": "Quản lý thông tin bệnh nhân",
+    "addPatient": "Thêm bệnh nhân",
+    "patientId": "Mã bệnh nhân",
+    "name": "Họ tên",
+    "age": "Tuổi",
+    "gender": "Giới tính",
+    "district": "Quận/Huyện",
+    "status": "Trạng thái"
+  },
+  "facilities": {
+    "title": "Cơ sở y tế",
+    "subtitle": "Quản lý cơ sở và nguồn lực",
+    "addFacility": "Thêm cơ sở",
+    "facilityType": {
+      "hospital": "Bệnh viện",
+      "clinic": "Phòng khám",
+      "lab": "Phòng xét nghiệm",
+      "pharmacy": "Nhà thuốc"
+    }
+  },
+  "diseases": {
+    "dengue": "Sốt xuất huyết",
+    "covid19": "COVID-19",
+    "malaria": "Sốt rét",
+    "cholera": "Tả",
+    "typhoid": "Thương hàn",
+    "hepatitis": "Viêm gan",
+    "tuberculosis": "Lao phổi",
+    "influenza": "Cúm",
+    "measles": "Sởi",
+    "hfmd": "Tay chân miệng",
+    "unknown": "Không xác định"
+  },
+  "geography": {
+    "country": "Quốc gia",
+    "state": "Tỉnh/Thành phố",
+    "city": "Quận/Huyện",
+    "ward": "Phường/Xã",
+    "location": "Vị trí"
+  },
+  "time": {
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "thisWeek": "Tuần này",
+    "thisMonth": "Tháng này",
+    "lastWeek": "Tuần trước",
+    "lastMonth": "Tháng trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "minutesAgo": "{{count}} phút trước",
+    "daysAgo": "{{count}} ngày trước"
+  },
+  "compliance": {
+    "gdpr": "Tuân thủ GDPR",
+    "hipaa": "Tuân thủ HIPAA",
+    "dataProtection": "Bảo vệ dữ liệu",
+    "anonymized": "Dữ liệu ẩn danh"
+  },
+  "theme": {
+    "light": "Chế độ sáng",
+    "dark": "Chế độ tối",
+    "system": "Hệ thống"
+  },
+  "language": {
+    "en": "English",
+    "vi": "Tiếng Việt",
+    "es": "Español",
+    "fr": "Français"
+  }
+}

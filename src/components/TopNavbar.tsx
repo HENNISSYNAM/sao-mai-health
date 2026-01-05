@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from 'react-i18next';
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,10 +8,9 @@ import {
   Bell,
   Activity,
   RefreshCw,
-  Moon,
-  Sun,
   ChevronRight,
-  Heart
+  Heart,
+  Shield
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 interface RealtimeStatus {
   connected: boolean;
@@ -28,8 +30,8 @@ interface RealtimeStatus {
 }
 
 export function TopNavbar() {
+  const { t, i18n } = useTranslation();
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>({ connected: false });
-  const [isDark, setIsDark] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
@@ -60,13 +62,10 @@ export function TopNavbar() {
     };
   }, []);
 
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-    document.documentElement.classList.toggle('dark');
-  };
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('vi-VN', { 
+    return date.toLocaleTimeString(locale, { 
       hour: '2-digit', 
       minute: '2-digit',
       second: '2-digit'
@@ -74,7 +73,7 @@ export function TopNavbar() {
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('vi-VN', { 
+    return date.toLocaleDateString(locale, { 
       weekday: 'long',
       day: '2-digit', 
       month: '2-digit',
@@ -128,9 +127,21 @@ export function TopNavbar() {
               realtimeStatus.connected ? "bg-success animate-pulse" : "bg-danger"
             )} />
             <span className="hidden sm:inline">
-              {realtimeStatus.connected ? "Kết nối" : "Mất kết nối"}
+              {realtimeStatus.connected ? t('dashboard.live') : t('dashboard.offline')}
             </span>
           </div>
+
+          {/* Compliance Badge */}
+          <div className="hidden lg:flex items-center gap-1 px-2 py-1 rounded-lg bg-success/10 border border-success/20">
+            <Shield className="h-3 w-3 text-success" />
+            <span className="text-[10px] font-medium text-success">{t('compliance.gdpr')}</span>
+          </div>
+
+          {/* Language Switcher */}
+          <LanguageSwitcher />
+
+          {/* Theme Toggle */}
+          <ThemeSwitcher />
 
           {/* Refresh Button */}
           <Button 
@@ -140,16 +151,6 @@ export function TopNavbar() {
             onClick={() => window.location.reload()}
           >
             <RefreshCw className="h-4 w-4" />
-          </Button>
-
-          {/* Theme Toggle */}
-          <Button 
-            variant="outline" 
-            size="icon" 
-            className="rounded-xl border-border hover:bg-accent"
-            onClick={toggleTheme}
-          >
-            {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </Button>
 
           {/* Notifications */}
