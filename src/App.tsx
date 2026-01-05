@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavbar } from "@/components/TopNavbar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -36,33 +36,31 @@ const queryClient = new QueryClient({
 // Layout with sidebar for most pages
 const MainLayout = () => (
   <SidebarProvider>
-    <div className="min-h-screen flex w-full">
-      <AppSidebar />
-      <div className="flex-1 flex flex-col">
-        <TopNavbar />
-        <main className="flex-1 p-6 bg-background">
-          <Routes>
-            <Route index element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/surveillance" element={<Surveillance />} />
-            <Route path="/case-intake" element={<CaseIntake />} />
-            <Route path="/lab-import" element={<LabImport />} />
-            <Route path="/alerts" element={<AlertsNew />} />
-            <Route path="/maps" element={<MapView />} />
-            <Route path="/map" element={<MapView />} />
-            <Route path="/patients" element={<PatientsNew />} />
-            <Route path="/appointments" element={<Appointments />} />
-            <Route path="/campaigns" element={<Campaigns />} />
-            <Route path="/facilities" element={<Facilities />} />
-            <Route path="/stocks" element={<Inventory />} />
-            <Route path="/inventory" element={<Inventory />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <EnhancedCommandPalette />
-          <GlobalAIAssistant />
-        </main>
-      </div>
-    </div>
+    <AppSidebar />
+    <SidebarInset>
+      <TopNavbar />
+      <main className="flex-1 p-6 bg-background">
+        <Routes>
+          <Route index element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/surveillance" element={<Surveillance />} />
+          <Route path="/case-intake" element={<CaseIntake />} />
+          <Route path="/lab-import" element={<LabImport />} />
+          <Route path="/alerts" element={<AlertsNew />} />
+          <Route path="/maps" element={<MapView />} />
+          <Route path="/map" element={<MapView />} />
+          <Route path="/patients" element={<PatientsNew />} />
+          <Route path="/appointments" element={<Appointments />} />
+          <Route path="/campaigns" element={<Campaigns />} />
+          <Route path="/facilities" element={<Facilities />} />
+          <Route path="/stocks" element={<Inventory />} />
+          <Route path="/inventory" element={<Inventory />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <EnhancedCommandPalette />
+        <GlobalAIAssistant />
+      </main>
+    </SidebarInset>
   </SidebarProvider>
 );
 
