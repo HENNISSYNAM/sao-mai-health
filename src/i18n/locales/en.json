@@ -21,7 +21,8 @@
     "error": "An error occurred",
     "success": "Success",
     "warning": "Warning",
-    "info": "Information"
+    "info": "Information",
+    "cases": "cases"
   },
   "nav": {
     "dashboard": "Dashboard",

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -36,12 +37,16 @@ import {
   Zap,
   ThermometerSun,
   Wind,
-  Droplets
+  Droplets,
+  Users,
+  Send,
+  FileText
 } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useRealtimeAlerts } from "@/hooks/useRealtimeHealth"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { CommandControlPanel } from "@/components/CommandControlPanel"
 
 interface Alert {
   id: string
@@ -125,6 +130,7 @@ const LEVEL_CONFIG = {
 }
 
 export default function AlertsNew() {
+  const { t, i18n } = useTranslation()
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -138,8 +144,9 @@ export default function AlertsNew() {
   const { isConnected, nowTs } = useRealtimeAlerts((payload) => {
     if (soundEnabled && payload.eventType === 'INSERT') {
       playAlertSound()
-      toast.error("Cảnh báo mới!", {
-        description: `${DISEASE_NAMES[payload.new.disease_code] || payload.new.disease_code}`,
+      const diseaseKey = payload.new.disease_code as string
+      toast.error(t('common.warning') as string, {
+        description: (t(`diseases.${diseaseKey}`, diseaseKey) as string),
         duration: 5000
       })
     }
