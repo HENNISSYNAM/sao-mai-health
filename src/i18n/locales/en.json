@@ -66,19 +66,36 @@
     "offline": "Offline"
   },
   "alerts": {
-    "title": "Alert Management",
-    "subtitle": "Real-time monitoring and response",
+    "title": "Alert Center",
+    "subtitle": "Monitor and respond to public health alerts",
     "total": "Total Alerts",
     "critical": "Critical",
     "high": "High Priority",
     "open": "Open",
+    "pending": "Pending",
     "acknowledged": "Acknowledged",
     "closed": "Closed",
+    "processed": "Processed",
+    "activeAlerts": "Active Alerts",
+    "noActiveAlerts": "No active alerts",
+    "noClosedAlerts": "No alerts have been closed yet",
+    "newCases": "{{count}} new cases",
+    "cases": "cases",
+    "avg7": "7-day avg",
+    "caseCount": "Case Count",
+    "description": "Description",
+    "triggerRule": "Trigger Rule",
+    "createdAt": "Created at",
     "level": {
       "critical": "Critical",
       "high": "High",
       "medium": "Medium",
       "low": "Low"
+    },
+    "status": {
+      "open": "Open",
+      "acknowledged": "Acknowledged",
+      "closed": "Closed"
     },
     "actions": {
       "acknowledge": "Acknowledge",
@@ -89,8 +106,18 @@
     },
     "environmentalFactors": "Environmental Factors",
     "pressure": "Atmospheric Pressure",
+    "pressureChange": "Drop {{value}}/3h",
     "humidity": "Humidity",
-    "temperature": "Temperature"
+    "humidityLevel": "{{value}} - Very High",
+    "temperature": "Temperature",
+    "temperatureLevel": "{{value}} - Hot",
+    "alert": "Alert",
+    "searchPlaceholder": "Search by disease, region...",
+    "statusFilter": "Status",
+    "levelFilter": "Level",
+    "dataRefreshed": "Data refreshed",
+    "alertAcknowledged": "Alert acknowledged",
+    "alertClosed": "Alert closed"
   },
   "maps": {
     "title": "Disease Tracking",
@@ -243,6 +270,7 @@
   },
   "diseases": {
     "dengue": "Dengue Fever",
+    "covid": "COVID-19",
     "covid19": "COVID-19",
     "malaria": "Malaria",
     "cholera": "Cholera",
@@ -252,9 +280,13 @@
     "influenza": "Influenza",
     "measles": "Measles",
     "hfmd": "Hand, Foot & Mouth Disease",
+    "hand_foot_mouth": "Hand, Foot & Mouth Disease",
     "tcm": "Hand, Foot & Mouth Disease",
     "ari": "Acute Respiratory Infection",
     "flu": "Flu",
+    "food_poisoning": "Food Poisoning",
+    "stroke_risk": "Stroke Risk",
+    "diarrhea": "Diarrhea",
     "unknown": "Unknown"
   },
   "geography": {
@@ -273,7 +305,8 @@
     "lastMonth": "Last Month",
     "hoursAgo": "{{count}} hours ago",
     "minutesAgo": "{{count}} minutes ago",
-    "daysAgo": "{{count}} days ago"
+    "daysAgo": "{{count}} days ago",
+    "justNow": "Just now"
   },
   "compliance": {
     "gdpr": "GDPR Compliant",
