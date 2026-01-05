@@ -66,22 +66,39 @@
     "offline": "Offline"
   },
   "alerts": {
-    "title": "Quản lý cảnh báo",
-    "subtitle": "Giám sát và phản hồi thời gian thực",
+    "title": "Trung tâm cảnh báo",
+    "subtitle": "Giám sát và phản hồi cảnh báo y tế công cộng",
     "total": "Tổng cảnh báo",
     "critical": "Nghiêm trọng",
-    "high": "Ưu tiên cao",
-    "open": "Mở",
-    "acknowledged": "Đã ghi nhận",
+    "high": "Mức cao",
+    "open": "Đang mở",
+    "pending": "Đang chờ",
+    "acknowledged": "Đã xác nhận",
     "closed": "Đã đóng",
+    "processed": "Đã xử lý",
+    "activeAlerts": "Cảnh báo đang hoạt động",
+    "noActiveAlerts": "Không có cảnh báo nào đang hoạt động",
+    "noClosedAlerts": "Chưa có cảnh báo nào được đóng",
+    "newCases": "{{count}} ca mới",
+    "cases": "ca",
+    "avg7": "TB 7 ngày",
+    "caseCount": "Số ca",
+    "description": "Mô tả",
+    "triggerRule": "Quy tắc kích hoạt",
+    "createdAt": "Tạo lúc",
     "level": {
       "critical": "Nghiêm trọng",
       "high": "Cao",
       "medium": "Trung bình",
       "low": "Thấp"
     },
+    "status": {
+      "open": "Đang mở",
+      "acknowledged": "Đã xác nhận",
+      "closed": "Đã đóng"
+    },
     "actions": {
-      "acknowledge": "Ghi nhận",
+      "acknowledge": "Xác nhận",
       "close": "Đóng cảnh báo",
       "dispatchTeam": "Điều động đội",
       "notifyAuthorities": "Thông báo cơ quan",
@@ -89,8 +106,18 @@
     },
     "environmentalFactors": "Yếu tố môi trường",
     "pressure": "Áp suất khí quyển",
+    "pressureChange": "Giảm {{value}}/3h",
     "humidity": "Độ ẩm",
-    "temperature": "Nhiệt độ"
+    "humidityLevel": "{{value}} - Rất cao",
+    "temperature": "Nhiệt độ",
+    "temperatureLevel": "{{value}} - Nóng",
+    "alert": "Cảnh báo",
+    "searchPlaceholder": "Tìm kiếm theo bệnh, khu vực...",
+    "statusFilter": "Trạng thái",
+    "levelFilter": "Mức độ",
+    "dataRefreshed": "Đã cập nhật dữ liệu",
+    "alertAcknowledged": "Đã xác nhận cảnh báo",
+    "alertClosed": "Đã đóng cảnh báo"
   },
   "maps": {
     "title": "Theo dõi bệnh",
@@ -243,18 +270,23 @@
   },
   "diseases": {
     "dengue": "Sốt xuất huyết",
+    "covid": "COVID-19",
     "covid19": "COVID-19",
     "malaria": "Sốt rét",
     "cholera": "Tả",
     "typhoid": "Thương hàn",
     "hepatitis": "Viêm gan",
     "tuberculosis": "Lao phổi",
-    "influenza": "Cúm",
+    "influenza": "Cúm mùa",
     "measles": "Sởi",
     "hfmd": "Tay chân miệng",
+    "hand_foot_mouth": "Tay chân miệng",
     "tcm": "Tay chân miệng",
-    "ari": "Nhiễm khuẩn hô hấp",
+    "ari": "Nhiễm trùng hô hấp",
     "flu": "Cúm",
+    "food_poisoning": "Ngộ độc thực phẩm",
+    "stroke_risk": "Nguy cơ đột quỵ",
+    "diarrhea": "Tiêu chảy",
     "unknown": "Không xác định"
   },
   "geography": {
@@ -273,7 +305,8 @@
     "lastMonth": "Tháng trước",
     "hoursAgo": "{{count}} giờ trước",
     "minutesAgo": "{{count}} phút trước",
-    "daysAgo": "{{count}} ngày trước"
+    "daysAgo": "{{count}} ngày trước",
+    "justNow": "Vừa xong"
   },
   "compliance": {
     "gdpr": "Tuân thủ GDPR",

@@ -65,38 +65,25 @@ interface Alert {
   avg7?: number
 }
 
-const DISEASE_NAMES: Record<string, string> = {
-  'dengue': 'Sốt xuất huyết',
-  'covid': 'COVID-19',
-  'influenza': 'Cúm mùa',
-  'hand_foot_mouth': 'Tay chân miệng',
-  'tuberculosis': 'Lao phổi',
-  'malaria': 'Sốt rét',
-  'food_poisoning': 'Ngộ độc thực phẩm',
-  'ari': 'Nhiễm trùng hô hấp',
-  'diarrhea': 'Tiêu chảy',
-  'stroke_risk': 'Nguy cơ đột quỵ'
-}
-
 const DISTRICT_NAMES: Record<string, string> = {
-  'District_01': 'Quận 1',
-  'District_02': 'Quận 2', 
-  'District_03': 'Quận 3',
-  'District_04': 'Quận 4',
-  'District_05': 'Quận 5',
-  'District_06': 'Quận 6',
-  'District_07': 'Quận 7',
-  'District_08': 'Quận 8',
-  'District_09': 'Quận 9',
-  'District_10': 'Quận 10',
-  'District_12': 'Quận 12',
-  'quan_1': 'Quận 1',
-  'quan_3': 'Quận 3'
+  'District_01': 'District 1',
+  'District_02': 'District 2', 
+  'District_03': 'District 3',
+  'District_04': 'District 4',
+  'District_05': 'District 5',
+  'District_06': 'District 6',
+  'District_07': 'District 7',
+  'District_08': 'District 8',
+  'District_09': 'District 9',
+  'District_10': 'District 10',
+  'District_12': 'District 12',
+  'quan_1': 'District 1',
+  'quan_3': 'District 3'
 }
 
 const LEVEL_CONFIG = {
   critical: { 
-    label: 'Nghiêm trọng', 
+    labelKey: 'alerts.level.critical', 
     color: 'bg-red-500', 
     textColor: 'text-red-500',
     bgColor: 'bg-red-500/10',
@@ -104,7 +91,7 @@ const LEVEL_CONFIG = {
     icon: Zap
   },
   high: { 
-    label: 'Cao', 
+    labelKey: 'alerts.level.high', 
     color: 'bg-orange-500', 
     textColor: 'text-orange-500',
     bgColor: 'bg-orange-500/10',
@@ -112,7 +99,7 @@ const LEVEL_CONFIG = {
     icon: AlertTriangle
   },
   medium: { 
-    label: 'Trung bình', 
+    labelKey: 'alerts.level.medium', 
     color: 'bg-yellow-500', 
     textColor: 'text-yellow-500',
     bgColor: 'bg-yellow-500/10',
@@ -120,7 +107,7 @@ const LEVEL_CONFIG = {
     icon: Activity
   },
   low: { 
-    label: 'Thấp', 
+    labelKey: 'alerts.level.low', 
     color: 'bg-blue-500', 
     textColor: 'text-blue-500',
     bgColor: 'bg-blue-500/10',
@@ -322,7 +309,7 @@ export default function AlertsNew() {
         : alert
     ))
     
-    toast.success("Đã xác nhận cảnh báo")
+    toast.success(t('alerts.alertAcknowledged'))
   }
 
   const closeAlert = async (alertId: string) => {
@@ -332,14 +319,14 @@ export default function AlertsNew() {
         : alert
     ))
     
-    toast.success("Đã đóng cảnh báo")
+    toast.success(t('alerts.alertClosed'))
   }
 
   const handleRefresh = async () => {
     setRefreshing(true)
     await fetchAlerts()
     setRefreshing(false)
-    toast.success("Đã cập nhật dữ liệu")
+    toast.success(t('alerts.dataRefreshed'))
   }
 
   useEffect(() => {
@@ -355,11 +342,17 @@ export default function AlertsNew() {
     return () => clearInterval(interval)
   }, [])
 
+  // Get disease name with i18n
+  const getDiseaseName = (code: string) => {
+    return t(`diseases.${code}`, code)
+  }
+
   // Filtered alerts
   const filteredAlerts = useMemo(() => {
     return alerts.filter(alert => {
+      const diseaseName = t(`diseases.${alert.disease_code}`, alert.disease_code)
       const matchesSearch = 
-        (DISEASE_NAMES[alert.disease_code] || alert.disease_code).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        diseaseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (DISTRICT_NAMES[alert.district_id || ''] || alert.district_id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (alert.title || '').toLowerCase().includes(searchTerm.toLowerCase())
       
@@ -368,7 +361,7 @@ export default function AlertsNew() {
 
       return matchesSearch && matchesStatus && matchesLevel
     })
-  }, [alerts, searchTerm, statusFilter, levelFilter])
+  }, [alerts, searchTerm, statusFilter, levelFilter, t])
 
   const openAlerts = filteredAlerts.filter(a => a.status === 'open')
   const acknowledgedAlerts = filteredAlerts.filter(a => a.status === 'acknowledged')
@@ -392,18 +385,20 @@ export default function AlertsNew() {
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
     
-    if (days > 0) return `${days} ngày trước`
-    if (hours > 0) return `${hours} giờ trước`
-    if (mins > 0) return `${mins} phút trước`
-    return 'Vừa xong'
+    if (days > 0) return t('time.daysAgo', { count: days })
+    if (hours > 0) return t('time.hoursAgo', { count: hours })
+    if (mins > 0) return t('time.minutesAgo', { count: mins })
+    return t('time.justNow')
   }
+
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US'
 
   if (loading) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Trung tâm cảnh báo</h1>
-          <p className="text-muted-foreground">Giám sát và phản hồi cảnh báo y tế công cộng</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('alerts.title')}</h1>
+          <p className="text-muted-foreground">{t('alerts.subtitle')}</p>
         </div>
         <div className="grid gap-4 md:grid-cols-4">
           {[...Array(4)].map((_, i) => (
@@ -420,8 +415,8 @@ export default function AlertsNew() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Trung tâm cảnh báo</h1>
-          <p className="text-muted-foreground">Giám sát và phản hồi cảnh báo y tế công cộng</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('alerts.title')}</h1>
+          <p className="text-muted-foreground">{t('alerts.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge variant={isConnected ? "default" : "secondary"} className={cn(
@@ -432,10 +427,10 @@ export default function AlertsNew() {
               "w-2 h-2 rounded-full mr-2",
               isConnected ? "bg-success-foreground animate-pulse" : "bg-muted-foreground"
             )} />
-            {isConnected ? "Realtime" : "Offline"}
+            {isConnected ? "Realtime" : t('common.offline')}
           </Badge>
           <span className="text-sm text-muted-foreground font-mono">
-            {nowTs.toLocaleTimeString('vi-VN')}
+            {nowTs.toLocaleTimeString(locale)}
           </span>
         </div>
       </div>
@@ -446,7 +441,7 @@ export default function AlertsNew() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Tổng cảnh báo</p>
+                <p className="text-sm text-muted-foreground">{t('alerts.total')}</p>
                 <p className="text-3xl font-bold text-foreground">{stats.total}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -460,7 +455,7 @@ export default function AlertsNew() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Nghiêm trọng</p>
+                <p className="text-sm text-muted-foreground">{t('alerts.critical')}</p>
                 <p className="text-3xl font-bold text-red-500">{stats.critical}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center">
@@ -474,7 +469,7 @@ export default function AlertsNew() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Mức cao</p>
+                <p className="text-sm text-muted-foreground">{t('alerts.high')}</p>
                 <p className="text-3xl font-bold text-orange-500">{stats.high}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center">
@@ -488,7 +483,7 @@ export default function AlertsNew() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Đang mở</p>
+                <p className="text-sm text-muted-foreground">{t('alerts.open')}</p>
                 <p className="text-3xl font-bold text-yellow-600">{stats.open}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 flex items-center justify-center">
@@ -506,7 +501,7 @@ export default function AlertsNew() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Tìm kiếm theo bệnh, khu vực..."
+                placeholder={t('alerts.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 rounded-xl"
@@ -514,25 +509,25 @@ export default function AlertsNew() {
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[160px] rounded-xl">
-                <SelectValue placeholder="Trạng thái" />
+                <SelectValue placeholder={t('alerts.statusFilter')} />
               </SelectTrigger>
               <SelectContent className="bg-popover">
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="open">Đang mở</SelectItem>
-                <SelectItem value="acknowledged">Đã xác nhận</SelectItem>
-                <SelectItem value="closed">Đã đóng</SelectItem>
+                <SelectItem value="all">{t('common.all')}</SelectItem>
+                <SelectItem value="open">{t('alerts.status.open')}</SelectItem>
+                <SelectItem value="acknowledged">{t('alerts.status.acknowledged')}</SelectItem>
+                <SelectItem value="closed">{t('alerts.status.closed')}</SelectItem>
               </SelectContent>
             </Select>
             <Select value={levelFilter} onValueChange={setLevelFilter}>
               <SelectTrigger className="w-[160px] rounded-xl">
-                <SelectValue placeholder="Mức độ" />
+                <SelectValue placeholder={t('alerts.levelFilter')} />
               </SelectTrigger>
               <SelectContent className="bg-popover">
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="critical">Nghiêm trọng</SelectItem>
-                <SelectItem value="high">Cao</SelectItem>
-                <SelectItem value="medium">Trung bình</SelectItem>
-                <SelectItem value="low">Thấp</SelectItem>
+                <SelectItem value="all">{t('common.all')}</SelectItem>
+                <SelectItem value="critical">{t('alerts.level.critical')}</SelectItem>
+                <SelectItem value="high">{t('alerts.level.high')}</SelectItem>
+                <SelectItem value="medium">{t('alerts.level.medium')}</SelectItem>
+                <SelectItem value="low">{t('alerts.level.low')}</SelectItem>
               </SelectContent>
             </Select>
             <Button
@@ -564,7 +559,7 @@ export default function AlertsNew() {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-                Cảnh báo đang hoạt động
+                {t('alerts.activeAlerts')}
               </div>
               <Badge variant="destructive" className="text-sm">
                 {openAlerts.length + acknowledgedAlerts.length}
@@ -576,7 +571,7 @@ export default function AlertsNew() {
               {openAlerts.length === 0 && acknowledgedAlerts.length === 0 ? (
                 <div className="text-center py-12">
                   <CheckCircle className="h-12 w-12 text-success mx-auto mb-3" />
-                  <p className="text-muted-foreground">Không có cảnh báo nào đang hoạt động</p>
+                  <p className="text-muted-foreground">{t('alerts.noActiveAlerts')}</p>
                 </div>
               ) : (
                 [...openAlerts, ...acknowledgedAlerts].map((alert) => {
@@ -605,20 +600,20 @@ export default function AlertsNew() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <Badge className={cn("text-xs", config.color, "text-white")}>
-                              {config.label}
+                              {t(config.labelKey)}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
-                              {DISEASE_NAMES[alert.disease_code] || alert.disease_code}
+                              {getDiseaseName(alert.disease_code)}
                             </Badge>
                             {alert.status === 'acknowledged' && (
                               <Badge variant="secondary" className="text-xs">
-                                Đã xác nhận
+                                {t('alerts.acknowledged')}
                               </Badge>
                             )}
                           </div>
                           
                           <p className="font-semibold text-foreground mb-1">
-                            {alert.title || `${alert.cases} ca mới`}
+                            {alert.title || t('alerts.newCases', { count: alert.cases })}
                           </p>
                           
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -632,7 +627,7 @@ export default function AlertsNew() {
                             </span>
                             <span className="flex items-center gap-1">
                               <TrendingUp className="h-3 w-3" />
-                              {alert.cases} ca (TB: {alert.avg7?.toFixed(0) || 0})
+                              {alert.cases} {t('alerts.cases')} ({t('alerts.avg7')}: {alert.avg7?.toFixed(0) || 0})
                             </span>
                           </div>
                           
@@ -696,7 +691,7 @@ export default function AlertsNew() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <ThermometerSun className="h-5 w-5 text-orange-500" />
-                Yếu tố môi trường
+                {t('alerts.environmentalFactors')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -704,33 +699,33 @@ export default function AlertsNew() {
                 <div className="flex items-center gap-3">
                   <Wind className="h-5 w-5 text-red-500" />
                   <div>
-                    <p className="text-sm font-medium">Áp suất khí quyển</p>
-                    <p className="text-xs text-muted-foreground">Giảm 12hPa/3h</p>
+                    <p className="text-sm font-medium">{t('alerts.pressure')}</p>
+                    <p className="text-xs text-muted-foreground">{t('alerts.pressureChange', { value: '12hPa' })}</p>
                   </div>
                 </div>
-                <Badge className="bg-red-500">Cảnh báo</Badge>
+                <Badge className="bg-red-500">{t('alerts.alert')}</Badge>
               </div>
               
               <div className="flex items-center justify-between p-3 rounded-xl bg-orange-500/10 border border-orange-500/20">
                 <div className="flex items-center gap-3">
                   <Droplets className="h-5 w-5 text-orange-500" />
                   <div>
-                    <p className="text-sm font-medium">Độ ẩm</p>
-                    <p className="text-xs text-muted-foreground">92% - Rất cao</p>
+                    <p className="text-sm font-medium">{t('alerts.humidity')}</p>
+                    <p className="text-xs text-muted-foreground">{t('alerts.humidityLevel', { value: '92%' })}</p>
                   </div>
                 </div>
-                <Badge className="bg-orange-500">Cao</Badge>
+                <Badge className="bg-orange-500">{t('alerts.level.high')}</Badge>
               </div>
               
               <div className="flex items-center justify-between p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
                 <div className="flex items-center gap-3">
                   <ThermometerSun className="h-5 w-5 text-yellow-600" />
                   <div>
-                    <p className="text-sm font-medium">Nhiệt độ</p>
-                    <p className="text-xs text-muted-foreground">34°C - Nóng</p>
+                    <p className="text-sm font-medium">{t('alerts.temperature')}</p>
+                    <p className="text-xs text-muted-foreground">{t('alerts.temperatureLevel', { value: '34°C' })}</p>
                   </div>
                 </div>
-                <Badge className="bg-yellow-500 text-yellow-900">TB</Badge>
+                <Badge className="bg-yellow-500 text-yellow-900">{t('alerts.level.medium')}</Badge>
               </div>
             </CardContent>
           </Card>
@@ -741,7 +736,7 @@ export default function AlertsNew() {
               <CardTitle className="flex items-center justify-between text-base">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-success" />
-                  Đã xử lý
+                  {t('alerts.processed')}
                 </div>
                 <Badge variant="secondary">{closedAlerts.length}</Badge>
               </CardTitle>
@@ -750,7 +745,7 @@ export default function AlertsNew() {
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {closedAlerts.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    Chưa có cảnh báo nào được đóng
+                    {t('alerts.noClosedAlerts')}
                   </p>
                 ) : (
                   closedAlerts.map((alert) => (
@@ -761,9 +756,9 @@ export default function AlertsNew() {
                     >
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs">
-                          {DISEASE_NAMES[alert.disease_code] || alert.disease_code}
+                          {getDiseaseName(alert.disease_code)}
                         </Badge>
-                        <span className="text-sm">{alert.cases} ca</span>
+                        <span className="text-sm">{alert.cases} {t('alerts.cases')}</span>
                       </div>
                       <span className="text-xs text-muted-foreground">
                         {formatTimeAgo(alert.closed_at || alert.created_at)}
@@ -797,7 +792,7 @@ export default function AlertsNew() {
                   )}
                   <div>
                     <DialogTitle className="text-lg">
-                      {selectedAlert.title || DISEASE_NAMES[selectedAlert.disease_code] || selectedAlert.disease_code}
+                      {selectedAlert.title || getDiseaseName(selectedAlert.disease_code)}
                     </DialogTitle>
                     <DialogDescription>
                       {DISTRICT_NAMES[selectedAlert.district_id || ''] || selectedAlert.district_id} • {selectedAlert.day}
@@ -809,32 +804,32 @@ export default function AlertsNew() {
               <div className="space-y-4 mt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 rounded-xl bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">Số ca</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('alerts.caseCount')}</p>
                     <p className="text-2xl font-bold text-foreground">{selectedAlert.cases}</p>
                   </div>
                   <div className="p-3 rounded-xl bg-muted/50">
-                    <p className="text-xs text-muted-foreground mb-1">TB 7 ngày</p>
+                    <p className="text-xs text-muted-foreground mb-1">{t('alerts.avg7')}</p>
                     <p className="text-2xl font-bold text-foreground">{selectedAlert.avg7?.toFixed(0) || 'N/A'}</p>
                   </div>
                 </div>
                 
                 {selectedAlert.description && (
                   <div>
-                    <p className="text-sm font-medium mb-1">Mô tả</p>
+                    <p className="text-sm font-medium mb-1">{t('alerts.description')}</p>
                     <p className="text-sm text-muted-foreground">{selectedAlert.description}</p>
                   </div>
                 )}
                 
                 {selectedAlert.rule && (
                   <div>
-                    <p className="text-sm font-medium mb-1">Quy tắc kích hoạt</p>
+                    <p className="text-sm font-medium mb-1">{t('alerts.triggerRule')}</p>
                     <p className="text-sm text-muted-foreground">{selectedAlert.rule}</p>
                   </div>
                 )}
                 
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  Tạo lúc: {new Date(selectedAlert.created_at).toLocaleString('vi-VN')}
+                  {t('alerts.createdAt')}: {new Date(selectedAlert.created_at).toLocaleString(locale)}
                 </div>
                 
                 {selectedAlert.status !== 'closed' && (
@@ -848,7 +843,7 @@ export default function AlertsNew() {
                         }}
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
-                        Xác nhận
+                        {t('alerts.actions.acknowledge')}
                       </Button>
                     )}
                     <Button 
@@ -860,7 +855,7 @@ export default function AlertsNew() {
                       }}
                     >
                       <X className="h-4 w-4 mr-2" />
-                      Đóng cảnh báo
+                      {t('alerts.actions.close')}
                     </Button>
                   </div>
                 )}
