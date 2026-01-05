@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,12 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import FacilityModal from "@/components/FacilityModal";
 
 const Facilities = () => {
+  const { t } = useTranslation();
   const [dbFacilities, setDbFacilities] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Dữ liệu demo phong phú
+  // Demo data
   const demoFacilities = [
     {
       id: "demo-1",
@@ -25,7 +27,7 @@ const Facilities = () => {
       district_id: "District_01",
       status: "active",
       beds: 500,
-      level: "Tuyến Trung ương"
+      level: "central"
     },
     {
       id: "demo-2", 
@@ -37,7 +39,7 @@ const Facilities = () => {
       district_id: "District_02", 
       status: "active",
       beds: 50,
-      level: "Tuyến Quận"
+      level: "district"
     },
     {
       id: "demo-3",
@@ -49,9 +51,8 @@ const Facilities = () => {
       district_id: "District_02",
       status: "maintenance", 
       beds: 10,
-      level: "Tuyến Phường"
+      level: "ward"
     },
-    // Thêm dữ liệu từ nguồn thực tế TPHCM
     {
       id: "demo-4",
       name: "Bệnh viện Chợ Rẫy",
@@ -62,7 +63,7 @@ const Facilities = () => {
       district_id: "District_05",
       status: "active",
       beds: 1500,
-      level: "Tuyến Trung ương"
+      level: "central"
     },
     {
       id: "demo-5",
@@ -74,7 +75,7 @@ const Facilities = () => {
       district_id: "District_05",
       status: "active",
       beds: 1200,
-      level: "Tuyến Trung ương"
+      level: "central"
     },
     {
       id: "demo-6",
@@ -86,7 +87,7 @@ const Facilities = () => {
       district_id: "District_01",
       status: "active",
       beds: 80,
-      level: "Tuyến Quận"
+      level: "district"
     }
   ];
 
@@ -107,8 +108,8 @@ const Facilities = () => {
     } catch (error) {
       console.error("Error fetching facilities:", error);
       toast({
-        title: "Lỗi",
-        description: "Không thể tải danh sách cơ sở y tế từ database",
+        title: t("common.error"),
+        description: t("facilities.loadError"),
         variant: "destructive",
       });
     } finally {
@@ -116,19 +117,28 @@ const Facilities = () => {
     }
   };
 
-  // Kết hợp dữ liệu demo và database
   const allFacilities = [...demoFacilities, ...dbFacilities];
 
   const getTypeLabel = (type: string) => {
-    const typeLabels: { [key: string]: string } = {
-      hospital: "Bệnh viện",
-      clinic: "Phòng khám", 
-      health_center: "Trung tâm Y tế",
-      health_station: "Trạm Y tế",
-      pharmacy: "Nhà thuốc",
-      laboratory: "Phòng xét nghiệm"
+    const typeMap: Record<string, string> = {
+      hospital: t("facilities.facilityType.hospital"),
+      clinic: t("facilities.facilityType.clinic"),
+      health_center: t("facilities.facilityType.healthCenter"),
+      health_station: t("facilities.facilityType.healthStation"),
+      pharmacy: t("facilities.facilityType.pharmacy"),
+      laboratory: t("facilities.facilityType.lab")
     };
-    return typeLabels[type] || type;
+    return typeMap[type] || type;
+  };
+
+  const getLevelLabel = (level: string) => {
+    const levelMap: Record<string, string> = {
+      central: t("facilities.level.central"),
+      provincial: t("facilities.level.provincial"),
+      district: t("facilities.level.district"),
+      ward: t("facilities.level.ward")
+    };
+    return levelMap[level] || level;
   };
 
   const getStatusBadge = (status: string) => {
@@ -138,15 +148,15 @@ const Facilities = () => {
       inactive: "destructive"
     } as const;
     
-    const labels = {
-      active: "Hoạt động",
-      maintenance: "Bảo trì",
-      inactive: "Ngừng hoạt động"
+    const statusMap: Record<string, string> = {
+      active: t("facilities.status.active"),
+      maintenance: t("facilities.status.maintenance"),
+      inactive: t("facilities.status.inactive")
     };
     
     return (
       <Badge variant={variants[status as keyof typeof variants] || "default"}>
-        {labels[status as keyof typeof labels] || "Hoạt động"}
+        {statusMap[status] || t("facilities.status.active")}
       </Badge>
     );
   };
@@ -156,14 +166,14 @@ const Facilities = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Cơ sở y tế</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("facilities.title")}</h1>
           <p className="text-muted-foreground">
-            Quản lý thông tin các cơ sở y tế trong hệ thống
+            {t("facilities.subtitle")}
           </p>
         </div>
         <Button onClick={() => setIsModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Thêm cơ sở
+          {t("facilities.addFacility")}
         </Button>
       </div>
 
@@ -185,13 +195,13 @@ const Facilities = () => {
         </div>
       ) : allFacilities.length === 0 ? (
         <div className="text-center py-12">
-          <Building2 className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-semibold text-gray-900">Chưa có cơ sở y tế</h3>
-          <p className="mt-1 text-sm text-gray-500">Bắt đầu bằng cách thêm cơ sở y tế đầu tiên.</p>
+          <Building2 className="mx-auto h-12 w-12 text-muted-foreground" />
+          <h3 className="mt-2 text-sm font-semibold">{t("facilities.noFacilities")}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{t("facilities.startByAdding")}</p>
           <div className="mt-6">
             <Button onClick={() => setIsModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Thêm cơ sở y tế
+              {t("facilities.addFacility")}
             </Button>
           </div>
         </div>
@@ -207,7 +217,7 @@ const Facilities = () => {
                       <Building2 className="h-4 w-4" />
                       {getTypeLabel(facility.type)}
                       {facility.code && ` - ${facility.code}`}
-                      {facility.level && ` (${facility.level})`}
+                      {facility.level && ` (${getLevelLabel(facility.level)})`}
                     </CardDescription>
                   </div>
                   {getStatusBadge(facility.status || "active")}
@@ -223,23 +233,23 @@ const Facilities = () => {
                 {facility.beds && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Users className="h-4 w-4" />
-                    {facility.beds} giường bệnh
+                    {facility.beds} {t("facilities.beds")}
                   </div>
                 )}
                 {(facility.ward_id || facility.district_id) && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Building2 className="h-4 w-4" />
-                    {facility.ward_id && `Phường: ${facility.ward_id}`}
+                    {facility.ward_id && `${t("facilities.ward")}: ${facility.ward_id}`}
                     {facility.ward_id && facility.district_id && " - "}
-                    {facility.district_id && `Quận: ${facility.district_id}`}
+                    {facility.district_id && `${t("facilities.district")}: ${facility.district_id}`}
                   </div>
                 )}
                 <div className="pt-2 flex gap-2">
                   <Button variant="outline" size="sm" className="flex-1">
-                    Xem chi tiết
+                    {t("common.viewDetails")}
                   </Button>
                   {facility.id.toString().startsWith('demo') && (
-                    <Badge variant="secondary" className="text-xs">Demo</Badge>
+                    <Badge variant="secondary" className="text-xs">{t("common.demo")}</Badge>
                   )}
                 </div>
               </CardContent>

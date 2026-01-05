@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -109,6 +110,7 @@ const getDistrictName = (lat: number, lon: number): string => {
 };
 
 export default function MapView() {
+  const { t, i18n } = useTranslation();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [formData, setFormData] = useState<FormData>({
     lat: '10.7756',
@@ -194,8 +196,8 @@ export default function MapView() {
           setPredictions(casePredictions);
           
           toast({
-            title: "✓ Đã tải dữ liệu",
-            description: `${casePredictions.length} ca bệnh được hiển thị`,
+            title: t("maps.toast.dataLoaded"),
+            description: t("maps.toast.casesDisplayed", { count: casePredictions.length }),
           });
         }
 
@@ -203,8 +205,8 @@ export default function MapView() {
       } catch (error) {
         console.error('Error loading data:', error);
         toast({
-          title: "Lỗi tải dữ liệu",
-          description: "Đang sử dụng dữ liệu demo",
+          title: t("maps.toast.loadError"),
+          description: t("maps.toast.usingDemo"),
           variant: "default"
         });
       } finally {
@@ -254,8 +256,8 @@ export default function MapView() {
             setLastUpdate(new Date());
             
             toast({
-              title: "🔴 Ca bệnh mới",
-              description: `${newCase.disease_code} tại ${district}`,
+              title: t("maps.toast.newCase"),
+              description: `${newCase.disease_code} - ${district}`,
             });
             
             // Update map if it's initialized
@@ -353,8 +355,8 @@ export default function MapView() {
     } catch (error) {
       console.error('Map initialization failed:', error);
       toast({
-        title: "Bản đồ không khả dụng",
-        description: "Tiếp tục sử dụng danh sách hotspots",
+        title: t("maps.mapNotAvailable"),
+        description: t("maps.usingHotspotList"),
         variant: "default"
       });
     }
@@ -440,14 +442,14 @@ Hãy cung cấp:
       const lat = parseFloat(formData.lat);
       const lon = parseFloat(formData.lon);
       if (isNaN(lat) || isNaN(lon)) {
-        throw new Error('Tọa độ GPS không hợp lệ');
+        throw new Error(t("maps.toast.invalidCoordinates"));
       }
 
       // Validate GPS range for HCMC
       if (lat < 10.3 || lat > 11.2 || lon < 106.3 || lon > 107.1) {
         toast({
-          title: "Cảnh báo",
-          description: "Tọa độ nằm ngoài khu vực TP.HCM",
+          title: t("common.warning"),
+          description: t("maps.toast.outsideArea"),
           variant: "default"
         });
       }
@@ -490,15 +492,15 @@ Hãy cung cấp:
       }
 
       toast({
-        title: "Dự đoán hoàn tất ✅",
-        description: `${district} | Nguy cơ: ${data.riskLevel} (${data.riskScore}/100)`,
+        title: t("maps.toast.predictionComplete"),
+        description: `${district} | ${t("maps.risk")}: ${data.riskLevel} (${data.riskScore}/100)`,
       });
 
     } catch (error) {
       console.error('Prediction error:', error);
       toast({
-        title: "Lỗi",
-        description: error instanceof Error ? error.message : "Có lỗi xảy ra",
+        title: t("common.error"),
+        description: error instanceof Error ? error.message : t("common.error"),
         variant: "destructive"
       });
     } finally {
@@ -522,8 +524,8 @@ Hãy cung cấp:
       if (data?.commands) {
         executeMapCommands(data.commands);
         toast({
-          title: "✓ Đã xử lý lệnh",
-          description: `${data.commands.length} thao tác bản đồ được thực hiện`,
+          title: t("maps.toast.commandProcessed"),
+          description: t("maps.toast.actionsExecuted", { count: data.commands.length }),
         });
       }
 
@@ -531,8 +533,8 @@ Hãy cung cấp:
     } catch (error: any) {
       console.error('Map agent error:', error);
       toast({
-        title: "Lỗi",
-        description: error.message || "Không thể xử lý yêu cầu",
+        title: t("common.error"),
+        description: error.message || t("common.error"),
         variant: "destructive",
       });
     } finally {
@@ -544,8 +546,8 @@ Hãy cung cấp:
   const executeMapCommands = (commands: any[]) => {
     if (!map.current) {
       toast({
-        title: "Lỗi",
-        description: "Vui lòng bật bản đồ trước",
+        title: t("common.error"),
+        description: t("maps.toast.enableMapFirst"),
         variant: "destructive",
       });
       return;
@@ -708,18 +710,18 @@ Hãy cung cấp:
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <Activity className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold">Real-time Predictions HCMC</h1>
+            <h1 className="text-3xl font-bold">{t("maps.title")}</h1>
           </div>
           
           <div className="flex items-center gap-4">
             <Badge variant="outline" className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              Live
+              {t("dashboard.live")}
             </Badge>
             {lastUpdate && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />
-                {lastUpdate.toLocaleTimeString()}
+                {lastUpdate.toLocaleTimeString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
               </div>
             )}
           </div>
@@ -733,28 +735,22 @@ Hãy cung cấp:
               <CardHeader className="bg-gradient-to-br from-purple-500/5 to-purple-500/10">
                 <CardTitle className="flex items-center gap-2">
                   <Activity className="h-5 w-5 text-purple-500" />
-                  AI Map Agent
+                  {t("maps.aiAgent.title")}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Điều khiển bản đồ bằng ngôn ngữ tự nhiên (tiếng Việt hoặc tiếng Anh)
+                  {t("maps.aiAgent.placeholder")}
                 </p>
               </CardHeader>
               <CardContent className="pt-6">
                 <form onSubmit={handleMapPrompt} className="space-y-4">
                   <div>
-                    <Label htmlFor="mapPrompt" className="text-sm font-semibold">
-                      Yêu cầu của bạn
-                    </Label>
                     <Textarea
                       id="mapPrompt"
                       value={mapPrompt}
                       onChange={(e) => setMapPrompt(e.target.value)}
-                      placeholder="VD: Hiển thị heatmap ca sốt xuất huyết và buffer 2km quanh quận Bình Tân"
+                      placeholder={t("maps.aiAgent.placeholder")}
                       className="min-h-[80px]"
                     />
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Ví dụ: "Đánh dấu 3 điểm nóng tại Thủ Đức" hoặc "Vẽ tuyến từ Bình Chánh về BV Nhiệt đới"
-                    </p>
                   </div>
                   
                   <Button 
@@ -765,12 +761,12 @@ Hãy cung cấp:
                     {processingMapCommand ? (
                       <>
                         <Activity className="h-4 w-4 mr-2 animate-spin" />
-                        Đang xử lý...
+                        {t("maps.aiAgent.processing")}
                       </>
                     ) : (
                       <>
                         <Map className="h-4 w-4 mr-2" />
-                        Thực hiện
+                        {t("maps.aiAgent.execute")}
                       </>
                     )}
                   </Button>
@@ -783,10 +779,10 @@ Hãy cung cấp:
               <CardHeader className="bg-gradient-to-br from-primary/5 to-primary/10">
                 <CardTitle className="flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-primary" />
-                  Dự Đoán Nguy Cơ Dịch Bệnh (AI)
+                  {t("maps.prediction.title")}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Chỉ cần nhập tọa độ GPS, AI sẽ phân tích dữ liệu lịch sử và dự đoán nguy cơ
+                  {t("maps.prediction.clickToPredict")}
                 </p>
               </CardHeader>
               <CardContent className="pt-6">
@@ -794,7 +790,7 @@ Hãy cung cấp:
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="lat" className="text-sm font-semibold">
-                        Latitude <span className="text-destructive">*</span>
+                        {t("maps.prediction.latPlaceholder")} <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="lat"
@@ -809,7 +805,7 @@ Hãy cung cấp:
                     </div>
                     <div>
                       <Label htmlFor="lon" className="text-sm font-semibold">
-                        Longitude <span className="text-destructive">*</span>
+                        {t("maps.prediction.lonPlaceholder")} <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id="lon"
@@ -832,12 +828,12 @@ Hãy cung cấp:
                     {submitting ? (
                       <>
                         <Activity className="h-4 w-4 mr-2 animate-spin" />
-                        Đang phân tích...
+                        {t("maps.aiAgent.processing")}
                       </>
                     ) : (
                       <>
                         <Activity className="h-4 w-4 mr-2" />
-                        Dự đoán & Ghi
+                        {t("maps.prediction.submit")}
                       </>
                     )}
                   </Button>
@@ -852,7 +848,7 @@ Hãy cung cấp:
                         : 'bg-green-500/5 border-green-500'
                     }`}>
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold">Kết quả dự đoán</h4>
+                        <h4 className="font-semibold">{t("maps.prediction.result")}</h4>
                         <Badge variant={
                           predictionResult.riskLevel === 'CAO' ? 'destructive' :
                           predictionResult.riskLevel === 'TRUNG BÌNH' ? 'default' : 'secondary'
@@ -863,23 +859,23 @@ Hãy cung cấp:
                       
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Điểm nguy cơ:</span>
+                          <span className="text-muted-foreground">{t("maps.prediction.riskScore")}:</span>
                           <span className="font-bold">{predictionResult.riskScore}/100</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Ca bệnh xung quanh:</span>
-                          <span className="font-semibold">{predictionResult.nearbyCases} ca</span>
+                          <span className="text-muted-foreground">{t("maps.cases")}:</span>
+                          <span className="font-semibold">{predictionResult.nearbyCases} {t("common.cases")}</span>
                         </div>
                       </div>
 
                       {predictionResult.topDiseases?.length > 0 && (
                         <div className="mt-3 pt-3 border-t">
-                          <p className="text-xs font-semibold mb-2">Bệnh phổ biến:</p>
+                          <p className="text-xs font-semibold mb-2">{t("maps.prediction.topDiseases")}:</p>
                           <div className="space-y-1">
                             {predictionResult.topDiseases.map((d: any) => (
                               <div key={d.disease} className="flex justify-between text-xs">
-                                <span>{d.disease}</span>
-                                <span className="font-semibold">{d.count} ca ({d.recent} mới)</span>
+                                <span>{t(`diseases.${d.disease}`, { defaultValue: d.disease }) as string}</span>
+                                <span className="font-semibold">{d.count} {t("common.cases")}</span>
                               </div>
                             ))}
                           </div>
@@ -900,7 +896,7 @@ Hãy cung cấp:
             {/* Top Hotspots */}
             <Card className="rounded-2xl shadow-lg">
               <CardHeader>
-                <CardTitle>Top Hotspots</CardTitle>
+                <CardTitle>{t("maps.topHotspots")}</CardTitle>
               </CardHeader>
               <CardContent>
                 {loading ? (
@@ -930,7 +926,7 @@ Hãy cung cấp:
                               )}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {new Date(hotspot.created_at).toLocaleTimeString()}
+                              {new Date(hotspot.created_at).toLocaleTimeString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
                               {hotspot.district && ` • ${hotspot.district}`}
                             </div>
                           </div>
@@ -957,7 +953,7 @@ Hãy cung cấp:
                     
                     {topHotspots.length === 0 && (
                       <div className="text-center text-muted-foreground py-8">
-                        Chưa có dữ liệu hotspots
+                        {t("maps.noPredictions")}
                       </div>
                     )}
                   </div>
@@ -973,7 +969,7 @@ Hãy cung cấp:
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <Map className="h-5 w-5" />
-                    Map Panel
+                    {t("maps.title")}
                   </CardTitle>
                   
                   <div className="flex items-center space-x-2">
@@ -982,7 +978,7 @@ Hãy cung cấp:
                       checked={showMap}
                       onCheckedChange={setShowMap}
                     />
-                    <Label htmlFor="show-map">Hiển thị bản đồ</Label>
+                    <Label htmlFor="show-map">{showMap ? t("maps.disableMap") : t("maps.enableMap")}</Label>
                   </div>
                 </div>
               </CardHeader>
@@ -996,8 +992,7 @@ Hãy cung cấp:
                   <div className="w-full h-96 rounded-lg border-2 border-dashed border-muted flex items-center justify-center">
                     <div className="text-center text-muted-foreground">
                       <Map className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>Bật bản đồ để xem TP.HCM trực quan</p>
-                      <p className="text-sm">24 quận/huyện • Real-time predictions</p>
+                      <p>{t("maps.enableMap")}</p>
                     </div>
                   </div>
                 )}
@@ -1027,7 +1022,7 @@ Hãy cung cấp:
             <DialogHeader>
               <DialogTitle className="flex items-center gap-3 text-xl">
                 <FileText className="h-6 w-6 text-primary" />
-                Chi tiết ca bệnh & Phân tích AI
+                {t("maps.caseDetail.title")} & {t("maps.caseDetail.aiAnalysis")}
               </DialogTitle>
             </DialogHeader>
 
@@ -1037,32 +1032,32 @@ Hãy cung cấp:
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="h-5 w-5" />
-                    Thông tin ca bệnh
+                    {t("maps.caseDetail.title")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-sm font-medium text-muted-foreground">Mã bệnh:</span>
-                      <Badge className="ml-2">{selectedCase.disease_code}</Badge>
+                      <span className="text-sm font-medium text-muted-foreground">{t("maps.caseDetail.disease")}:</span>
+                      <Badge className="ml-2">{t(`diseases.${selectedCase.disease_code}`, { defaultValue: selectedCase.disease_code }) as string}</Badge>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-muted-foreground">Ngày báo cáo:</span>
-                      <span className="ml-2">{new Date(selectedCase.occurred_at).toLocaleDateString('vi-VN')}</span>
+                      <span className="text-sm font-medium text-muted-foreground">{t("maps.caseDetail.date")}:</span>
+                      <span className="ml-2">{new Date(selectedCase.occurred_at).toLocaleDateString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}</span>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-muted-foreground">Tuổi/Giới:</span>
+                      <span className="text-sm font-medium text-muted-foreground">{t("maps.caseDetail.age")}/{t("maps.caseDetail.gender")}:</span>
                       <span className="ml-2">{selectedCase.patient_age_bucket || 'N/A'} / {selectedCase.patient_gender || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="text-sm font-medium text-muted-foreground">Khu vực:</span>
+                      <span className="text-sm font-medium text-muted-foreground">{t("geography.location")}:</span>
                       <span className="ml-2">{selectedCase.ward_id}, {selectedCase.district_id}</span>
                     </div>
                   </div>
 
                   {selectedCase.symptoms && (
                     <div className="mt-4">
-                      <span className="text-sm font-medium text-muted-foreground block mb-2">Triệu chứng:</span>
+                      <span className="text-sm font-medium text-muted-foreground block mb-2">{t("maps.caseDetail.symptoms")}:</span>
                       <div className="flex flex-wrap gap-2">
                         {Object.entries(selectedCase.symptoms)
                           .filter(([_, value]) => value === true)
@@ -1080,7 +1075,7 @@ Hãy cung cấp:
                 <CardHeader className="bg-gradient-to-br from-primary/5 to-primary/10">
                   <CardTitle className="flex items-center gap-2">
                     <Stethoscope className="h-5 w-5 text-primary" />
-                    Phân tích & Đề xuất từ AI
+                    {t("maps.caseDetail.aiAnalysis")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
@@ -1090,7 +1085,7 @@ Hãy cung cấp:
                       <Skeleton className="h-4 w-5/6" />
                       <Skeleton className="h-4 w-4/6" />
                       <div className="text-center text-sm text-muted-foreground mt-4">
-                        Bác sĩ AI đang phân tích ca bệnh...
+                        {t("maps.caseDetail.analyzing")}
                       </div>
                     </div>
                   ) : aiAnalysis ? (
@@ -1101,7 +1096,7 @@ Hãy cung cấp:
                     </div>
                   ) : (
                     <div className="text-muted-foreground italic text-center py-4">
-                      Chưa có phân tích
+                      {t("common.noData")}
                     </div>
                   )}
                 </CardContent>
@@ -1110,7 +1105,7 @@ Hãy cung cấp:
 
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button variant="outline" onClick={() => setSelectedCase(null)}>
-                Đóng
+                {t("common.close")}
               </Button>
             </div>
           </DialogContent>

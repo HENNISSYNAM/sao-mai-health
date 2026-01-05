@@ -4,7 +4,7 @@
     "save": "Lưu",
     "cancel": "Hủy",
     "delete": "Xóa",
-    "edit": "Chỉnh sửa",
+    "edit": "Sửa",
     "search": "Tìm kiếm",
     "filter": "Lọc",
     "export": "Xuất",
@@ -22,36 +22,48 @@
     "success": "Thành công",
     "warning": "Cảnh báo",
     "info": "Thông tin",
-    "cases": "ca"
+    "cases": "ca",
+    "add": "Thêm",
+    "viewDetails": "Xem chi tiết",
+    "online": "Trực tuyến",
+    "offline": "Mất kết nối",
+    "demo": "Demo",
+    "beds": "giường bệnh",
+    "clearFilters": "Xóa tất cả bộ lọc",
+    "filtersApplied": "Bộ lọc đang áp dụng",
+    "page": "Trang",
+    "of": "/",
+    "noResults": "Không tìm thấy kết quả",
+    "tryAgain": "Thử lại"
   },
   "nav": {
     "dashboard": "Tổng quan",
     "surveillance": "Giám sát",
-    "maps": "Theo dõi dịch bệnh",
+    "maps": "Theo dõi bệnh",
     "alerts": "Cảnh báo",
     "patients": "Bệnh nhân",
     "facilities": "Cơ sở y tế",
     "campaigns": "Chiến dịch",
     "inventory": "Kho vật tư",
     "appointments": "Lịch hẹn",
-    "labImport": "Nhập xét nghiệm",
+    "labImport": "Nhập XN",
     "strokeRisk": "Nguy cơ đột quỵ",
     "settings": "Cài đặt"
   },
   "dashboard": {
     "title": "Tổng quan hệ thống",
     "subtitle": "Giám sát y tế công cộng",
-    "todayCases": "Ca bệnh hôm nay",
-    "openAlerts": "Cảnh báo đang mở",
+    "todayCases": "Ca hôm nay",
+    "openAlerts": "Cảnh báo",
     "diseaseTypes": "Loại bệnh (7 ngày)",
     "vaccinationRate": "Tỷ lệ tiêm chủng",
     "caseTrend": "Xu hướng ca bệnh (7 ngày)",
-    "diseaseDistribution": "Phân bố theo loại bệnh",
-    "districtDistribution": "Phân bố theo quận/huyện",
+    "diseaseDistribution": "Phân bố bệnh",
+    "districtDistribution": "Phân bố theo quận",
     "recentAlerts": "Cảnh báo gần đây",
-    "fetchNews": "Thu thập tin tức",
+    "fetchNews": "Thu thập tin",
     "live": "Trực tiếp",
-    "offline": "Ngoại tuyến"
+    "offline": "Offline"
   },
   "alerts": {
     "title": "Quản lý cảnh báo",
@@ -59,8 +71,8 @@
     "total": "Tổng cảnh báo",
     "critical": "Nghiêm trọng",
     "high": "Ưu tiên cao",
-    "open": "Đang mở",
-    "acknowledged": "Đã xác nhận",
+    "open": "Mở",
+    "acknowledged": "Đã ghi nhận",
     "closed": "Đã đóng",
     "level": {
       "critical": "Nghiêm trọng",
@@ -69,9 +81,9 @@
       "low": "Thấp"
     },
     "actions": {
-      "acknowledge": "Xác nhận",
+      "acknowledge": "Ghi nhận",
       "close": "Đóng cảnh báo",
-      "dispatchTeam": "Điều phối đội",
+      "dispatchTeam": "Điều động đội",
       "notifyAuthorities": "Thông báo cơ quan",
       "exportReport": "Xuất báo cáo"
     },
@@ -81,14 +93,25 @@
     "temperature": "Nhiệt độ"
   },
   "maps": {
-    "title": "Theo dõi dịch bệnh",
+    "title": "Theo dõi bệnh",
     "subtitle": "Bản đồ giám sát sức khỏe toàn cầu",
     "riskLevel": "Mức độ nguy cơ",
     "cases": "Ca bệnh",
     "hotspots": "Điểm nóng",
     "heatmap": "Bản đồ nhiệt",
-    "clustering": "Xem theo cụm",
+    "clustering": "Gom nhóm",
+    "enableMap": "Bật bản đồ",
+    "disableMap": "Tắt bản đồ",
+    "mapNotAvailable": "Bản đồ không khả dụng",
+    "usingHotspotList": "Tiếp tục sử dụng danh sách điểm nóng",
+    "topHotspots": "Điểm nóng hàng đầu",
+    "noPredictions": "Không có dự đoán",
+    "risk": "Nguy cơ",
+    "district": "Quận/Huyện",
+    "lastUpdated": "Cập nhật lần cuối",
+    "zoom": "Phóng to",
     "layers": {
+      "title": "Lớp bản đồ",
       "disease": "Mật độ bệnh",
       "population": "Dân số",
       "weather": "Thời tiết"
@@ -96,26 +119,89 @@
     "aiAgent": {
       "title": "AI Map Agent",
       "placeholder": "Hỏi bằng ngôn ngữ tự nhiên (VD: 'Hiển thị nguy cơ sốt xuất huyết ở Đông Nam Á')",
-      "processing": "Đang xử lý lệnh..."
+      "processing": "Đang xử lý lệnh...",
+      "execute": "Thực hiện",
+      "capabilities": "Khả năng",
+      "addMarkers": "Đánh dấu điểm",
+      "drawHeatmaps": "Vẽ heatmap",
+      "riskAnalysis": "Phân tích nguy cơ",
+      "diseaseForecast": "Dự báo dịch bệnh"
     },
     "prediction": {
       "title": "Dự đoán nguy cơ",
-      "clickToPredict": "Nhấp vào bản đồ để dự đoán nguy cơ",
+      "clickToPredict": "Click trên bản đồ để dự đoán nguy cơ",
       "riskScore": "Điểm nguy cơ",
-      "topDiseases": "Bệnh phổ biến"
+      "topDiseases": "Bệnh hàng đầu",
+      "submit": "Gửi dự đoán",
+      "result": "Kết quả dự đoán",
+      "coordinates": "Tọa độ",
+      "latPlaceholder": "Vĩ độ",
+      "lonPlaceholder": "Kinh độ"
+    },
+    "caseDetail": {
+      "title": "Chi tiết ca bệnh",
+      "disease": "Bệnh",
+      "symptoms": "Triệu chứng",
+      "age": "Tuổi",
+      "gender": "Giới tính",
+      "date": "Ngày",
+      "aiAnalysis": "Phân tích AI",
+      "analyzing": "Đang phân tích...",
+      "analysisError": "Lỗi khi phân tích. Vui lòng thử lại."
+    },
+    "toast": {
+      "dataLoaded": "Đã tải dữ liệu",
+      "casesDisplayed": "{{count}} ca bệnh được hiển thị",
+      "loadError": "Lỗi tải dữ liệu",
+      "usingDemo": "Đang sử dụng dữ liệu demo",
+      "newCase": "Ca bệnh mới",
+      "predictionComplete": "Dự đoán hoàn tất",
+      "commandProcessed": "Đã xử lý lệnh",
+      "actionsExecuted": "{{count}} thao tác bản đồ được thực hiện",
+      "enableMapFirst": "Vui lòng bật bản đồ trước",
+      "invalidCoordinates": "Tọa độ GPS không hợp lệ",
+      "outsideArea": "Tọa độ nằm ngoài khu vực TP.HCM"
     }
   },
   "surveillance": {
-    "title": "Giám sát dịch bệnh",
-    "subtitle": "Theo dõi và phân tích ca bệnh",
+    "title": "Giám sát bệnh truyền nhiễm",
+    "subtitle": "Tra cứu & phân loại ca bệnh",
     "totalCases": "Tổng ca bệnh",
-    "confirmed": "Đã xác nhận",
+    "confirmed": "Xác nhận",
     "suspected": "Nghi ngờ",
-    "todayCases": "Ca hôm nay",
-    "exportCSV": "Xuất CSV"
+    "probable": "Có thể",
+    "unknown": "Không xác định",
+    "todayCases": "Hôm nay",
+    "exportCSV": "Xuất CSV",
+    "addCase": "Thêm ca mới",
+    "caseList": "Danh sách ca bệnh",
+    "advancedFilters": "Bộ lọc nâng cao",
+    "fromDate": "Từ ngày",
+    "toDate": "Đến ngày",
+    "ageGroup": "Nhóm tuổi",
+    "gender": "Giới tính",
+    "male": "Nam",
+    "female": "Nữ",
+    "allDiseases": "Tất cả bệnh",
+    "allStatuses": "Tất cả trạng thái",
+    "allAges": "Tất cả nhóm tuổi",
+    "allGenders": "Tất cả",
+    "searchPlaceholder": "Tìm theo tên, mã ca, địa điểm...",
+    "newCaseUpdated": "Có ca bệnh mới được cập nhật",
+    "dataAutoUpdated": "Dữ liệu đã được cập nhật tự động",
+    "tableHeaders": {
+      "caseId": "Mã ca",
+      "disease": "Bệnh",
+      "location": "Địa điểm",
+      "age": "Tuổi",
+      "gender": "Giới tính",
+      "date": "Ngày",
+      "status": "Trạng thái",
+      "actions": "Hành động"
+    }
   },
   "patients": {
-    "title": "Danh sách bệnh nhân",
+    "title": "Hồ sơ bệnh nhân",
     "subtitle": "Quản lý thông tin bệnh nhân",
     "addPatient": "Thêm bệnh nhân",
     "patientId": "Mã bệnh nhân",
@@ -127,14 +213,33 @@
   },
   "facilities": {
     "title": "Cơ sở y tế",
-    "subtitle": "Quản lý cơ sở và nguồn lực",
+    "subtitle": "Quản lý thông tin các cơ sở y tế trong hệ thống",
     "addFacility": "Thêm cơ sở",
+    "noFacilities": "Chưa có cơ sở y tế",
+    "startByAdding": "Bắt đầu bằng cách thêm cơ sở y tế đầu tiên.",
     "facilityType": {
       "hospital": "Bệnh viện",
       "clinic": "Phòng khám",
       "lab": "Phòng xét nghiệm",
-      "pharmacy": "Nhà thuốc"
-    }
+      "pharmacy": "Nhà thuốc",
+      "healthCenter": "Trung tâm Y tế",
+      "healthStation": "Trạm Y tế"
+    },
+    "status": {
+      "active": "Hoạt động",
+      "maintenance": "Bảo trì",
+      "inactive": "Ngừng hoạt động"
+    },
+    "level": {
+      "central": "Tuyến Trung ương",
+      "provincial": "Tuyến Tỉnh",
+      "district": "Tuyến Quận",
+      "ward": "Tuyến Phường"
+    },
+    "beds": "giường bệnh",
+    "ward": "Phường",
+    "district": "Quận",
+    "loadError": "Không thể tải danh sách cơ sở y tế từ database"
   },
   "diseases": {
     "dengue": "Sốt xuất huyết",
@@ -147,6 +252,9 @@
     "influenza": "Cúm",
     "measles": "Sởi",
     "hfmd": "Tay chân miệng",
+    "tcm": "Tay chân miệng",
+    "ari": "Nhiễm khuẩn hô hấp",
+    "flu": "Cúm",
     "unknown": "Không xác định"
   },
   "geography": {
