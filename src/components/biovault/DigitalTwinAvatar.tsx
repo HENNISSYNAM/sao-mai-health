@@ -356,7 +356,7 @@ export const DigitalTwinAvatar: React.FC<DigitalTwinAvatarProps> = ({ profile })
             {/* Body Avatar */}
             <div className="lg:col-span-2 relative">
               <div className="relative aspect-[3/4] max-h-[500px] bg-gradient-to-b from-primary/5 to-transparent rounded-2xl border border-border overflow-hidden">
-                {/* Human Body Silhouette - Enhanced */}
+                {/* Human Body Silhouette - Enhanced with Risk Glow */}
                 <svg viewBox="0 0 100 120" className="w-full h-full">
                   <defs>
                     <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -371,6 +371,33 @@ export const DigitalTwinAvatar: React.FC<DigitalTwinAvatarProps> = ({ profile })
                         <feMergeNode in="SourceGraphic"/>
                       </feMerge>
                     </filter>
+                    {/* Risk-based glow filters */}
+                    <filter id="warningGlow" x="-100%" y="-100%" width="300%" height="300%">
+                      <feGaussianBlur stdDeviation="4" result="blur"/>
+                      <feFlood floodColor="hsl(var(--warning))" floodOpacity="0.8"/>
+                      <feComposite in2="blur" operator="in"/>
+                      <feMerge>
+                        <feMergeNode/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
+                    <filter id="dangerGlow" x="-100%" y="-100%" width="300%" height="300%">
+                      <feGaussianBlur stdDeviation="5" result="blur"/>
+                      <feFlood floodColor="hsl(var(--danger))" floodOpacity="0.9"/>
+                      <feComposite in2="blur" operator="in"/>
+                      <feMerge>
+                        <feMergeNode/>
+                        <feMergeNode in="SourceGraphic"/>
+                      </feMerge>
+                    </filter>
+                    <radialGradient id="warningRadial" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="hsl(var(--warning))" stopOpacity="0.6"/>
+                      <stop offset="100%" stopColor="hsl(var(--warning))" stopOpacity="0"/>
+                    </radialGradient>
+                    <radialGradient id="dangerRadial" cx="50%" cy="50%" r="50%">
+                      <stop offset="0%" stopColor="hsl(var(--danger))" stopOpacity="0.7"/>
+                      <stop offset="100%" stopColor="hsl(var(--danger))" stopOpacity="0"/>
+                    </radialGradient>
                   </defs>
                   
                   {/* Head */}
@@ -393,9 +420,22 @@ export const DigitalTwinAvatar: React.FC<DigitalTwinAvatarProps> = ({ profile })
                   {/* Internal organ outlines */}
                   <ellipse cx="50" cy="35" rx="8" ry="6" fill="none" stroke="hsl(var(--primary))" strokeWidth="0.3" strokeDasharray="2,2" opacity="0.5" />
                   <ellipse cx="50" cy="48" rx="10" ry="8" fill="none" stroke="hsl(var(--primary))" strokeWidth="0.3" strokeDasharray="2,2" opacity="0.5" />
+                  
+                  {/* Risk Glow Overlays for warning/critical areas */}
+                  {bodyPoints.filter(p => p.riskLevel === 'warning' || p.riskLevel === 'critical').map(point => (
+                    <circle
+                      key={`glow-${point.id}`}
+                      cx={point.x}
+                      cy={point.y}
+                      r="8"
+                      fill={point.riskLevel === 'critical' ? 'url(#dangerRadial)' : 'url(#warningRadial)'}
+                      className="animate-pulse"
+                      style={{ animationDuration: point.riskLevel === 'critical' ? '0.8s' : '1.5s' }}
+                    />
+                  ))}
                 </svg>
 
-                {/* Sensitivity Points */}
+                {/* Sensitivity Points with Enhanced Risk Glow */}
                 {bodyPoints.map(point => (
                   <Tooltip key={point.id}>
                     <TooltipTrigger asChild>
@@ -408,12 +448,27 @@ export const DigitalTwinAvatar: React.FC<DigitalTwinAvatarProps> = ({ profile })
                           ${getRiskColor(point.riskLevel)}
                           ${selectedPoint?.id === point.id ? 'ring-4 ring-primary/30 scale-125' : ''}
                         `}
-                        style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                        style={{ 
+                          left: `${point.x}%`, 
+                          top: `${point.y}%`,
+                          boxShadow: point.riskLevel === 'critical' 
+                            ? '0 0 20px 5px rgba(239, 68, 68, 0.6)' 
+                            : point.riskLevel === 'warning'
+                            ? '0 0 15px 3px rgba(234, 179, 8, 0.5)'
+                            : 'none'
+                        }}
                       >
                         <point.icon className="h-4 w-4" />
                         
-                        {point.riskLevel !== 'normal' && (
-                          <span className={`absolute inset-0 rounded-full animate-ping ${getPulseColor(point.riskLevel)} opacity-30`} />
+                        {/* Enhanced pulse effect for risk areas */}
+                        {point.riskLevel === 'critical' && (
+                          <>
+                            <span className="absolute inset-0 rounded-full bg-danger animate-ping opacity-40" />
+                            <span className="absolute -inset-2 rounded-full border-2 border-danger/50 animate-ping opacity-30" style={{ animationDelay: '0.3s' }} />
+                          </>
+                        )}
+                        {point.riskLevel === 'warning' && (
+                          <span className="absolute inset-0 rounded-full bg-warning animate-ping opacity-30" />
                         )}
                       </button>
                     </TooltipTrigger>

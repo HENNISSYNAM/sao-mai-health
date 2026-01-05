@@ -12,7 +12,8 @@ import {
   CheckCircle2, Sparkles, Crown, TrendingUp, Eye,
   FileSearch, Scan, User, Calendar, Phone, Zap,
   Bell, MapPin, Clock, Pill, Users, Radio,
-  HeartPulse, Thermometer, Wind, AlertCircle, ChevronRight
+  HeartPulse, Thermometer, Wind, AlertCircle, ChevronRight,
+  GripVertical, LayoutGrid
 } from 'lucide-react';
 import { BioVaultUploader } from '@/components/biovault/BioVaultUploader';
 import { DigitalTwinAvatar } from '@/components/biovault/DigitalTwinAvatar';
@@ -21,6 +22,9 @@ import { BioShieldIndex } from '@/components/biovault/BioShieldIndex';
 import { PersonalRiskEngine } from '@/components/biovault/PersonalRiskEngine';
 import { HealthAuditReport } from '@/components/biovault/HealthAuditReport';
 import { PremiumConsultant } from '@/components/biovault/PremiumConsultant';
+import { BioVaultTasks } from '@/components/biovault/BioVaultTasks';
+import { SmartAlertAction } from '@/components/biovault/SmartAlertAction';
+import { BentoGrid, BentoCard, BentoHeader, BentoStat } from '@/components/ui/bento-grid';
 import { toast } from 'sonner';
 
 export interface UserHealthProfile {
@@ -112,16 +116,36 @@ const BioVault: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [healthProfile, setHealthProfile] = useState<UserHealthProfile | null>(null);
   const [isEmergencyMode, setIsEmergencyMode] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showSmartAlert, setShowSmartAlert] = useState(false);
+  const [currentRiskLevel, setCurrentRiskLevel] = useState(0);
 
   // Real-time clock
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Simulate risk level changes and trigger smart alert
+  useEffect(() => {
+    if (healthProfile) {
+      // Calculate risk based on conditions and simulated environment
+      const hasCardio = healthProfile.chronicConditions.some(c => 
+        c.toLowerCase().includes('hypertension')
+      );
+      const baseRisk = hasCardio ? 65 : 35;
+      const envRisk = Math.random() * 20;
+      const calculatedRisk = Math.min(95, baseRisk + envRisk);
+      setCurrentRiskLevel(calculatedRisk);
+      
+      if (calculatedRisk >= 75 && !showSmartAlert) {
+        setTimeout(() => setShowSmartAlert(true), 3000);
+      }
+    }
+  }, [healthProfile]);
 
   // Simulate fingerprint scan authentication
   const handleAuthentication = () => {
@@ -231,13 +255,24 @@ const BioVault: React.FC = () => {
     }
   };
 
+  const handleTaskComplete = (taskId: string, data: any) => {
+    if (healthProfile) {
+      setHealthProfile({
+        ...healthProfile,
+        bioShieldScore: Math.min(100, healthProfile.bioShieldScore + 10)
+      });
+      toast.success(t('biovault.taskComplete', 'Nhiệm vụ hoàn thành!'), {
+        description: t('biovault.scoreIncreased', 'Bio-Shield Index đã tăng +10 điểm')
+      });
+    }
+  };
+
   const triggerEmergencyMode = () => {
     setIsEmergencyMode(true);
     toast.error(t('biovault.emergency.activated', 'CHẾ ĐỘ KHẨN CẤP ĐÃ KÍCH HOẠT'), {
       description: t('biovault.emergency.notifying', 'Đang thông báo cho người liên hệ khẩn cấp...'),
       duration: 10000
     });
-    // Simulate notifying emergency contacts
     setTimeout(() => {
       toast.success(t('biovault.emergency.contacted', 'Đã liên hệ thành công'), {
         description: healthProfile?.emergencyContacts[0]?.name + ' đã được thông báo'
@@ -371,6 +406,15 @@ const BioVault: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-up">
+      {/* Smart Alert Action */}
+      {showSmartAlert && (
+        <SmartAlertAction 
+          riskPercentage={Math.round(currentRiskLevel)}
+          riskType="cardiovascular"
+          onDismiss={() => setShowSmartAlert(false)}
+        />
+      )}
+
       {/* Emergency Mode Alert */}
       {isEmergencyMode && (
         <Alert className="bg-danger/10 border-danger animate-pulse">
@@ -461,18 +505,12 @@ const BioVault: React.FC = () => {
         </div>
       )}
 
-      {/* Bio-Shield Index - Central Widget */}
-      <BioShieldIndex 
-        score={healthProfile?.bioShieldScore || 0} 
-        profile={healthProfile}
-      />
-
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-6 w-full">
-          <TabsTrigger value="overview" className="gap-2 text-xs md:text-sm">
-            <Activity className="h-4 w-4" />
-            <span className="hidden md:inline">{t('biovault.tabs.overview', 'Tổng quan')}</span>
+        <TabsList className="grid grid-cols-5 w-full">
+          <TabsTrigger value="dashboard" className="gap-2 text-xs md:text-sm">
+            <LayoutGrid className="h-4 w-4" />
+            <span className="hidden md:inline">{t('biovault.tabs.dashboard', 'Dashboard 3.0')}</span>
           </TabsTrigger>
           <TabsTrigger value="documents" className="gap-2 text-xs md:text-sm">
             <FileText className="h-4 w-4" />
@@ -486,79 +524,106 @@ const BioVault: React.FC = () => {
             <Pill className="h-4 w-4" />
             <span className="hidden md:inline">{t('biovault.tabs.medications', 'Thuốc')}</span>
           </TabsTrigger>
-          <TabsTrigger value="predictions" className="gap-2 text-xs md:text-sm">
-            <TrendingUp className="h-4 w-4" />
-            <span className="hidden md:inline">{t('biovault.tabs.predictions', 'Dự báo')}</span>
-          </TabsTrigger>
           <TabsTrigger value="consultant" className="gap-2 text-xs md:text-sm">
             <Sparkles className="h-4 w-4" />
             <span className="hidden md:inline">{t('biovault.tabs.consultant', 'AI')}</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <HealthProfile profile={healthProfile} />
+        {/* Dashboard 3.0 - Bento Grid Layout */}
+        <TabsContent value="dashboard" className="space-y-6">
+          {/* Central Widgets: Bio-Shield Index + Hidden Pattern Engine */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <BioShieldIndex 
+              score={healthProfile?.bioShieldScore || 0} 
+              profile={healthProfile}
+              onTaskClick={(taskId) => setActiveTab('tasks')}
+            />
             <PersonalRiskEngine profile={healthProfile} />
           </div>
-          
-          {/* Family Health Network */}
-          {healthProfile && healthProfile.familyMembers.length > 0 && (
-            <Card className="border-2 border-info/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5 text-info" />
-                  {t('biovault.family.title', 'Mạng lưới sức khỏe gia đình')}
-                </CardTitle>
-                <CardDescription>
-                  {t('biovault.family.description', 'Theo dõi và nhận cảnh báo sức khỏe cho người thân')}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {healthProfile.familyMembers.map(member => (
-                    <div 
-                      key={member.id}
-                      className="p-4 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center">
-                          <User className="h-5 w-5 text-info" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{member.name}</p>
-                          <p className="text-xs text-muted-foreground">{member.relationship} • {member.age} tuổi</p>
-                        </div>
-                      </div>
-                      {member.conditions.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {member.conditions.map((c, i) => (
-                            <Badge key={i} variant="outline" className="text-xs border-warning/50 text-warning">
-                              {c}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-                        {member.shareAccess && (
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 className="h-3 w-3 text-success" />
-                            {t('biovault.family.shared', 'Đã chia sẻ')}
-                          </span>
-                        )}
-                        {member.riskAlerts && (
-                          <span className="flex items-center gap-1">
-                            <Bell className="h-3 w-3 text-info" />
-                            {t('biovault.family.alerts', 'Cảnh báo')}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+
+          {/* Bio-Vault Tasks (Star Map) */}
+          <BioVaultTasks 
+            profile={healthProfile}
+            onTaskComplete={handleTaskComplete}
+          />
+
+          {/* Secondary Widgets Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Health Profile Summary */}
+            <BentoCard colSpan={1}>
+              <BentoHeader 
+                icon={<User className="h-5 w-5" />}
+                title={t('biovault.profile.summary', 'Hồ sơ sức khỏe')}
+              />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('biovault.profile.bloodType', 'Nhóm máu')}</span>
+                  <Badge variant="outline">{healthProfile?.bloodType || 'N/A'}</Badge>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('biovault.profile.allergies', 'Dị ứng')}</span>
+                  <Badge variant="destructive" className="text-xs">{healthProfile?.allergies.length || 0}</Badge>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('biovault.profile.conditions', 'Bệnh nền')}</span>
+                  <Badge className="bg-warning text-white text-xs">{healthProfile?.chronicConditions.length || 0}</Badge>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">{t('biovault.profile.documents', 'Hồ sơ')}</span>
+                  <Badge variant="secondary" className="text-xs">{healthProfile?.documents.length || 0}</Badge>
+                </div>
+              </div>
+            </BentoCard>
+
+            {/* Family Health Network - Premium Locked */}
+            <BentoCard colSpan={1} className="relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80 z-10 flex items-center justify-center">
+                <div className="text-center p-4">
+                  <Lock className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                  <p className="text-sm font-medium">{t('biovault.premium.familyHub', 'Family Security Hub')}</p>
+                  <Button size="sm" className="mt-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                    <Crown className="h-3 w-3 mr-1" />
+                    {t('biovault.premium.unlock', 'Mở khóa')}
+                  </Button>
+                </div>
+              </div>
+              <BentoHeader 
+                icon={<Users className="h-5 w-5" />}
+                title={t('biovault.family.title', 'Mạng lưới gia đình')}
+              />
+              <div className="space-y-2 blur-sm">
+                {healthProfile?.familyMembers.slice(0, 2).map(member => (
+                  <div key={member.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{member.name}</span>
+                  </div>
+                ))}
+              </div>
+            </BentoCard>
+
+            {/* PDF Report - Premium Locked */}
+            <BentoCard colSpan={1} className="relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-background/80 z-10 flex items-center justify-center">
+                <div className="text-center p-4">
+                  <Lock className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                  <p className="text-sm font-medium">{t('biovault.premium.pdfReport', 'Báo cáo PDF ~15 trang')}</p>
+                  <p className="text-xs text-muted-foreground mb-2">ICD-11 Compliant</p>
+                  <Button size="sm" className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
+                    <Crown className="h-3 w-3 mr-1" />
+                    {t('biovault.premium.unlock', 'Mở khóa')}
+                  </Button>
+                </div>
+              </div>
+              <BentoHeader 
+                icon={<FileText className="h-5 w-5" />}
+                title={t('biovault.audit.title', 'Health-Weather Audit')}
+              />
+              <div className="blur-sm">
+                <HealthAuditReport profile={healthProfile} />
+              </div>
+            </BentoCard>
+          </div>
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">
@@ -645,10 +710,6 @@ const BioVault: React.FC = () => {
               </Button>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="predictions" className="space-y-6">
-          <PersonalRiskEngine profile={healthProfile} showFullDashboard />
         </TabsContent>
 
         <TabsContent value="consultant" className="space-y-6">
