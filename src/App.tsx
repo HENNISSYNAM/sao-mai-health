@@ -42,8 +42,7 @@ const MainLayout = () => (
         <TopNavbar />
         <main className="flex-1 p-6 bg-background">
           <Routes>
-            {/* Default route always goes to stroke-risk for QR code scanning */}
-            <Route index element={<Navigate to="/stroke-risk" replace />} />
+            <Route index element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/surveillance" element={<Surveillance />} />
             <Route path="/case-intake" element={<CaseIntake />} />
