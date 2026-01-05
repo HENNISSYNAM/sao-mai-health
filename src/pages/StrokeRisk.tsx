@@ -4,14 +4,17 @@ import FullScreenMap from '@/components/stroke/FullScreenMap';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
 import MLAnalyticsDashboard from '@/components/stroke/MLAnalyticsDashboard';
 
-import { BarChart3, Navigation } from 'lucide-react';
+import { BarChart3, Navigation, Home } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import healthLogo from '@/assets/health-logo.png';
 import type { MapAction } from '@/hooks/useHandGestureController';
 
 type ViewMode = 'tracking' | 'statistics';
+
 const StrokeRisk: React.FC = () => {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<ViewMode>('tracking');
   const [showRiskOverlay, setShowRiskOverlay] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -88,8 +91,16 @@ const StrokeRisk: React.FC = () => {
   // Statistics view - pass tracking data for tight integration
   if (viewMode === 'statistics') {
     return <div className="relative">
-        {/* View Toggle Button */}
-        <div className="fixed top-4 right-4 z-50">
+        {/* Navigation Buttons */}
+        <div className="fixed top-4 right-4 z-50 flex gap-2">
+          <Button 
+            onClick={() => navigate('/')} 
+            variant="outline"
+            className="bg-background/80 backdrop-blur-sm border-border/50 hover:bg-background shadow-lg"
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Trang chủ
+          </Button>
           <Button onClick={() => setViewMode('tracking')} className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
             <Navigation className="h-4 w-4 mr-2" />
             Theo dõi
@@ -103,6 +114,17 @@ const StrokeRisk: React.FC = () => {
   return <div className="fixed inset-0 overflow-hidden" style={{
     background: 'linear-gradient(135deg, hsl(210 40% 8%) 0%, hsl(210 50% 12%) 50%, hsl(199 40% 15%) 100%)'
   }}>
+      {/* Home Button - Fixed top left */}
+      <div className="fixed top-4 left-4 z-50">
+        <Button 
+          onClick={() => navigate('/')} 
+          variant="outline"
+          size="icon"
+          className="bg-background/80 backdrop-blur-sm border-border/50 hover:bg-background shadow-lg rounded-full w-10 h-10"
+        >
+          <Home className="h-5 w-5" />
+        </Button>
+      </div>
       {/* Full Screen Map Background */}
       <FullScreenMap 
         gps={userData.gps} 
