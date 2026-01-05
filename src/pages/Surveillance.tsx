@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { Search, Filter, Download, Eye, Loader2, RefreshCcw, Plus, Calendar, Users, Activity, AlertTriangle, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,6 +40,7 @@ import { AddCaseModal } from "@/components/AddCaseModal"
 import { toast } from "sonner"
 
 export default function Surveillance() {
+  const { t, i18n } = useTranslation()
   const [searchTerm, setSearchTerm] = useState("")
   const [diseaseFilter, setDiseaseFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -87,68 +89,82 @@ export default function Surveillance() {
 
   useEffect(() => {
     if (realtimeData && realtimeData.length > 0) {
-      toast.success("Có ca bệnh mới được cập nhật", {
-        description: "Dữ liệu đã được cập nhật tự động",
+      toast.success(t("surveillance.newCaseUpdated"), {
+        description: t("surveillance.dataAutoUpdated"),
         action: {
-          label: "Làm mới",
+          label: t("common.refresh"),
           onClick: () => window.location.reload()
         }
       })
     }
-  }, [realtimeData])
+  }, [realtimeData, t])
 
   const totalPages = Math.ceil(totalCount / pageSize)
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return <Badge variant="destructive">Xác nhận</Badge>
+        return <Badge variant="destructive">{t("surveillance.confirmed")}</Badge>
       case 'suspected':
-        return <Badge variant="default">Nghi ngờ</Badge>
+        return <Badge variant="default">{t("surveillance.suspected")}</Badge>
       case 'probable':
-        return <Badge className="bg-warning text-warning-foreground">Có thể</Badge>
+        return <Badge className="bg-warning text-warning-foreground">{t("surveillance.probable")}</Badge>
       default:
-        return <Badge variant="secondary">Không xác định</Badge>
+        return <Badge variant="secondary">{t("surveillance.unknown")}</Badge>
     }
   }
 
   const getDiseaseBadge = (disease: string) => {
-    const diseaseMap: Record<string, { label: string; className: string }> = {
-      'dengue': { label: 'Sốt xuất huyết', className: 'bg-red-500 text-white' },
-      'tcm': { label: 'Tay chân miệng', className: 'bg-orange-500 text-white' },
-      'covid19': { label: 'COVID-19', className: 'bg-blue-500 text-white' },
-      'ari': { label: 'Nhiễm khuẩn hô hấp', className: 'bg-green-500 text-white' },
-      'flu': { label: 'Cúm', className: 'bg-purple-500 text-white' },
-      'D01': { label: 'Sốt xuất huyết', className: 'bg-red-500 text-white' },
-      'D02': { label: 'Tay chân miệng', className: 'bg-orange-500 text-white' },
-      'D03': { label: 'COVID-19', className: 'bg-blue-500 text-white' },
-      'D04': { label: 'Nhiễm khuẩn hô hấp', className: 'bg-green-500 text-white' },
-      'D05': { label: 'Sốt rét', className: 'bg-purple-500 text-white' },
-      'D06': { label: 'Cúm A/H1N1', className: 'bg-pink-500 text-white' }
+    const diseaseKey = disease.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const diseaseMap: Record<string, string> = {
+      'dengue': 'dengue',
+      'tcm': 'tcm',
+      'covid19': 'covid19',
+      'ari': 'ari',
+      'flu': 'flu',
+      'd01': 'dengue',
+      'd02': 'tcm',
+      'd03': 'covid19',
+      'd04': 'ari',
+      'd05': 'malaria',
+      'd06': 'influenza'
     }
     
-    const diseaseInfo = diseaseMap[disease] || { label: disease, className: 'bg-muted-foreground text-white' }
-    return <Badge className={diseaseInfo.className}>{diseaseInfo.label}</Badge>
+    const colorMap: Record<string, string> = {
+      'dengue': 'bg-red-500 text-white',
+      'tcm': 'bg-orange-500 text-white',
+      'covid19': 'bg-blue-500 text-white',
+      'ari': 'bg-green-500 text-white',
+      'flu': 'bg-purple-500 text-white',
+      'malaria': 'bg-purple-500 text-white',
+      'influenza': 'bg-pink-500 text-white'
+    }
+    
+    const mappedDisease = diseaseMap[diseaseKey] || 'unknown'
+    const label = t(`diseases.${mappedDisease}`, disease)
+    const className = colorMap[mappedDisease] || 'bg-muted-foreground text-white'
+    
+    return <Badge className={className}>{label}</Badge>
   }
 
   const getDiseaseOptions = () => [
-    { value: 'all', label: 'Tất cả bệnh' },
-    { value: 'dengue', label: 'Sốt xuất huyết' },
-    { value: 'tcm', label: 'Tay chân miệng' },
-    { value: 'covid19', label: 'COVID-19' },
-    { value: 'ari', label: 'Nhiễm khuẩn hô hấp' },
-    { value: 'flu', label: 'Cúm' }
+    { value: 'all', label: t("surveillance.allDiseases") },
+    { value: 'dengue', label: t("diseases.dengue") },
+    { value: 'tcm', label: t("diseases.tcm") },
+    { value: 'covid19', label: t("diseases.covid19") },
+    { value: 'ari', label: t("diseases.ari") },
+    { value: 'flu', label: t("diseases.flu") }
   ]
 
   const getAgeOptions = () => [
-    { value: 'all', label: 'Tất cả nhóm tuổi' },
-    { value: '0-9', label: '0-9 tuổi' },
-    { value: '10-19', label: '10-19 tuổi' },
-    { value: '20-29', label: '20-29 tuổi' },
-    { value: '30-39', label: '30-39 tuổi' },
-    { value: '40-49', label: '40-49 tuổi' },
-    { value: '50-59', label: '50-59 tuổi' },
-    { value: '60+', label: '60+ tuổi' }
+    { value: 'all', label: t("surveillance.allAges") },
+    { value: '0-9', label: '0-9' },
+    { value: '10-19', label: '10-19' },
+    { value: '20-29', label: '20-29' },
+    { value: '30-39', label: '30-39' },
+    { value: '40-49', label: '40-49' },
+    { value: '50-59', label: '50-59' },
+    { value: '60+', label: '60+' }
   ]
 
   const clearFilters = () => {
@@ -174,12 +190,12 @@ export default function Surveillance() {
           <div className="relative flex justify-between items-start">
             <div className="space-y-2">
               <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                Giám sát bệnh truyền nhiễm
+                {t("surveillance.title")}
               </h1>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <span>Tra cứu & phân loại ca bệnh</span>
+                <span>{t("surveillance.subtitle")}</span>
                 <span>•</span>
-                <span className="font-medium text-foreground">{totalCount} ca</span>
+                <span className="font-medium text-foreground">{totalCount} {t("common.cases")}</span>
                 <span>•</span>
                 <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
                   isConnected 
@@ -187,7 +203,7 @@ export default function Surveillance() {
                     : 'bg-destructive/10 text-destructive border border-destructive/20'
                 }`}>
                   <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-success animate-pulse' : 'bg-destructive'}`} />
-                  {isConnected ? 'Trực tuyến' : 'Mất kết nối'}
+                  {isConnected ? t("common.online") : t("common.offline")}
                 </div>
               </div>
             </div>
@@ -199,14 +215,14 @@ export default function Surveillance() {
                 disabled={loading}
               >
                 <RefreshCcw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Làm mới
+                {t("common.refresh")}
               </Button>
               <Button
                 size="sm"
                 onClick={() => setShowAddModal(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Thêm ca mới
+                {t("surveillance.addCase")}
               </Button>
             </div>
           </div>
@@ -218,7 +234,7 @@ export default function Surveillance() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Tổng ca bệnh</p>
+                  <p className="text-sm text-muted-foreground">{t("surveillance.totalCases")}</p>
                   <p className="text-3xl font-bold text-blue-600">{stats.total}</p>
                 </div>
                 <Users className="h-10 w-10 text-blue-500/50" />
@@ -230,7 +246,7 @@ export default function Surveillance() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Xác nhận</p>
+                  <p className="text-sm text-muted-foreground">{t("surveillance.confirmed")}</p>
                   <p className="text-3xl font-bold text-red-600">{stats.confirmed}</p>
                 </div>
                 <AlertTriangle className="h-10 w-10 text-red-500/50" />
@@ -242,7 +258,7 @@ export default function Surveillance() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Nghi ngờ</p>
+                  <p className="text-sm text-muted-foreground">{t("surveillance.suspected")}</p>
                   <p className="text-3xl font-bold text-yellow-600">{stats.suspected}</p>
                 </div>
                 <Activity className="h-10 w-10 text-yellow-500/50" />
@@ -254,7 +270,7 @@ export default function Surveillance() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Hôm nay</p>
+                  <p className="text-sm text-muted-foreground">{t("surveillance.todayCases")}</p>
                   <p className="text-3xl font-bold text-green-600">{stats.todayCases}</p>
                 </div>
                 <TrendingUp className="h-10 w-10 text-green-500/50" />
@@ -271,7 +287,7 @@ export default function Surveillance() {
               <div className="relative flex-1">
                 <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
-                  placeholder="Tìm theo tên, mã ca, địa điểm..."
+                  placeholder={t("surveillance.searchPlaceholder")}
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value)
@@ -288,7 +304,7 @@ export default function Surveillance() {
               <div className="flex flex-wrap gap-3">
                 <Select value={diseaseFilter} onValueChange={(value) => { setDiseaseFilter(value); setCurrentPage(1) }}>
                   <SelectTrigger className="w-44 h-12">
-                    <SelectValue placeholder="Loại bệnh" />
+                    <SelectValue placeholder={t("surveillance.allDiseases")} />
                   </SelectTrigger>
                   <SelectContent>
                     {getDiseaseOptions().map(option => (
@@ -299,13 +315,13 @@ export default function Surveillance() {
 
                 <Select value={statusFilter} onValueChange={(value) => { setStatusFilter(value); setCurrentPage(1) }}>
                   <SelectTrigger className="w-40 h-12">
-                    <SelectValue placeholder="Trạng thái" />
+                    <SelectValue placeholder={t("surveillance.allStatuses")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tất cả trạng thái</SelectItem>
-                    <SelectItem value="confirmed">Xác nhận</SelectItem>
-                    <SelectItem value="suspected">Nghi ngờ</SelectItem>
-                    <SelectItem value="probable">Có thể</SelectItem>
+                    <SelectItem value="all">{t("surveillance.allStatuses")}</SelectItem>
+                    <SelectItem value="confirmed">{t("surveillance.confirmed")}</SelectItem>
+                    <SelectItem value="suspected">{t("surveillance.suspected")}</SelectItem>
+                    <SelectItem value="probable">{t("surveillance.probable")}</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -315,7 +331,7 @@ export default function Surveillance() {
                   className="h-12"
                 >
                   <Filter className="h-4 w-4 mr-2" />
-                  Bộ lọc nâng cao
+                  {t("surveillance.advancedFilters")}
                 </Button>
 
                 <Button 
@@ -325,7 +341,7 @@ export default function Surveillance() {
                   className="h-12"
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Xuất CSV
+                  {t("surveillance.exportCSV")}
                 </Button>
               </div>
             </div>
@@ -335,7 +351,7 @@ export default function Surveillance() {
               <CollapsibleContent className="pt-4 border-t space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Từ ngày</label>
+                    <label className="text-sm font-medium mb-2 block">{t("surveillance.fromDate")}</label>
                     <Input
                       type="date"
                       value={dateFrom}
@@ -345,7 +361,7 @@ export default function Surveillance() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Đến ngày</label>
+                    <label className="text-sm font-medium mb-2 block">{t("surveillance.toDate")}</label>
                     <Input
                       type="date"
                       value={dateTo}
@@ -355,10 +371,10 @@ export default function Surveillance() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Nhóm tuổi</label>
+                    <label className="text-sm font-medium mb-2 block">{t("surveillance.ageGroup")}</label>
                     <Select value={ageFilter} onValueChange={(value) => { setAgeFilter(value); setCurrentPage(1) }}>
                       <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Chọn nhóm tuổi" />
+                        <SelectValue placeholder={t("surveillance.allAges")} />
                       </SelectTrigger>
                       <SelectContent>
                         {getAgeOptions().map(option => (
@@ -369,17 +385,17 @@ export default function Surveillance() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium mb-2 block">Giới tính</label>
+                    <label className="text-sm font-medium mb-2 block">{t("surveillance.gender")}</label>
                     <Select value={genderFilter} onValueChange={(value) => { setGenderFilter(value); setCurrentPage(1) }}>
                       <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Chọn giới tính" />
+                        <SelectValue placeholder={t("surveillance.allGenders")} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Tất cả</SelectItem>
-                        <SelectItem value="male">Nam</SelectItem>
-                        <SelectItem value="female">Nữ</SelectItem>
-                        <SelectItem value="M">Nam (M)</SelectItem>
-                        <SelectItem value="F">Nữ (F)</SelectItem>
+                        <SelectItem value="all">{t("surveillance.allGenders")}</SelectItem>
+                        <SelectItem value="male">{t("surveillance.male")}</SelectItem>
+                        <SelectItem value="female">{t("surveillance.female")}</SelectItem>
+                        <SelectItem value="M">{t("surveillance.male")} (M)</SelectItem>
+                        <SelectItem value="F">{t("surveillance.female")} (F)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -387,9 +403,9 @@ export default function Surveillance() {
 
                 {hasActiveFilters && (
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">Bộ lọc đang áp dụng:</span>
+                    <span className="text-sm text-muted-foreground">{t("common.filtersApplied")}:</span>
                     <Button variant="ghost" size="sm" onClick={clearFilters}>
-                      Xóa tất cả bộ lọc
+                      {t("common.clearFilters")}
                     </Button>
                   </div>
                 )}
@@ -404,7 +420,7 @@ export default function Surveillance() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-center gap-3 text-destructive">
                 <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                <span className="font-medium">Lỗi: {error}</span>
+                <span className="font-medium">{t("common.error")}: {error}</span>
               </div>
             </CardContent>
           </Card>
@@ -416,10 +432,10 @@ export default function Surveillance() {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Eye className="h-5 w-5 text-primary" />
-                <span>Danh sách ca bệnh ({totalCount})</span>
+                <span>{t("surveillance.caseList")} ({totalCount})</span>
               </div>
               <span className="text-sm text-muted-foreground font-normal">
-                Trang {currentPage} / {totalPages || 1}
+                {t("common.page")} {currentPage} {t("common.of")} {totalPages || 1}
               </span>
             </CardTitle>
           </CardHeader>

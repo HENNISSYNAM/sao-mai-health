@@ -22,7 +22,19 @@
     "success": "Success",
     "warning": "Warning",
     "info": "Information",
-    "cases": "cases"
+    "cases": "cases",
+    "add": "Add",
+    "viewDetails": "View Details",
+    "online": "Online",
+    "offline": "Offline",
+    "demo": "Demo",
+    "beds": "beds",
+    "clearFilters": "Clear all filters",
+    "filtersApplied": "Filters applied",
+    "page": "Page",
+    "of": "of",
+    "noResults": "No results found",
+    "tryAgain": "Try again"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -88,7 +100,18 @@
     "hotspots": "Hotspots",
     "heatmap": "Heatmap",
     "clustering": "Cluster View",
+    "enableMap": "Enable Map",
+    "disableMap": "Disable Map",
+    "mapNotAvailable": "Map not available",
+    "usingHotspotList": "Using hotspot list instead",
+    "topHotspots": "Top Hotspots",
+    "noPredictions": "No predictions available",
+    "risk": "Risk",
+    "district": "District",
+    "lastUpdated": "Last Updated",
+    "zoom": "Zoom",
     "layers": {
+      "title": "Layers",
       "disease": "Disease Density",
       "population": "Population",
       "weather": "Weather"
@@ -96,23 +119,86 @@
     "aiAgent": {
       "title": "AI Map Agent",
       "placeholder": "Ask in natural language (e.g., 'Show dengue risk in Southeast Asia')",
-      "processing": "Processing command..."
+      "processing": "Processing command...",
+      "execute": "Execute",
+      "capabilities": "Capabilities",
+      "addMarkers": "Add markers",
+      "drawHeatmaps": "Draw heatmaps",
+      "riskAnalysis": "Risk analysis",
+      "diseaseForecast": "Disease forecast"
     },
     "prediction": {
       "title": "Risk Prediction",
       "clickToPredict": "Click on map to predict risk",
       "riskScore": "Risk Score",
-      "topDiseases": "Top Diseases"
+      "topDiseases": "Top Diseases",
+      "submit": "Submit Prediction",
+      "result": "Prediction Result",
+      "coordinates": "Coordinates",
+      "latPlaceholder": "Latitude",
+      "lonPlaceholder": "Longitude"
+    },
+    "caseDetail": {
+      "title": "Case Detail",
+      "disease": "Disease",
+      "symptoms": "Symptoms",
+      "age": "Age",
+      "gender": "Gender",
+      "date": "Date",
+      "aiAnalysis": "AI Analysis",
+      "analyzing": "Analyzing...",
+      "analysisError": "Analysis error. Please try again."
+    },
+    "toast": {
+      "dataLoaded": "Data loaded",
+      "casesDisplayed": "{{count}} cases displayed",
+      "loadError": "Error loading data",
+      "usingDemo": "Using demo data",
+      "newCase": "New case",
+      "predictionComplete": "Prediction complete",
+      "commandProcessed": "Command processed",
+      "actionsExecuted": "{{count}} map actions executed",
+      "enableMapFirst": "Please enable map first",
+      "invalidCoordinates": "Invalid GPS coordinates",
+      "outsideArea": "Coordinates outside HCMC area"
     }
   },
   "surveillance": {
     "title": "Disease Surveillance",
-    "subtitle": "Case monitoring and analysis",
+    "subtitle": "Case search and classification",
     "totalCases": "Total Cases",
     "confirmed": "Confirmed",
     "suspected": "Suspected",
+    "probable": "Probable",
+    "unknown": "Unknown",
     "todayCases": "Today's Cases",
-    "exportCSV": "Export CSV"
+    "exportCSV": "Export CSV",
+    "addCase": "Add New Case",
+    "caseList": "Case List",
+    "advancedFilters": "Advanced Filters",
+    "fromDate": "From Date",
+    "toDate": "To Date",
+    "ageGroup": "Age Group",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "allDiseases": "All Diseases",
+    "allStatuses": "All Statuses",
+    "allAges": "All Age Groups",
+    "allGenders": "All",
+    "searchPlaceholder": "Search by name, case ID, location...",
+    "newCaseUpdated": "New case updated",
+    "dataAutoUpdated": "Data has been auto-updated",
+    "tableHeaders": {
+      "caseId": "Case ID",
+      "disease": "Disease",
+      "location": "Location",
+      "age": "Age",
+      "gender": "Gender",
+      "date": "Date",
+      "status": "Status",
+      "actions": "Actions"
+    }
   },
   "patients": {
     "title": "Patient Registry",
@@ -127,14 +213,33 @@
   },
   "facilities": {
     "title": "Health Facilities",
-    "subtitle": "Facility management and resources",
+    "subtitle": "Manage health facility information in the system",
     "addFacility": "Add Facility",
+    "noFacilities": "No health facilities yet",
+    "startByAdding": "Start by adding the first health facility.",
     "facilityType": {
       "hospital": "Hospital",
       "clinic": "Clinic",
       "lab": "Laboratory",
-      "pharmacy": "Pharmacy"
-    }
+      "pharmacy": "Pharmacy",
+      "healthCenter": "Health Center",
+      "healthStation": "Health Station"
+    },
+    "status": {
+      "active": "Active",
+      "maintenance": "Maintenance",
+      "inactive": "Inactive"
+    },
+    "level": {
+      "central": "Central Level",
+      "provincial": "Provincial Level",
+      "district": "District Level",
+      "ward": "Ward Level"
+    },
+    "beds": "beds",
+    "ward": "Ward",
+    "district": "District",
+    "loadError": "Cannot load health facility list from database"
   },
   "diseases": {
     "dengue": "Dengue Fever",
@@ -147,6 +252,9 @@
     "influenza": "Influenza",
     "measles": "Measles",
     "hfmd": "Hand, Foot & Mouth Disease",
+    "tcm": "Hand, Foot & Mouth Disease",
+    "ari": "Acute Respiratory Infection",
+    "flu": "Flu",
     "unknown": "Unknown"
   },
   "geography": {
