@@ -23,6 +23,7 @@ import Appointments from "./pages/Appointments";
 import Inventory from "./pages/Inventory";
 import Facilities from "./pages/Facilities";
 import StrokeRisk from "./pages/StrokeRisk";
+import BioVault from "./pages/BioVault";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,6 +56,7 @@ const MainLayout = () => (
           <Route path="/facilities" element={<Facilities />} />
           <Route path="/stocks" element={<Inventory />} />
           <Route path="/inventory" element={<Inventory />} />
+          <Route path="/bio-vault" element={<BioVault />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <EnhancedCommandPalette />

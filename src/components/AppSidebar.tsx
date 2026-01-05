@@ -16,6 +16,13 @@ export function AppSidebar() {
 
   const menuItems = [
     {
+      titleKey: "nav.bioVault",
+      title: t('nav.bioVault', 'Bio-Vault'),
+      url: "/bio-vault",
+      icon: Shield,
+      badge: "Premium"
+    },
+    {
       titleKey: "nav.strokeRisk",
       title: t('nav.strokeRisk'),
       url: "/stroke-risk",
