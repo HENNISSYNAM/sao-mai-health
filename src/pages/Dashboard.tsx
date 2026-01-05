@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from "react"
+import { useTranslation } from "react-i18next"
 import { Activity, AlertTriangle, Heart, Users, RefreshCw, Newspaper, ArrowRight } from "lucide-react"
 import { KpiCard } from "@/components/KpiCard"
 import { DashboardChart } from "@/components/DashboardChart"
@@ -31,10 +32,13 @@ interface Alert {
 }
 
 export default function Dashboard() {
+  const { t, i18n } = useTranslation()
   const [dailyCounts, setDailyCounts] = useState<DailyCount[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchingNews, setFetchingNews] = useState(false)
+
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US'
 
   const { isConnected: countsConnected, nowTs } = useRealtimeDailyCounts((payload) => {
     fetchInitialData()
@@ -114,7 +118,7 @@ export default function Dashboard() {
 
   const fetchNewsData = async () => {
     setFetchingNews(true)
-    toast.info('Đang thu thập tin tức mới nhất...')
+    toast.info(t('common.loading'))
     
     try {
       const { data, error } = await supabase.functions.invoke('fetch-disease-news')
@@ -122,14 +126,14 @@ export default function Dashboard() {
       if (error) throw error
       
       if (data?.success) {
-        toast.success(`Đã cập nhật ${data.casesInserted} ca bệnh, ${data.alertsCreated} cảnh báo`)
+        toast.success(t('common.success'))
         await Promise.all([fetchInitialData(), fetchAlerts()])
       } else {
-        toast.error('Không thể thu thập tin tức')
+        toast.error(t('common.error'))
       }
     } catch (error: any) {
       console.error('Error fetching news:', error)
-      toast.error('Lỗi khi thu thập tin tức')
+      toast.error(t('common.error'))
     } finally {
       setFetchingNews(false)
     }
@@ -162,42 +166,42 @@ export default function Dashboard() {
 
     return [
       {
-        title: "Ca bệnh hôm nay",
-        value: todayCases.toLocaleString('vi-VN'),
+        title: t('dashboard.todayCases'),
+        value: todayCases.toLocaleString(locale),
         change: { value: 12, type: 'increase' as const },
         icon: Users,
         variant: 'info' as const
       },
       {
-        title: "Cảnh báo đang mở",
+        title: t('dashboard.openAlerts'),
         value: openAlerts.toString(),
         change: { value: 2, type: 'decrease' as const },
         icon: AlertTriangle,
         variant: openAlerts > 5 ? 'danger' as const : 'warning' as const
       },
       {
-        title: "Loại bệnh (7 ngày)",
+        title: t('dashboard.diseaseTypes'),
         value: recentDiseases.toString(),
         change: { value: 1, type: 'increase' as const },
         icon: Activity,
         variant: 'success' as const
       },
       {
-        title: "Tỷ lệ tiêm chủng",
+        title: t('dashboard.vaccinationRate'),
         value: "92%",
         change: { value: 3, type: 'increase' as const },
         icon: Heart,
         variant: 'success' as const
       }
     ]
-  }, [dailyCounts, alerts])
+  }, [dailyCounts, alerts, t, locale])
 
   const trendData = useMemo(() => {
     const last7Days = []
     for (let i = 6; i >= 0; i--) {
       const date = new Date(Date.now() - i * 24 * 60 * 60 * 1000)
       const dayStr = date.toISOString().split('T')[0]
-      const dayName = date.toLocaleDateString('vi-VN', { weekday: 'short' })
+      const dayName = date.toLocaleDateString(locale, { weekday: 'short' })
       
       const dayCases = dailyCounts
         .filter(count => count.day === dayStr)
@@ -206,7 +210,7 @@ export default function Dashboard() {
       last7Days.push({ name: dayName, value: dayCases })
     }
     return last7Days
-  }, [dailyCounts])
+  }, [dailyCounts, locale])
 
   const diseaseData = useMemo(() => {
     const diseaseMap: Record<string, number> = {}
@@ -254,10 +258,10 @@ export default function Dashboard() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-up">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Tổng quan hệ thống
+            {t('dashboard.title')}
           </h1>
           <p className="text-muted-foreground">
-            Giám sát y tế công cộng TP. Hồ Chí Minh
+            {t('dashboard.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -272,7 +276,7 @@ export default function Dashboard() {
             ) : (
               <Newspaper className="h-4 w-4" />
             )}
-            Thu thập tin tức
+            {t('dashboard.fetchNews')}
           </Button>
           <Badge 
             variant="outline" 
@@ -283,10 +287,10 @@ export default function Dashboard() {
                 : "border-muted"
             )}
           >
-            {countsConnected && alertsConnected ? "● Live" : "○ Offline"}
+            {countsConnected && alertsConnected ? `● ${t('dashboard.live')}` : `○ ${t('dashboard.offline')}`}
           </Badge>
           <span className="text-xs text-muted-foreground hidden sm:inline">
-            {nowTs.toLocaleTimeString('vi-VN')}
+            {nowTs.toLocaleTimeString(locale)}
           </span>
         </div>
       </div>
@@ -304,7 +308,7 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
           <DashboardChart
-            title="Xu hướng ca bệnh (7 ngày)"
+            title={t('dashboard.caseTrend')}
             data={trendData}
             type="line"
             multiSeries={false}
@@ -312,7 +316,7 @@ export default function Dashboard() {
         </div>
         <div className="animate-fade-up" style={{ animationDelay: '300ms' }}>
           <DashboardChart
-            title="Phân bố theo loại bệnh"
+            title={t('dashboard.diseaseDistribution')}
             data={diseaseData}
             type="bar"
             multiSeries={false}
@@ -324,7 +328,7 @@ export default function Dashboard() {
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="animate-fade-up" style={{ animationDelay: '400ms' }}>
           <DashboardChart
-            title="Phân bố theo quận/huyện"
+            title={t('dashboard.districtDistribution')}
             data={districtData}
             type="bar"
             multiSeries={false}
@@ -340,14 +344,14 @@ export default function Dashboard() {
                   <AlertTriangle className="h-4 w-4 text-warning" />
                 </div>
                 <div>
-                  <CardTitle className="text-base">Cảnh báo gần đây</CardTitle>
+                  <CardTitle className="text-base">{t('dashboard.recentAlerts')}</CardTitle>
                   <CardDescription className="text-xs">
-                    {alerts.filter(a => a.status === 'open').length} cảnh báo đang mở
+                    {alerts.filter(a => a.status === 'open').length} {t('alerts.open').toLowerCase()}
                   </CardDescription>
                 </div>
               </div>
               <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => window.location.href = '/alerts'}>
-                Xem tất cả
+                {t('common.all')}
                 <ArrowRight className="h-3 w-3" />
               </Button>
             </div>
@@ -356,7 +360,7 @@ export default function Dashboard() {
             {alerts.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Không có cảnh báo</p>
+                <p className="text-sm">{t('common.noData')}</p>
               </div>
             ) : (
               alerts.slice(0, 4).map((alert, idx) => (
@@ -371,7 +375,7 @@ export default function Dashboard() {
                     )} />
                     <div>
                       <p className="text-sm font-medium">
-                        {alert.disease_code.toUpperCase()} - {alert.cases} ca
+                        {t(`diseases.${alert.disease_code}`, alert.disease_code.toUpperCase())} - {alert.cases} {i18n.language === 'vi' ? 'ca' : 'cases'}
                       </p>
                       <p className="text-xs text-muted-foreground">{alert.day}</p>
                     </div>
@@ -380,7 +384,7 @@ export default function Dashboard() {
                     variant={alert.status === 'open' ? 'destructive' : 'secondary'}
                     className="text-xs"
                   >
-                    {alert.status === 'open' ? 'Mở' : 'Đóng'}
+                    {alert.status === 'open' ? t('alerts.open') : t('alerts.closed')}
                   </Badge>
                 </div>
               ))

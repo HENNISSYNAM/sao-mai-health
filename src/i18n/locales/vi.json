@@ -21,7 +21,8 @@
     "error": "Đã xảy ra lỗi",
     "success": "Thành công",
     "warning": "Cảnh báo",
-    "info": "Thông tin"
+    "info": "Thông tin",
+    "cases": "ca"
   },
   "nav": {
     "dashboard": "Tổng quan",

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Activity, Bell, Brain, MapPin, Shield, AlertTriangle, BarChart3, Settings, HelpCircle } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink, useLocation } from "react-router-dom";
@@ -5,55 +6,63 @@ import { usePrefetch } from "@/hooks/usePrefetch";
 import { cn } from "@/lib/utils";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 
-const menuItems = [
-  {
-    title: "Theo dõi",
-    url: "/stroke-risk",
-    icon: Brain,
-    badge: "LIVE"
-  },
-  {
-    title: "Bản đồ rủi ro",
-    url: "/maps",
-    icon: MapPin,
-  },
-  {
-    title: "Cảnh báo",
-    url: "/alerts",
-    icon: AlertTriangle,
-    badge: "3"
-  },
-  {
-    title: "Thống kê",
-    url: "/",
-    icon: BarChart3,
-  },
-  {
-    title: "Phòng ngừa",
-    url: "/surveillance",
-    icon: Shield,
-  }
-];
-
-const bottomItems = [
-  {
-    title: "Cài đặt",
-    url: "/settings",
-    icon: Settings
-  },
-  {
-    title: "Trợ giúp",
-    url: "/help",
-    icon: HelpCircle
-  }
-];
-
 export function AppSidebar() {
+  const { t } = useTranslation();
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
   const { prefetchByRoute } = usePrefetch();
+
+  const menuItems = [
+    {
+      titleKey: "nav.strokeRisk",
+      title: t('nav.strokeRisk'),
+      url: "/stroke-risk",
+      icon: Brain,
+      badge: "LIVE"
+    },
+    {
+      titleKey: "nav.maps",
+      title: t('nav.maps'),
+      url: "/maps",
+      icon: MapPin,
+    },
+    {
+      titleKey: "nav.alerts",
+      title: t('nav.alerts'),
+      url: "/alerts",
+      icon: AlertTriangle,
+      badge: "3"
+    },
+    {
+      titleKey: "nav.dashboard",
+      title: t('nav.dashboard'),
+      url: "/",
+      icon: BarChart3,
+    },
+    {
+      titleKey: "nav.surveillance",
+      title: t('nav.surveillance'),
+      url: "/surveillance",
+      icon: Shield,
+    }
+  ];
+
+  const bottomItems = [
+    {
+      titleKey: "nav.settings",
+      title: t('nav.settings'),
+      url: "/settings",
+      icon: Settings
+    },
+    {
+      titleKey: "common.info",
+      title: t('common.info'),
+      url: "/help",
+      icon: HelpCircle
+    }
+  ];
 
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
@@ -86,10 +95,10 @@ export function AppSidebar() {
                 className="w-12 h-12 rounded-2xl shadow-lg animate-heartbeat object-contain"
               />
               <div>
-                <h2 className="font-bold text-lg text-sidebar-foreground tracking-tight">Stroke Alert</h2>
+                <h2 className="font-bold text-lg text-sidebar-foreground tracking-tight">Health Hub</h2>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                  <p className="text-xs text-sidebar-foreground/60">Đang giám sát</p>
+                  <p className="text-xs text-sidebar-foreground/60">{t('dashboard.live')}</p>
                 </div>
               </div>
             </div>
@@ -102,7 +111,7 @@ export function AppSidebar() {
             <SidebarMenu className="space-y-1 px-3">
               {menuItems.map((item, idx) => (
                 <SidebarMenuItem 
-                  key={item.title} 
+                  key={item.titleKey} 
                   className="animate-fade-up"
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
@@ -154,7 +163,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu className="space-y-1 px-3">
               {bottomItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.titleKey}>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
@@ -183,7 +192,7 @@ export function AppSidebar() {
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                   <Activity className="h-4 w-4 text-primary" />
                 </div>
-                <span className="text-xs font-semibold text-primary">Cấp cứu 24/7</span>
+                <span className="text-xs font-semibold text-primary">24/7 Emergency</span>
               </div>
               <p className="text-2xl font-bold text-sidebar-foreground tracking-tight">115</p>
             </div>
