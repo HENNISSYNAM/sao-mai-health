@@ -128,7 +128,7 @@ export const HealthProfile: React.FC<HealthProfileProps> = ({ profile }) => {
         )}
 
         {/* Medications */}
-        {profile.medications.length > 0 && (
+        {profile.medications && profile.medications.length > 0 && (
           <div className="space-y-2">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Pill className="h-4 w-4 text-primary" />
@@ -137,7 +137,7 @@ export const HealthProfile: React.FC<HealthProfileProps> = ({ profile }) => {
             <div className="flex flex-wrap gap-2">
               {profile.medications.map((med, i) => (
                 <Badge key={i} variant="secondary">
-                  {med}
+                  {typeof med === 'string' ? med : med.name + ' ' + med.dosage}
                 </Badge>
               ))}
             </div>

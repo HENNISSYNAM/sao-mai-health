@@ -5,11 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { 
   Shield, Lock, Fingerprint, FileText, Upload, 
   Heart, Brain, Droplets, Activity, AlertTriangle,
   CheckCircle2, Sparkles, Crown, TrendingUp, Eye,
-  FileSearch, Scan, User, Calendar, Phone
+  FileSearch, Scan, User, Calendar, Phone, Zap,
+  Bell, MapPin, Clock, Pill, Users, Radio,
+  HeartPulse, Thermometer, Wind, AlertCircle, ChevronRight
 } from 'lucide-react';
 import { BioVaultUploader } from '@/components/biovault/BioVaultUploader';
 import { DigitalTwinAvatar } from '@/components/biovault/DigitalTwinAvatar';
@@ -22,17 +25,62 @@ import { toast } from 'sonner';
 
 export interface UserHealthProfile {
   id: string;
+  name: string;
   phone: string;
   dateOfBirth: string;
   gender: 'male' | 'female' | 'other';
   bloodType?: string;
   allergies: string[];
   chronicConditions: string[];
-  medications: string[];
+  medications: Medication[];
   lastUpdated: string;
   documents: HealthDocument[];
   extractedMetrics: ExtractedMetric[];
   bioShieldScore: number;
+  emergencyContacts: EmergencyContact[];
+  vitalSigns: VitalSign[];
+  familyMembers: FamilyMember[];
+}
+
+export interface Medication {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  timeSlots: string[];
+  startDate: string;
+  endDate?: string;
+  remindersEnabled: boolean;
+  lastTaken?: string;
+  stock: number;
+}
+
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  isPrimary: boolean;
+}
+
+export interface VitalSign {
+  id: string;
+  type: 'heart_rate' | 'blood_pressure' | 'temperature' | 'oxygen' | 'glucose' | 'weight';
+  value: number | string;
+  unit: string;
+  recordedAt: string;
+  source: 'manual' | 'device' | 'lab';
+  trend?: 'up' | 'down' | 'stable';
+}
+
+export interface FamilyMember {
+  id: string;
+  name: string;
+  relationship: string;
+  age: number;
+  conditions: string[];
+  shareAccess: boolean;
+  riskAlerts: boolean;
 }
 
 export interface HealthDocument {
@@ -43,6 +91,7 @@ export interface HealthDocument {
   status: 'processing' | 'analyzed' | 'error';
   extractedData?: Record<string, any>;
   icd11Codes?: string[];
+  category?: 'lab' | 'imaging' | 'prescription' | 'report' | 'other';
 }
 
 export interface ExtractedMetric {
@@ -55,68 +104,108 @@ export interface ExtractedMetric {
   riskLevel: 'normal' | 'warning' | 'critical';
   extractedFrom: string;
   date: string;
+  trend?: 'improving' | 'worsening' | 'stable';
 }
 
 const BioVault: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
   const [activeTab, setActiveTab] = useState('overview');
   const [healthProfile, setHealthProfile] = useState<UserHealthProfile | null>(null);
+  const [isEmergencyMode, setIsEmergencyMode] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Real-time clock
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Simulate fingerprint scan authentication
   const handleAuthentication = () => {
     setIsScanning(true);
+    setScanProgress(0);
+    
+    const progressInterval = setInterval(() => {
+      setScanProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(progressInterval);
+          return 100;
+        }
+        return prev + 4;
+      });
+    }, 100);
+
     setTimeout(() => {
       setIsScanning(false);
       setIsAuthenticated(true);
-      toast.success(t('biovault.authSuccess', 'Xác thực thành công'));
+      toast.success(t('biovault.authSuccess', 'Xác thực sinh trắc học thành công'), {
+        description: t('biovault.authSuccessDesc', 'Chào mừng bạn trở lại Bio-Vault')
+      });
       
-      // Load mock profile
+      // Load comprehensive mock profile
       setHealthProfile({
         id: 'user-001',
+        name: 'Nguyễn Văn A',
         phone: '0901234567',
         dateOfBirth: '1985-03-15',
         gender: 'male',
         bloodType: 'O+',
-        allergies: ['Penicillin', 'Pollen'],
-        chronicConditions: ['Hypertension', 'Sinusitis'],
-        medications: ['Lisinopril 10mg'],
-        lastUpdated: new Date().toISOString(),
-        documents: [],
-        extractedMetrics: [
+        allergies: ['Penicillin', 'Pollen', 'Hải sản'],
+        chronicConditions: ['Hypertension', 'Sinusitis', 'Pre-diabetes'],
+        medications: [
           {
-            id: '1',
-            name: 'Blood Glucose',
-            value: 105,
-            unit: 'mg/dL',
-            category: 'metabolic',
-            icd11Code: '5A10',
-            riskLevel: 'warning',
-            extractedFrom: 'lab_result_2024.pdf',
-            date: '2024-12-15'
+            id: 'med-1',
+            name: 'Lisinopril',
+            dosage: '10mg',
+            frequency: 'daily',
+            timeSlots: ['08:00'],
+            startDate: '2024-01-15',
+            remindersEnabled: true,
+            lastTaken: new Date(Date.now() - 3600000).toISOString(),
+            stock: 23
           },
           {
-            id: '2',
-            name: 'Blood Pressure',
-            value: '135/85',
-            unit: 'mmHg',
-            category: 'vital',
-            icd11Code: 'BA00',
-            riskLevel: 'warning',
-            extractedFrom: 'checkup_2024.pdf',
-            date: '2024-12-10'
-          },
-          {
-            id: '3',
-            name: 'Cholesterol',
-            value: 210,
-            unit: 'mg/dL',
-            category: 'blood',
-            riskLevel: 'warning',
-            extractedFrom: 'lab_result_2024.pdf',
-            date: '2024-12-15'
+            id: 'med-2',
+            name: 'Metformin',
+            dosage: '500mg',
+            frequency: 'twice_daily',
+            timeSlots: ['08:00', '20:00'],
+            startDate: '2024-06-01',
+            remindersEnabled: true,
+            lastTaken: new Date(Date.now() - 43200000).toISOString(),
+            stock: 45
           }
+        ],
+        emergencyContacts: [
+          { id: 'ec-1', name: 'Nguyễn Thị B', relationship: 'Vợ', phone: '0909876543', isPrimary: true },
+          { id: 'ec-2', name: 'Nguyễn Văn C', relationship: 'Con', phone: '0912345678', isPrimary: false }
+        ],
+        vitalSigns: [
+          { id: 'vs-1', type: 'heart_rate', value: 72, unit: 'bpm', recordedAt: new Date().toISOString(), source: 'device', trend: 'stable' },
+          { id: 'vs-2', type: 'blood_pressure', value: '135/85', unit: 'mmHg', recordedAt: new Date().toISOString(), source: 'device', trend: 'down' },
+          { id: 'vs-3', type: 'oxygen', value: 98, unit: '%', recordedAt: new Date().toISOString(), source: 'device', trend: 'stable' },
+          { id: 'vs-4', type: 'glucose', value: 105, unit: 'mg/dL', recordedAt: new Date(Date.now() - 7200000).toISOString(), source: 'manual', trend: 'up' },
+          { id: 'vs-5', type: 'temperature', value: 36.5, unit: '°C', recordedAt: new Date().toISOString(), source: 'device', trend: 'stable' }
+        ],
+        familyMembers: [
+          { id: 'fm-1', name: 'Nguyễn Thị B', relationship: 'Vợ', age: 38, conditions: [], shareAccess: true, riskAlerts: true },
+          { id: 'fm-2', name: 'Nguyễn Văn C', relationship: 'Con', age: 15, conditions: ['Asthma'], shareAccess: true, riskAlerts: true },
+          { id: 'fm-3', name: 'Nguyễn Thị D', relationship: 'Mẹ', age: 68, conditions: ['Hypertension', 'Diabetes'], shareAccess: true, riskAlerts: true }
+        ],
+        lastUpdated: new Date().toISOString(),
+        documents: [
+          { id: 'doc-1', fileName: 'lab_result_2024.pdf', fileType: 'application/pdf', uploadedAt: '2024-12-15T10:30:00Z', status: 'analyzed', category: 'lab', icd11Codes: ['5A10', 'BA00'] },
+          { id: 'doc-2', fileName: 'chest_xray.jpg', fileType: 'image/jpeg', uploadedAt: '2024-11-20T14:00:00Z', status: 'analyzed', category: 'imaging' }
+        ],
+        extractedMetrics: [
+          { id: '1', name: 'Blood Glucose', value: 105, unit: 'mg/dL', category: 'metabolic', icd11Code: '5A10', riskLevel: 'warning', extractedFrom: 'lab_result_2024.pdf', date: '2024-12-15', trend: 'worsening' },
+          { id: '2', name: 'Blood Pressure', value: '135/85', unit: 'mmHg', category: 'vital', icd11Code: 'BA00', riskLevel: 'warning', extractedFrom: 'checkup_2024.pdf', date: '2024-12-10', trend: 'improving' },
+          { id: '3', name: 'Cholesterol', value: 210, unit: 'mg/dL', category: 'blood', riskLevel: 'warning', extractedFrom: 'lab_result_2024.pdf', date: '2024-12-15', trend: 'stable' },
+          { id: '4', name: 'HbA1c', value: 6.2, unit: '%', category: 'metabolic', icd11Code: '5A10', riskLevel: 'warning', extractedFrom: 'lab_result_2024.pdf', date: '2024-12-15', trend: 'worsening' },
+          { id: '5', name: 'Creatinine', value: 1.1, unit: 'mg/dL', category: 'organ', riskLevel: 'normal', extractedFrom: 'lab_result_2024.pdf', date: '2024-12-15', trend: 'stable' }
         ],
         bioShieldScore: 72
       });
@@ -142,21 +231,64 @@ const BioVault: React.FC = () => {
     }
   };
 
+  const triggerEmergencyMode = () => {
+    setIsEmergencyMode(true);
+    toast.error(t('biovault.emergency.activated', 'CHẾ ĐỘ KHẨN CẤP ĐÃ KÍCH HOẠT'), {
+      description: t('biovault.emergency.notifying', 'Đang thông báo cho người liên hệ khẩn cấp...'),
+      duration: 10000
+    });
+    // Simulate notifying emergency contacts
+    setTimeout(() => {
+      toast.success(t('biovault.emergency.contacted', 'Đã liên hệ thành công'), {
+        description: healthProfile?.emergencyContacts[0]?.name + ' đã được thông báo'
+      });
+    }, 2000);
+  };
+
+  const getVitalIcon = (type: VitalSign['type']) => {
+    switch (type) {
+      case 'heart_rate': return HeartPulse;
+      case 'blood_pressure': return Activity;
+      case 'temperature': return Thermometer;
+      case 'oxygen': return Wind;
+      case 'glucose': return Droplets;
+      default: return Activity;
+    }
+  };
+
+  const getVitalLabel = (type: VitalSign['type']) => {
+    const labels: Record<string, string> = {
+      heart_rate: t('biovault.vitals.heartRate', 'Nhịp tim'),
+      blood_pressure: t('biovault.vitals.bloodPressure', 'Huyết áp'),
+      temperature: t('biovault.vitals.temperature', 'Nhiệt độ'),
+      oxygen: t('biovault.vitals.oxygen', 'SpO2'),
+      glucose: t('biovault.vitals.glucose', 'Đường huyết'),
+      weight: t('biovault.vitals.weight', 'Cân nặng')
+    };
+    return labels[type] || type;
+  };
+
   // Security Gate UI
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-6">
-        <Card className="w-full max-w-lg border-2 border-primary/20 bg-card/95 backdrop-blur-xl shadow-2xl">
+        <Card className="w-full max-w-lg border-2 border-primary/20 bg-card/95 backdrop-blur-xl shadow-2xl overflow-hidden">
+          {/* Animated Header */}
+          <div className="h-2 bg-gradient-to-r from-primary via-info to-primary animate-gradient-x" />
+          
           <CardHeader className="text-center pb-2">
             <div className="mx-auto mb-4 relative">
-              <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                <Shield className="h-12 w-12 text-primary" />
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border-2 border-primary/30">
+                <Shield className="h-14 w-14 text-primary" />
               </div>
-              <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-success flex items-center justify-center">
-                <Lock className="h-4 w-4 text-success-foreground" />
+              <div className="absolute -top-1 -right-1 w-10 h-10 rounded-full bg-success flex items-center justify-center animate-pulse">
+                <Lock className="h-5 w-5 text-success-foreground" />
+              </div>
+              <div className="absolute -bottom-1 -left-1 w-8 h-8 rounded-full bg-info flex items-center justify-center">
+                <Radio className="h-4 w-4 text-info-foreground animate-ping" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-info bg-clip-text text-transparent">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary via-info to-primary bg-clip-text text-transparent">
               {t('biovault.title', 'Personal Bio-Vault')}
             </CardTitle>
             <CardDescription className="text-base mt-2">
@@ -166,15 +298,16 @@ const BioVault: React.FC = () => {
           
           <CardContent className="space-y-6 pt-4">
             {/* Security Features */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-2">
               {[
-                { icon: Lock, label: t('biovault.encrypted', 'Mã hóa AES-256') },
-                { icon: Shield, label: t('biovault.hipaa', 'HIPAA Compliant') },
-                { icon: Fingerprint, label: t('biovault.biometric', 'Sinh trắc học') }
+                { icon: Lock, label: 'AES-256', color: 'text-success' },
+                { icon: Shield, label: 'HIPAA', color: 'text-info' },
+                { icon: Fingerprint, label: 'Biometric', color: 'text-primary' },
+                { icon: Radio, label: 'E2E', color: 'text-warning' }
               ].map((item, i) => (
-                <div key={i} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-muted/50">
-                  <item.icon className="h-5 w-5 text-primary" />
-                  <span className="text-xs text-center text-muted-foreground">{item.label}</span>
+                <div key={i} className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-muted/50 hover:bg-muted transition-colors">
+                  <item.icon className={`h-5 w-5 ${item.color}`} />
+                  <span className="text-[10px] text-center text-muted-foreground font-medium">{item.label}</span>
                 </div>
               ))}
             </div>
@@ -184,29 +317,50 @@ const BioVault: React.FC = () => {
               <Button
                 onClick={handleAuthentication}
                 disabled={isScanning}
-                className="w-full h-32 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/10 transition-all duration-300"
+                className="w-full h-36 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/10 transition-all duration-300 group"
               >
-                <div className="flex flex-col items-center gap-3">
-                  <div className={`relative ${isScanning ? 'animate-pulse' : ''}`}>
-                    <Fingerprint className={`h-16 w-16 ${isScanning ? 'text-success' : 'text-primary'}`} />
+                <div className="flex flex-col items-center gap-4">
+                  <div className={`relative ${isScanning ? '' : 'group-hover:scale-110 transition-transform'}`}>
+                    <Fingerprint className={`h-20 w-20 ${isScanning ? 'text-success' : 'text-primary'}`} />
                     {isScanning && (
-                      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-success/30 to-transparent animate-scan-line" />
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-success/40 to-transparent animate-scan-line rounded-full" />
+                        <div className="absolute inset-0 border-4 border-success/30 rounded-full animate-ping" />
+                      </>
                     )}
                   </div>
                   <span className="text-sm font-medium text-foreground">
                     {isScanning 
-                      ? t('biovault.scanning', 'Đang quét sinh trắc học...') 
+                      ? t('biovault.scanning', 'Đang xác thực sinh trắc học...') 
                       : t('biovault.scanToAccess', 'Chạm để xác thực')}
                   </span>
                 </div>
               </Button>
               
               {isScanning && (
-                <Progress value={60} className="mt-4 h-2" />
+                <div className="mt-4 space-y-2">
+                  <Progress value={scanProgress} className="h-2" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>{t('biovault.verifying', 'Đang xác minh...')}</span>
+                    <span>{scanProgress}%</span>
+                  </div>
+                </div>
               )}
             </div>
 
-            <p className="text-xs text-center text-muted-foreground">
+            {/* Trust Indicators */}
+            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-success" />
+                <span>256-bit encryption</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-success" />
+                <span>GDPR compliant</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-center text-muted-foreground px-4">
               {t('biovault.disclaimer', 'Dữ liệu của bạn được bảo vệ bởi mã hóa đầu cuối và tuân thủ các tiêu chuẩn bảo mật y tế quốc tế.')}
             </p>
           </CardContent>
@@ -217,8 +371,29 @@ const BioVault: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-up">
+      {/* Emergency Mode Alert */}
+      {isEmergencyMode && (
+        <Alert className="bg-danger/10 border-danger animate-pulse">
+          <AlertCircle className="h-5 w-5 text-danger" />
+          <AlertTitle className="text-danger font-bold">
+            {t('biovault.emergency.mode', 'CHẾ ĐỘ KHẨN CẤP')}
+          </AlertTitle>
+          <AlertDescription className="text-danger/80">
+            {t('biovault.emergency.activeDesc', 'Người liên hệ khẩn cấp đã được thông báo. Chia sẻ vị trí đang hoạt động.')}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-4 border-danger text-danger hover:bg-danger hover:text-white"
+              onClick={() => setIsEmergencyMode(false)}
+            >
+              {t('biovault.emergency.deactivate', 'Tắt chế độ khẩn cấp')}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <Shield className="h-8 w-8 text-primary" />
@@ -228,12 +403,25 @@ const BioVault: React.FC = () => {
               {t('biovault.secured', 'Bảo mật')}
             </Badge>
           </h1>
-          <p className="text-muted-foreground mt-1">
-            {t('biovault.welcomeBack', 'Chào mừng trở lại')} • {t('biovault.lastAccess', 'Truy cập lần cuối')}: {new Date().toLocaleDateString(i18n.language)}
+          <p className="text-muted-foreground mt-1 flex items-center gap-2">
+            <span>{t('biovault.welcomeBack', 'Chào mừng')}, {healthProfile?.name}</span>
+            <span>•</span>
+            <Clock className="h-3 w-3" />
+            <span>{currentTime.toLocaleTimeString(i18n.language)}</span>
           </p>
         </div>
         
         <div className="flex items-center gap-3">
+          {/* Emergency Button */}
+          <Button 
+            variant="outline" 
+            className="border-danger text-danger hover:bg-danger hover:text-white"
+            onClick={triggerEmergencyMode}
+          >
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            {t('biovault.emergency.button', 'SOS')}
+          </Button>
+          
           <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
             <Crown className="h-3 w-3 mr-1" />
             Premium
@@ -245,6 +433,34 @@ const BioVault: React.FC = () => {
         </div>
       </div>
 
+      {/* Real-time Vitals Strip */}
+      {healthProfile && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {healthProfile.vitalSigns.slice(0, 5).map(vital => {
+            const Icon = getVitalIcon(vital.type);
+            const isAbnormal = vital.type === 'blood_pressure' || vital.type === 'glucose';
+            return (
+              <Card key={vital.id} className={`border ${isAbnormal ? 'border-warning/50 bg-warning/5' : 'border-border'}`}>
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <Icon className={`h-4 w-4 ${isAbnormal ? 'text-warning' : 'text-muted-foreground'}`} />
+                    {vital.trend && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                        {vital.trend === 'up' ? '↑' : vital.trend === 'down' ? '↓' : '→'}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">{getVitalLabel(vital.type)}</p>
+                  <p className={`text-lg font-bold ${isAbnormal ? 'text-warning' : 'text-foreground'}`}>
+                    {vital.value} <span className="text-xs font-normal text-muted-foreground">{vital.unit}</span>
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
       {/* Bio-Shield Index - Central Widget */}
       <BioShieldIndex 
         score={healthProfile?.bioShieldScore || 0} 
@@ -253,26 +469,30 @@ const BioVault: React.FC = () => {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
-          <TabsTrigger value="overview" className="gap-2">
+        <TabsList className="grid grid-cols-6 w-full">
+          <TabsTrigger value="overview" className="gap-2 text-xs md:text-sm">
             <Activity className="h-4 w-4" />
-            {t('biovault.tabs.overview', 'Tổng quan')}
+            <span className="hidden md:inline">{t('biovault.tabs.overview', 'Tổng quan')}</span>
           </TabsTrigger>
-          <TabsTrigger value="documents" className="gap-2">
+          <TabsTrigger value="documents" className="gap-2 text-xs md:text-sm">
             <FileText className="h-4 w-4" />
-            {t('biovault.tabs.documents', 'Hồ sơ')}
+            <span className="hidden md:inline">{t('biovault.tabs.documents', 'Hồ sơ')}</span>
           </TabsTrigger>
-          <TabsTrigger value="twin" className="gap-2">
+          <TabsTrigger value="twin" className="gap-2 text-xs md:text-sm">
             <User className="h-4 w-4" />
-            {t('biovault.tabs.digitalTwin', 'Digital Twin')}
+            <span className="hidden md:inline">{t('biovault.tabs.digitalTwin', 'Digital Twin')}</span>
           </TabsTrigger>
-          <TabsTrigger value="predictions" className="gap-2">
+          <TabsTrigger value="medications" className="gap-2 text-xs md:text-sm">
+            <Pill className="h-4 w-4" />
+            <span className="hidden md:inline">{t('biovault.tabs.medications', 'Thuốc')}</span>
+          </TabsTrigger>
+          <TabsTrigger value="predictions" className="gap-2 text-xs md:text-sm">
             <TrendingUp className="h-4 w-4" />
-            {t('biovault.tabs.predictions', 'Dự báo')}
+            <span className="hidden md:inline">{t('biovault.tabs.predictions', 'Dự báo')}</span>
           </TabsTrigger>
-          <TabsTrigger value="consultant" className="gap-2">
+          <TabsTrigger value="consultant" className="gap-2 text-xs md:text-sm">
             <Sparkles className="h-4 w-4" />
-            {t('biovault.tabs.consultant', 'Tư vấn AI')}
+            <span className="hidden md:inline">{t('biovault.tabs.consultant', 'AI')}</span>
           </TabsTrigger>
         </TabsList>
 
@@ -281,6 +501,64 @@ const BioVault: React.FC = () => {
             <HealthProfile profile={healthProfile} />
             <PersonalRiskEngine profile={healthProfile} />
           </div>
+          
+          {/* Family Health Network */}
+          {healthProfile && healthProfile.familyMembers.length > 0 && (
+            <Card className="border-2 border-info/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-info" />
+                  {t('biovault.family.title', 'Mạng lưới sức khỏe gia đình')}
+                </CardTitle>
+                <CardDescription>
+                  {t('biovault.family.description', 'Theo dõi và nhận cảnh báo sức khỏe cho người thân')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {healthProfile.familyMembers.map(member => (
+                    <div 
+                      key={member.id}
+                      className="p-4 rounded-xl border border-border bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center">
+                          <User className="h-5 w-5 text-info" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">{member.name}</p>
+                          <p className="text-xs text-muted-foreground">{member.relationship} • {member.age} tuổi</p>
+                        </div>
+                      </div>
+                      {member.conditions.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {member.conditions.map((c, i) => (
+                            <Badge key={i} variant="outline" className="text-xs border-warning/50 text-warning">
+                              {c}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+                        {member.shareAccess && (
+                          <span className="flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3 text-success" />
+                            {t('biovault.family.shared', 'Đã chia sẻ')}
+                          </span>
+                        )}
+                        {member.riskAlerts && (
+                          <span className="flex items-center gap-1">
+                            <Bell className="h-3 w-3 text-info" />
+                            {t('biovault.family.alerts', 'Cảnh báo')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">
@@ -292,6 +570,81 @@ const BioVault: React.FC = () => {
 
         <TabsContent value="twin" className="space-y-6">
           <DigitalTwinAvatar profile={healthProfile} />
+        </TabsContent>
+
+        <TabsContent value="medications" className="space-y-6">
+          {/* Medication Tracker */}
+          <Card className="border-2 border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Pill className="h-5 w-5 text-primary" />
+                {t('biovault.meds.title', 'Quản lý thuốc thông minh')}
+              </CardTitle>
+              <CardDescription>
+                {t('biovault.meds.description', 'Theo dõi lịch uống thuốc và nhận nhắc nhở')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {healthProfile?.medications.map(med => {
+                const lastTakenTime = med.lastTaken ? new Date(med.lastTaken) : null;
+                const hoursSinceLastTaken = lastTakenTime 
+                  ? Math.floor((Date.now() - lastTakenTime.getTime()) / 3600000)
+                  : null;
+                const isOverdue = hoursSinceLastTaken && hoursSinceLastTaken >= 24;
+                
+                return (
+                  <div 
+                    key={med.id}
+                    className={`p-4 rounded-xl border ${isOverdue ? 'border-danger/50 bg-danger/5' : 'border-border bg-muted/30'}`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl ${isOverdue ? 'bg-danger/10' : 'bg-primary/10'} flex items-center justify-center`}>
+                          <Pill className={`h-5 w-5 ${isOverdue ? 'text-danger' : 'text-primary'}`} />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground">{med.name}</p>
+                          <p className="text-sm text-muted-foreground">{med.dosage} • {med.frequency === 'daily' ? 'Mỗi ngày' : 'Hai lần/ngày'}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant={isOverdue ? "destructive" : "secondary"}>
+                          {isOverdue ? t('biovault.meds.overdue', 'Quá hạn') : t('biovault.meds.onSchedule', 'Đúng lịch')}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {t('biovault.meds.stock', 'Còn lại')}: {med.stock} {t('biovault.meds.pills', 'viên')}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {med.timeSlots.join(', ')}
+                        </span>
+                        {lastTakenTime && (
+                          <span className="flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3 text-success" />
+                            {t('biovault.meds.lastTaken', 'Lần cuối')}: {hoursSinceLastTaken}h {t('biovault.meds.ago', 'trước')}
+                          </span>
+                        )}
+                      </div>
+                      <Button size="sm" variant={isOverdue ? "destructive" : "outline"}>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        {t('biovault.meds.markTaken', 'Đã uống')}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              <Button variant="outline" className="w-full">
+                <Pill className="h-4 w-4 mr-2" />
+                {t('biovault.meds.addNew', 'Thêm thuốc mới')}
+              </Button>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="predictions" className="space-y-6">
