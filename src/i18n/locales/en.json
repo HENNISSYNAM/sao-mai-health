@@ -1,0 +1,186 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "refresh": "Refresh",
+    "close": "Close",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No",
+    "all": "All",
+    "none": "None",
+    "noData": "No data available",
+    "error": "An error occurred",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "surveillance": "Surveillance",
+    "maps": "Disease Tracking",
+    "alerts": "Alerts",
+    "patients": "Patients",
+    "facilities": "Facilities",
+    "campaigns": "Campaigns",
+    "inventory": "Inventory",
+    "appointments": "Appointments",
+    "labImport": "Lab Import",
+    "strokeRisk": "Stroke Risk",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "title": "System Overview",
+    "subtitle": "Public Health Surveillance",
+    "todayCases": "Today's Cases",
+    "openAlerts": "Open Alerts",
+    "diseaseTypes": "Disease Types (7 days)",
+    "vaccinationRate": "Vaccination Rate",
+    "caseTrend": "Case Trend (7 days)",
+    "diseaseDistribution": "Disease Distribution",
+    "districtDistribution": "District Distribution",
+    "recentAlerts": "Recent Alerts",
+    "fetchNews": "Collect News",
+    "live": "Live",
+    "offline": "Offline"
+  },
+  "alerts": {
+    "title": "Alert Management",
+    "subtitle": "Real-time monitoring and response",
+    "total": "Total Alerts",
+    "critical": "Critical",
+    "high": "High Priority",
+    "open": "Open",
+    "acknowledged": "Acknowledged",
+    "closed": "Closed",
+    "level": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "actions": {
+      "acknowledge": "Acknowledge",
+      "close": "Close Alert",
+      "dispatchTeam": "Dispatch Team",
+      "notifyAuthorities": "Notify Authorities",
+      "exportReport": "Export Report"
+    },
+    "environmentalFactors": "Environmental Factors",
+    "pressure": "Atmospheric Pressure",
+    "humidity": "Humidity",
+    "temperature": "Temperature"
+  },
+  "maps": {
+    "title": "Disease Tracking",
+    "subtitle": "Global health surveillance map",
+    "riskLevel": "Risk Level",
+    "cases": "Cases",
+    "hotspots": "Hotspots",
+    "heatmap": "Heatmap",
+    "clustering": "Cluster View",
+    "layers": {
+      "disease": "Disease Density",
+      "population": "Population",
+      "weather": "Weather"
+    },
+    "aiAgent": {
+      "title": "AI Map Agent",
+      "placeholder": "Ask in natural language (e.g., 'Show dengue risk in Southeast Asia')",
+      "processing": "Processing command..."
+    },
+    "prediction": {
+      "title": "Risk Prediction",
+      "clickToPredict": "Click on map to predict risk",
+      "riskScore": "Risk Score",
+      "topDiseases": "Top Diseases"
+    }
+  },
+  "surveillance": {
+    "title": "Disease Surveillance",
+    "subtitle": "Case monitoring and analysis",
+    "totalCases": "Total Cases",
+    "confirmed": "Confirmed",
+    "suspected": "Suspected",
+    "todayCases": "Today's Cases",
+    "exportCSV": "Export CSV"
+  },
+  "patients": {
+    "title": "Patient Registry",
+    "subtitle": "Patient information management",
+    "addPatient": "Add Patient",
+    "patientId": "Patient ID",
+    "name": "Name",
+    "age": "Age",
+    "gender": "Gender",
+    "district": "District",
+    "status": "Status"
+  },
+  "facilities": {
+    "title": "Health Facilities",
+    "subtitle": "Facility management and resources",
+    "addFacility": "Add Facility",
+    "facilityType": {
+      "hospital": "Hospital",
+      "clinic": "Clinic",
+      "lab": "Laboratory",
+      "pharmacy": "Pharmacy"
+    }
+  },
+  "diseases": {
+    "dengue": "Dengue Fever",
+    "covid19": "COVID-19",
+    "malaria": "Malaria",
+    "cholera": "Cholera",
+    "typhoid": "Typhoid",
+    "hepatitis": "Hepatitis",
+    "tuberculosis": "Tuberculosis",
+    "influenza": "Influenza",
+    "measles": "Measles",
+    "hfmd": "Hand, Foot & Mouth Disease",
+    "unknown": "Unknown"
+  },
+  "geography": {
+    "country": "Country",
+    "state": "State/Province",
+    "city": "City/District",
+    "ward": "Ward/Commune",
+    "location": "Location"
+  },
+  "time": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "lastWeek": "Last Week",
+    "lastMonth": "Last Month",
+    "hoursAgo": "{{count}} hours ago",
+    "minutesAgo": "{{count}} minutes ago",
+    "daysAgo": "{{count}} days ago"
+  },
+  "compliance": {
+    "gdpr": "GDPR Compliant",
+    "hipaa": "HIPAA Compliant",
+    "dataProtection": "Data Protection",
+    "anonymized": "Data Anonymized"
+  },
+  "theme": {
+    "light": "Light Mode",
+    "dark": "Dark Mode",
+    "system": "System"
+  },
+  "language": {
+    "en": "English",
+    "vi": "Tiếng Việt",
+    "es": "Español",
+    "fr": "Français"
+  }
+}
