@@ -66,10 +66,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar 
-      className={cn(
-        "border-r border-sidebar-border bg-sidebar transition-all duration-300",
-        collapsed ? "w-20" : "w-72"
-      )} 
+      className="border-r border-sidebar-border bg-sidebar"
       collapsible="icon"
     >
       <SidebarContent className="flex flex-col h-full py-6">
