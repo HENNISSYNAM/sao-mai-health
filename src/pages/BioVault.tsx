@@ -1,19 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
-import { 
-  Shield, Lock, Fingerprint, Heart, Brain, Activity,
-  CheckCircle2, Crown, User, Target, LayoutDashboard
-} from 'lucide-react';
-import { ClinicalDashboard } from '@/components/biovault/ClinicalDashboard';
-import { MultiStateTwin } from '@/components/biovault/MultiStateTwin';
-import { HealthMissions } from '@/components/biovault/HealthMissions';
-import { OrganVisualization } from '@/components/biovault/OrganVisualization';
-import { PaywallGate, PricingSection } from '@/components/biovault/PaywallGate';
+import { Shield, Lock, Fingerprint, CheckCircle2, Crown } from 'lucide-react';
+import { GameHubLayout } from '@/components/biovault/GameHubLayout';
+import { PricingSection } from '@/components/biovault/PaywallGate';
 import { toast } from 'sonner';
 
 export interface UserHealthProfile {
@@ -101,11 +93,9 @@ export interface ExtractedMetric {
 }
 
 const BioVault: React.FC = () => {
-  const { t } = useTranslation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [healthProfile, setHealthProfile] = useState<UserHealthProfile | null>(null);
   const [isPremium, setIsPremium] = useState(false);
   const [showPricing, setShowPricing] = useState(false);
@@ -113,13 +103,9 @@ const BioVault: React.FC = () => {
   const handleAuthentication = () => {
     setIsScanning(true);
     setScanProgress(0);
-    
     const progressInterval = setInterval(() => {
       setScanProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(progressInterval);
-          return 100;
-        }
+        if (prev >= 100) { clearInterval(progressInterval); return 100; }
         return prev + 4;
       });
     }, 100);
@@ -128,7 +114,6 @@ const BioVault: React.FC = () => {
       setIsScanning(false);
       setIsAuthenticated(true);
       toast.success('Biometric authentication successful');
-      
       setHealthProfile({
         id: 'user-001',
         name: 'Nguyễn Văn A',
@@ -154,18 +139,14 @@ const BioVault: React.FC = () => {
         documents: [],
         extractedMetrics: [
           { id: '1', name: 'Blood Glucose', value: 108, unit: 'mg/dL', category: 'metabolic', riskLevel: 'warning', extractedFrom: 'lab', date: '2024-12-15', trend: 'worsening' },
-          { id: '2', name: 'Blood Pressure', value: '135/85', unit: 'mmHg', category: 'vital', riskLevel: 'warning', extractedFrom: 'device', date: '2024-12-15', trend: 'improving' },
-          { id: '3', name: 'HbA1c', value: 6.2, unit: '%', category: 'metabolic', riskLevel: 'warning', extractedFrom: 'lab', date: '2024-12-15', trend: 'worsening' }
+          { id: '2', name: 'Blood Pressure', value: '135/85', unit: 'mmHg', category: 'vital', riskLevel: 'warning', extractedFrom: 'device', date: '2024-12-15', trend: 'improving' }
         ],
         bioShieldScore: 68
       });
     }, 2500);
   };
 
-  const handleUpgrade = () => {
-    setShowPricing(true);
-  };
-
+  const handleUpgrade = () => setShowPricing(true);
   const handleSelectPlan = (plan: string) => {
     if (plan === 'premium') {
       setIsPremium(true);
@@ -185,9 +166,7 @@ const BioVault: React.FC = () => {
               <Shield className="h-14 w-14 text-primary" />
             </div>
             <CardTitle className="text-3xl font-bold">Personal Bio-Vault</CardTitle>
-            <CardDescription className="text-base mt-2">
-              Biological Risk Intelligence System
-            </CardDescription>
+            <CardDescription className="text-base mt-2">Biological Risk Intelligence System</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 pt-4">
             <div className="grid grid-cols-4 gap-2">
@@ -221,50 +200,10 @@ const BioVault: React.FC = () => {
     );
   }
 
+  // Main Game Hub Layout
   return (
-    <div className="space-y-6 animate-fade-up">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            Bio-Vault
-            {isPremium && <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white"><Crown className="h-3 w-3 mr-1" />Premium</Badge>}
-          </h1>
-          <p className="text-muted-foreground text-sm">Personal Biological Risk Intelligence</p>
-        </div>
-        {!isPremium && (
-          <Button onClick={handleUpgrade} className="bg-gradient-to-r from-amber-500 to-orange-500 text-white">
-            <Crown className="h-4 w-4 mr-2" />Upgrade
-          </Button>
-        )}
-      </div>
-
-      {/* Navigation Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4 w-full max-w-2xl">
-          <TabsTrigger value="dashboard" className="gap-2"><LayoutDashboard className="h-4 w-4" />Dashboard</TabsTrigger>
-          <TabsTrigger value="twins" className="gap-2"><User className="h-4 w-4" />Digital Twin</TabsTrigger>
-          <TabsTrigger value="organs" className="gap-2"><Heart className="h-4 w-4" />Organs</TabsTrigger>
-          <TabsTrigger value="missions" className="gap-2"><Target className="h-4 w-4" />Missions</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dashboard" className="mt-6">
-          <ClinicalDashboard profile={healthProfile} isPremium={isPremium} />
-        </TabsContent>
-
-        <TabsContent value="twins" className="mt-6">
-          <MultiStateTwin profile={healthProfile} isPremium={isPremium} onUpgrade={handleUpgrade} />
-        </TabsContent>
-
-        <TabsContent value="organs" className="mt-6">
-          <OrganVisualization profile={healthProfile} />
-        </TabsContent>
-
-        <TabsContent value="missions" className="mt-6">
-          <HealthMissions profile={healthProfile} isPremium={isPremium} />
-        </TabsContent>
-      </Tabs>
+    <div className="space-y-6 animate-fade-in">
+      <GameHubLayout profile={healthProfile} isPremium={isPremium} onUpgrade={handleUpgrade} />
     </div>
   );
 };
