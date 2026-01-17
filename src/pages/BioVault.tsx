@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Shield, Lock, Fingerprint, CheckCircle2, Crown } from 'lucide-react';
 import { GameHubLayout } from '@/components/biovault/GameHubLayout';
+import { DigitalTwinCommandCenter } from '@/components/biovault/DigitalTwinCommandCenter';
 import { PricingSection } from '@/components/biovault/PaywallGate';
 import { toast } from 'sonner';
 
@@ -200,10 +201,10 @@ const BioVault: React.FC = () => {
     );
   }
 
-  // Main Game Hub Layout
+  // Main Digital Twin Command Center
   return (
-    <div className="space-y-6 animate-fade-in">
-      <GameHubLayout profile={healthProfile} isPremium={isPremium} onUpgrade={handleUpgrade} />
+    <div className="space-y-6 animate-fade-in p-6">
+      <DigitalTwinCommandCenter profile={healthProfile} isPremium={isPremium} />
     </div>
   );
 };
