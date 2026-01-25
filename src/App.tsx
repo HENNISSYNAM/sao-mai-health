@@ -2,7 +2,7 @@ import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavbar } from "@/components/TopNavbar";
@@ -35,36 +35,42 @@ const queryClient = new QueryClient({
 });
 
 // Layout with sidebar for most pages
-const MainLayout = () => (
-  <SidebarProvider>
-    <AppSidebar />
-    <SidebarInset>
-      <TopNavbar />
-      <main className="flex-1 p-6 bg-background">
-        <Routes>
-          <Route index element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/surveillance" element={<Surveillance />} />
-          <Route path="/case-intake" element={<CaseIntake />} />
-          <Route path="/lab-import" element={<LabImport />} />
-          <Route path="/alerts" element={<AlertsNew />} />
-          <Route path="/maps" element={<MapView />} />
-          <Route path="/map" element={<MapView />} />
-          <Route path="/patients" element={<PatientsNew />} />
-          <Route path="/appointments" element={<Appointments />} />
-          <Route path="/campaigns" element={<Campaigns />} />
-          <Route path="/facilities" element={<Facilities />} />
-          <Route path="/stocks" element={<Inventory />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/bio-vault" element={<BioVault />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <EnhancedCommandPalette />
-        <GlobalAIAssistant />
-      </main>
-    </SidebarInset>
-  </SidebarProvider>
-);
+const MainLayout = () => {
+  const location = useLocation();
+  const hideChatbotRoutes = ['/bio-vault'];
+  const showChatbot = !hideChatbotRoutes.includes(location.pathname);
+
+  return (
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <TopNavbar />
+        <main className="flex-1 p-6 bg-background">
+          <Routes>
+            <Route index element={<Dashboard />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/surveillance" element={<Surveillance />} />
+            <Route path="/case-intake" element={<CaseIntake />} />
+            <Route path="/lab-import" element={<LabImport />} />
+            <Route path="/alerts" element={<AlertsNew />} />
+            <Route path="/maps" element={<MapView />} />
+            <Route path="/map" element={<MapView />} />
+            <Route path="/patients" element={<PatientsNew />} />
+            <Route path="/appointments" element={<Appointments />} />
+            <Route path="/campaigns" element={<Campaigns />} />
+            <Route path="/facilities" element={<Facilities />} />
+            <Route path="/stocks" element={<Inventory />} />
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/bio-vault" element={<BioVault />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <EnhancedCommandPalette />
+          {showChatbot && <GlobalAIAssistant />}
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+};
 
 const App = () => (
   <ErrorBoundary>
