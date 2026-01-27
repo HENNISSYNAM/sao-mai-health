@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.scheduled-health-search]
 verify_jwt = false
+
+[functions.health-data-delta]
+verify_jwt = false
