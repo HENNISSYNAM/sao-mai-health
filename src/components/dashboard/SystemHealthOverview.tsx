@@ -12,30 +12,36 @@ import {
   Clock,
   Shield,
   TrendingUp,
-  Radio
+  Radio,
+  ExternalLink,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  Lightbulb
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface HealthUpdate {
+interface NewsArticle {
   id: string;
-  disease: string;
-  location: string;
-  severity: 'low' | 'medium' | 'high';
-  cases: number;
+  title: string;
   source: string;
-  confidence: 'verified' | 'unverified';
-  timestamp: string;
-  summary: string;
+  url: string;
+  publishedAt: string;
+  aiSummary: string;
+  classification: 'confirmed' | 'emerging' | 'predictive';
+  disease?: string;
+  location?: string;
+  severity: 'low' | 'medium' | 'high';
 }
 
 interface SystemStatus {
   overallRisk: 'low' | 'medium' | 'high';
-  activeAlerts: number;
-  emergingIssues: HealthUpdate[];
+  articles: NewsArticle[];
   lastUpdated: Date;
   isLive: boolean;
+  sourcesChecked: string[];
 }
 
 const RISK_CONFIG = {
@@ -43,19 +49,46 @@ const RISK_CONFIG = {
     icon: '🟢', 
     color: 'text-success', 
     bg: 'bg-success/10',
+    border: 'border-success/30',
     label: { en: 'Low Risk', vi: 'Rủi ro thấp' }
   },
   medium: { 
     icon: '🟠', 
     color: 'text-warning', 
     bg: 'bg-warning/10',
+    border: 'border-warning/30',
     label: { en: 'Medium Risk', vi: 'Rủi ro trung bình' }
   },
   high: { 
     icon: '🔴', 
     color: 'text-danger', 
     bg: 'bg-danger/10',
+    border: 'border-danger/30',
     label: { en: 'High Risk', vi: 'Rủi ro cao' }
+  }
+};
+
+const CLASSIFICATION_CONFIG = {
+  confirmed: {
+    icon: CheckCircle2,
+    emoji: '🟢',
+    color: 'text-success',
+    bg: 'bg-success/10',
+    label: { en: 'Confirmed', vi: 'Đã xác nhận' }
+  },
+  emerging: {
+    icon: AlertCircle,
+    emoji: '🟠',
+    color: 'text-warning',
+    bg: 'bg-warning/10',
+    label: { en: 'Emerging Risk', vi: 'Rủi ro mới nổi' }
+  },
+  predictive: {
+    icon: Lightbulb,
+    emoji: '🔵',
+    color: 'text-info',
+    bg: 'bg-info/10',
+    label: { en: 'Predictive', vi: 'Dự đoán' }
   }
 };
 
@@ -63,74 +96,63 @@ export function SystemHealthOverview() {
   const { t, i18n } = useTranslation();
   const [status, setStatus] = useState<SystemStatus>({
     overallRisk: 'low',
-    activeAlerts: 0,
-    emergingIssues: [],
+    articles: [],
     lastUpdated: new Date(),
-    isLive: false
+    isLive: false,
+    sourcesChecked: []
   });
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+  const lang = i18n.language as 'en' | 'vi';
 
   const fetchHealthUpdates = useCallback(async () => {
     setLoading(true);
     
     try {
-      console.log('🔍 Triggering automated health update search...');
+      console.log('🔍 Triggering Health News Intelligence Agent...');
       
-      const { data, error } = await supabase.functions.invoke('fetch-disease-news');
+      const { data, error } = await supabase.functions.invoke('health-news-intelligence');
       
-      if (error) throw error;
+      if (error) {
+        if (error.message?.includes('429')) {
+          toast.error(lang === 'vi' ? 'Đã vượt giới hạn. Vui lòng thử lại sau.' : 'Rate limit exceeded. Please try again later.');
+          return;
+        }
+        if (error.message?.includes('402')) {
+          toast.error(lang === 'vi' ? 'Cần nạp thêm credits.' : 'Payment required. Please add credits.');
+          return;
+        }
+        throw error;
+      }
 
       if (data?.success) {
-        const emergingIssues: HealthUpdate[] = (data.articles || [])
-          .slice(0, 3)
-          .map((article: any, idx: number) => ({
-            id: `update-${Date.now()}-${idx}`,
-            disease: article.disease || 'unknown',
-            location: article.location || 'Vietnam',
-            severity: article.severity || 'low',
-            cases: article.cases || 0,
-            source: 'Official Health Sources',
-            confidence: 'verified' as const,
-            timestamp: article.date || new Date().toISOString(),
-            summary: article.summary || ''
-          }));
-
-        // Calculate overall risk based on emerging issues
-        let overallRisk: 'low' | 'medium' | 'high' = 'low';
-        if (emergingIssues.some(i => i.severity === 'high')) {
-          overallRisk = 'high';
-        } else if (emergingIssues.some(i => i.severity === 'medium')) {
-          overallRisk = 'medium';
-        }
-
         setStatus({
-          overallRisk,
-          activeAlerts: data.alertsCreated || 0,
-          emergingIssues,
-          lastUpdated: new Date(),
-          isLive: true
+          overallRisk: data.overallRisk || 'low',
+          articles: data.articles || [],
+          lastUpdated: new Date(data.lastUpdated),
+          isLive: true,
+          sourcesChecked: data.metadata?.sourcesChecked || []
         });
 
         toast.success(
-          i18n.language === 'vi' 
-            ? `Đã cập nhật ${emergingIssues.length} thông tin y tế mới`
-            : `Updated ${emergingIssues.length} new health updates`
+          lang === 'vi' 
+            ? `Đã cập nhật ${data.articles?.length || 0} tin tức y tế`
+            : `Updated ${data.articles?.length || 0} health news items`
         );
       }
     } catch (error: any) {
       console.error('❌ Health update error:', error);
       toast.error(
-        i18n.language === 'vi'
+        lang === 'vi'
           ? 'Lỗi cập nhật thông tin y tế'
           : 'Error updating health information'
       );
     } finally {
       setLoading(false);
     }
-  }, [i18n.language]);
+  }, [lang]);
 
   // Auto-refresh every 5 minutes when enabled
   useEffect(() => {
@@ -157,7 +179,7 @@ export function SystemHealthOverview() {
             </div>
             <div>
               <CardTitle className="text-base flex items-center gap-2">
-                {i18n.language === 'vi' ? 'Tổng quan Hệ thống Y tế' : 'System Health Overview'}
+                {lang === 'vi' ? 'Tổng quan Hệ thống Y tế' : 'System Health Overview'}
                 {status.isLive && (
                   <Badge variant="outline" className="text-xs bg-success/10 text-success border-success/30">
                     <Radio className="h-3 w-3 mr-1 animate-pulse" />
@@ -166,7 +188,7 @@ export function SystemHealthOverview() {
                 )}
               </CardTitle>
               <p className="text-xs text-muted-foreground">
-                {i18n.language === 'vi' ? 'Cập nhật tự động từ nguồn chính thống' : 'Auto-updated from official sources'}
+                {lang === 'vi' ? 'Tin tức y tế được AI tóm tắt từ nguồn chính thống' : 'AI-summarized health news from official sources'}
               </p>
             </div>
           </div>
@@ -189,7 +211,7 @@ export function SystemHealthOverview() {
               className="gap-1"
             >
               <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
-              {i18n.language === 'vi' ? 'Cập nhật' : 'Update'}
+              {lang === 'vi' ? 'Cập nhật' : 'Update'}
             </Button>
           </div>
         </div>
@@ -198,17 +220,18 @@ export function SystemHealthOverview() {
       <CardContent className="space-y-4">
         {/* Overall Risk Indicator */}
         <div className={cn(
-          "flex items-center justify-between p-4 rounded-xl",
-          riskConfig.bg
+          "flex items-center justify-between p-4 rounded-xl border",
+          riskConfig.bg,
+          riskConfig.border
         )}>
           <div className="flex items-center gap-3">
             <span className="text-2xl">{riskConfig.icon}</span>
             <div>
               <p className="text-sm font-medium">
-                {i18n.language === 'vi' ? 'Mức độ rủi ro cộng đồng' : 'Community Risk Level'}
+                {lang === 'vi' ? 'Mức độ rủi ro cộng đồng' : 'Community Risk Level'}
               </p>
               <p className={cn("text-lg font-bold", riskConfig.color)}>
-                {riskConfig.label[i18n.language as 'en' | 'vi']}
+                {riskConfig.label[lang]}
               </p>
             </div>
           </div>
@@ -220,17 +243,21 @@ export function SystemHealthOverview() {
         {/* Stats Row */}
         <div className="grid grid-cols-3 gap-3">
           <div className="p-3 rounded-xl bg-muted/30 text-center">
-            <AlertTriangle className="h-4 w-4 mx-auto mb-1 text-warning" />
-            <p className="text-lg font-bold">{status.activeAlerts}</p>
+            <CheckCircle2 className="h-4 w-4 mx-auto mb-1 text-success" />
+            <p className="text-lg font-bold">
+              {status.articles.filter(a => a.classification === 'confirmed').length}
+            </p>
             <p className="text-xs text-muted-foreground">
-              {i18n.language === 'vi' ? 'Cảnh báo mới' : 'New Alerts'}
+              {lang === 'vi' ? 'Xác nhận' : 'Confirmed'}
             </p>
           </div>
           <div className="p-3 rounded-xl bg-muted/30 text-center">
-            <TrendingUp className="h-4 w-4 mx-auto mb-1 text-primary" />
-            <p className="text-lg font-bold">{status.emergingIssues.length}</p>
+            <AlertCircle className="h-4 w-4 mx-auto mb-1 text-warning" />
+            <p className="text-lg font-bold">
+              {status.articles.filter(a => a.classification === 'emerging').length}
+            </p>
             <p className="text-xs text-muted-foreground">
-              {i18n.language === 'vi' ? 'Vấn đề nổi bật' : 'Emerging Issues'}
+              {lang === 'vi' ? 'Mới nổi' : 'Emerging'}
             </p>
           </div>
           <div className="p-3 rounded-xl bg-muted/30 text-center">
@@ -239,77 +266,137 @@ export function SystemHealthOverview() {
               {status.lastUpdated.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
             </p>
             <p className="text-xs text-muted-foreground">
-              {i18n.language === 'vi' ? 'Cập nhật lần cuối' : 'Last Updated'}
+              {lang === 'vi' ? 'Cập nhật' : 'Updated'}
             </p>
           </div>
         </div>
 
-        {/* Emerging Issues */}
-        <div className="space-y-2">
+        {/* News Articles with AI Summaries */}
+        <div className="space-y-3">
           <p className="text-sm font-medium flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            {i18n.language === 'vi' ? 'Vấn đề y tế nổi bật' : 'Key Emerging Health Issues'}
+            <Sparkles className="h-4 w-4 text-primary" />
+            {lang === 'vi' ? 'Tin tức y tế (AI tóm tắt)' : 'Health News (AI Summarized)'}
           </p>
           
           {loading ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {[1, 2, 3].map(i => (
-                <Skeleton key={i} className="h-16 rounded-xl" />
+                <Skeleton key={i} className="h-32 rounded-xl" />
               ))}
             </div>
-          ) : status.emergingIssues.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground">
+          ) : status.articles.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
               <Shield className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">
-                {i18n.language === 'vi' 
-                  ? 'Không có vấn đề y tế nghiêm trọng nào được phát hiện'
-                  : 'No significant health issues detected'}
+                {lang === 'vi' 
+                  ? 'Không có tin tức y tế mới'
+                  : 'No new health news found'}
               </p>
             </div>
           ) : (
-            status.emergingIssues.map((issue) => (
-              <div
-                key={issue.id}
-                className="flex items-start gap-3 p-3 rounded-xl bg-muted/20 hover:bg-muted/40 transition-colors"
-              >
-                <span className="text-lg mt-0.5">
-                  {RISK_CONFIG[issue.severity].icon}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-medium truncate">
-                      {issue.disease.toUpperCase()}
-                    </p>
+            status.articles.slice(0, 5).map((article) => {
+              const classConfig = CLASSIFICATION_CONFIG[article.classification];
+              const ClassIcon = classConfig.icon;
+              
+              return (
+                <div
+                  key={article.id}
+                  className={cn(
+                    "p-4 rounded-xl border transition-all hover:shadow-md",
+                    classConfig.bg,
+                    "border-border/50"
+                  )}
+                >
+                  {/* Classification Badge */}
+                  <div className="flex items-center justify-between mb-2">
                     <Badge 
                       variant="outline" 
-                      className={cn(
-                        "text-xs",
-                        issue.confidence === 'verified' 
-                          ? "border-success/50 text-success" 
-                          : "border-warning/50 text-warning"
-                      )}
+                      className={cn("text-xs gap-1", classConfig.color)}
                     >
-                      {issue.confidence === 'verified' ? '✓ Verified' : '? Unverified'}
+                      <ClassIcon className="h-3 w-3" />
+                      {classConfig.label[lang]}
                     </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(article.publishedAt).toLocaleDateString(locale)}
+                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground line-clamp-2">
-                    {issue.summary || `${issue.cases} cases reported in ${issue.location}`}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    📍 {issue.location} • {new Date(issue.timestamp).toLocaleDateString(locale)}
+
+                  {/* AI Summary - Primary Content */}
+                  <div className="mb-3">
+                    <div className="flex items-start gap-2 mb-2">
+                      <Sparkles className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-xs text-primary font-medium">
+                          {lang === 'vi' ? 'AI tóm tắt:' : 'AI Summary:'}
+                        </span>
+                        <p className="text-sm text-foreground leading-relaxed">
+                          {article.aiSummary}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Source Info */}
+                  <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">
+                        {article.source}
+                      </span>
+                      {article.location && (
+                        <>
+                          <span className="text-muted-foreground">•</span>
+                          <span className="text-xs text-muted-foreground">
+                            📍 {article.location}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* Read Full Article Link */}
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-primary hover:underline"
+                    >
+                      {lang === 'vi' ? 'Đọc bài gốc' : 'Read full article'}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+
+                  {/* Article Title */}
+                  <p className="text-xs text-muted-foreground mt-2 line-clamp-1">
+                    {article.title}
                   </p>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
         {/* Source Attribution */}
-        <div className="pt-2 border-t border-border/50">
+        <div className="pt-3 border-t border-border/50 space-y-2">
+          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <Shield className="h-3 w-3" />
+            {lang === 'vi' 
+              ? 'Nguồn đã kiểm tra:'
+              : 'Sources checked:'}
+          </div>
+          <div className="flex flex-wrap justify-center gap-1">
+            {(status.sourcesChecked.length > 0 
+              ? status.sourcesChecked 
+              : ['Ministry of Health', 'WHO', 'CDC']
+            ).map((source, idx) => (
+              <Badge key={idx} variant="outline" className="text-xs">
+                {source}
+              </Badge>
+            ))}
+          </div>
           <p className="text-xs text-muted-foreground text-center">
-            {i18n.language === 'vi' 
-              ? '📡 Nguồn: Bộ Y tế, WHO, CDC • Cập nhật tự động mỗi 5 phút'
-              : '📡 Sources: Ministry of Health, WHO, CDC • Auto-updates every 5 minutes'}
+            {lang === 'vi' 
+              ? '⚡ Cập nhật tự động mỗi 5 phút • AI tóm tắt không thay thế tư vấn y tế'
+              : '⚡ Auto-updates every 5 min • AI summaries do not replace medical advice'}
           </p>
         </div>
       </CardContent>
