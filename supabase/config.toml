@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.health-pipeline-orchestrator]
 verify_jwt = false
+
+[functions.scheduled-health-search]
+verify_jwt = false

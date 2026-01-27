@@ -15,6 +15,7 @@ import { SystemHealthOverview } from "@/components/dashboard/SystemHealthOvervie
 import { HealthDataSynthesis } from "@/components/dashboard/HealthDataSynthesis"
 import { RegionalRiskMap } from "@/components/dashboard/RegionalRiskMap"
 import { PipelineStatus } from "@/components/dashboard/PipelineStatus"
+import { HealthNewsFeed } from "@/components/dashboard/HealthNewsFeed"
 import { useHealthPipeline } from "@/hooks/useHealthPipeline"
 
 interface DailyCount {
@@ -350,9 +351,9 @@ export default function Dashboard() {
         <HealthDataSynthesis />
       </div>
 
-      {/* Charts Row 1 */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
+      {/* Charts Row 1 - with News Feed */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="animate-fade-up lg:col-span-2" style={{ animationDelay: '200ms' }}>
           <DashboardChart
             title={t('dashboard.caseTrend')}
             data={trendData}
@@ -360,6 +361,13 @@ export default function Dashboard() {
             multiSeries={false}
           />
         </div>
+        <div className="animate-fade-up" style={{ animationDelay: '250ms' }}>
+          <HealthNewsFeed />
+        </div>
+      </div>
+
+      {/* Charts Row 2 */}
+      <div className="grid gap-6 lg:grid-cols-2">
         <div className="animate-fade-up" style={{ animationDelay: '300ms' }}>
           <DashboardChart
             title={t('dashboard.diseaseDistribution')}
@@ -368,11 +376,7 @@ export default function Dashboard() {
             multiSeries={false}
           />
         </div>
-      </div>
-
-      {/* Charts Row 2 */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="animate-fade-up" style={{ animationDelay: '400ms' }}>
+        <div className="animate-fade-up" style={{ animationDelay: '350ms' }}>
           <DashboardChart
             title={t('dashboard.districtDistribution')}
             data={districtData}
@@ -380,64 +384,64 @@ export default function Dashboard() {
             multiSeries={false}
           />
         </div>
-        
-        {/* Recent Alerts */}
-        <Card className="rounded-2xl border-border/50 animate-fade-up" style={{ animationDelay: '500ms' }}>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-warning/10">
-                  <AlertTriangle className="h-4 w-4 text-warning" />
-                </div>
-                <div>
-                  <CardTitle className="text-base">{t('dashboard.recentAlerts')}</CardTitle>
-                  <CardDescription className="text-xs">
-                    {alerts.filter(a => a.status === 'open').length} {t('alerts.open').toLowerCase()}
-                  </CardDescription>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => window.location.href = '/alerts'}>
-                {t('common.all')}
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {alerts.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">{t('common.noData')}</p>
-              </div>
-            ) : (
-              alerts.slice(0, 4).map((alert, idx) => (
-                <div 
-                  key={alert.id} 
-                  className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={cn(
-                      "w-2 h-2 rounded-full",
-                      alert.status === 'open' ? "bg-danger animate-pulse" : "bg-muted"
-                    )} />
-                    <div>
-                      <p className="text-sm font-medium">
-                        {t(`diseases.${alert.disease_code}`, alert.disease_code.toUpperCase())} - {alert.cases} {i18n.language === 'vi' ? 'ca' : 'cases'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{alert.day}</p>
-                    </div>
-                  </div>
-                  <Badge 
-                    variant={alert.status === 'open' ? 'destructive' : 'secondary'}
-                    className="text-xs"
-                  >
-                    {alert.status === 'open' ? t('alerts.open') : t('alerts.closed')}
-                  </Badge>
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Recent Alerts */}
+      <Card className="rounded-2xl border-border/50 animate-fade-up" style={{ animationDelay: '400ms' }}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-warning/10">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+              </div>
+              <div>
+                <CardTitle className="text-base">{t('dashboard.recentAlerts')}</CardTitle>
+                <CardDescription className="text-xs">
+                  {alerts.filter(a => a.status === 'open').length} {t('alerts.open').toLowerCase()}
+                </CardDescription>
+              </div>
+            </div>
+            <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => window.location.href = '/alerts'}>
+              {t('common.all')}
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {alerts.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">{t('common.noData')}</p>
+            </div>
+          ) : (
+            alerts.slice(0, 4).map((alert) => (
+              <div 
+                key={alert.id} 
+                className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
+                    alert.status === 'open' ? "bg-danger animate-pulse" : "bg-muted"
+                  )} />
+                  <div>
+                    <p className="text-sm font-medium">
+                      {t(`diseases.${alert.disease_code}`, alert.disease_code.toUpperCase())} - {alert.cases} {i18n.language === 'vi' ? 'ca' : 'cases'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{alert.day}</p>
+                  </div>
+                </div>
+                <Badge 
+                  variant={alert.status === 'open' ? 'destructive' : 'secondary'}
+                  className="text-xs"
+                >
+                  {alert.status === 'open' ? t('alerts.open') : t('alerts.closed')}
+                </Badge>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
