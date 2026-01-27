@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { SystemHealthOverview } from "@/components/dashboard/SystemHealthOverview"
+import { HealthDataSynthesis } from "@/components/dashboard/HealthDataSynthesis"
 
 interface DailyCount {
   id: string
@@ -305,9 +306,14 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* System Health Overview - New Automated Update Section */}
+      {/* System Health Overview - News Intelligence */}
       <div className="animate-fade-up" style={{ animationDelay: '150ms' }}>
         <SystemHealthOverview />
+      </div>
+
+      {/* Health Data Synthesis - Observed + Predicted */}
+      <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
+        <HealthDataSynthesis />
       </div>
 
       {/* Charts Row 1 */}
