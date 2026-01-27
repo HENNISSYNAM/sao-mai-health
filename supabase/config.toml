@@ -110,3 +110,6 @@ verify_jwt = false
 
 [functions.health-news-intelligence]
 verify_jwt = false
+
+[functions.health-data-synthesis]
+verify_jwt = false
