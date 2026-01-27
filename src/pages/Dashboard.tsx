@@ -11,6 +11,7 @@ import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHe
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { SystemHealthOverview } from "@/components/dashboard/SystemHealthOverview"
 
 interface DailyCount {
   id: string
@@ -302,6 +303,11 @@ export default function Dashboard() {
             <KpiCard {...kpi} />
           </div>
         ))}
+      </div>
+
+      {/* System Health Overview - New Automated Update Section */}
+      <div className="animate-fade-up" style={{ animationDelay: '150ms' }}>
+        <SystemHealthOverview />
       </div>
 
       {/* Charts Row 1 */}
