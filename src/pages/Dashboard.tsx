@@ -13,6 +13,9 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { SystemHealthOverview } from "@/components/dashboard/SystemHealthOverview"
 import { HealthDataSynthesis } from "@/components/dashboard/HealthDataSynthesis"
+import { RegionalRiskMap } from "@/components/dashboard/RegionalRiskMap"
+import { PipelineStatus } from "@/components/dashboard/PipelineStatus"
+import { useHealthPipeline } from "@/hooks/useHealthPipeline"
 
 interface DailyCount {
   id: string
@@ -41,6 +44,15 @@ export default function Dashboard() {
   const [fetchingNews, setFetchingNews] = useState(false)
 
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US'
+
+  // Multi-agent pipeline hook
+  const { 
+    data: pipelineData, 
+    isLoading: pipelineLoading, 
+    isConnected: pipelineConnected,
+    lastUpdated: pipelineLastUpdated,
+    triggerPipeline
+  } = useHealthPipeline(true, 5 * 60 * 1000) // Auto-refresh every 5 minutes
 
   const { isConnected: countsConnected, nowTs } = useRealtimeDailyCounts((payload) => {
     fetchInitialData()
@@ -306,10 +318,32 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Multi-Agent Pipeline Status */}
+      <div className="animate-fade-up" style={{ animationDelay: '120ms' }}>
+        <PipelineStatus 
+          isLoading={pipelineLoading}
+          isConnected={pipelineConnected}
+          lastUpdated={pipelineLastUpdated}
+          onRefresh={triggerPipeline}
+          dataQuality={pipelineData?.dataQuality}
+        />
+      </div>
+
       {/* System Health Overview - News Intelligence */}
       <div className="animate-fade-up" style={{ animationDelay: '150ms' }}>
         <SystemHealthOverview />
       </div>
+
+      {/* Regional Risk Map - GPS-based Classification */}
+      {pipelineData?.chartData?.regionalRisks && pipelineData.chartData.regionalRisks.length > 0 && (
+        <div className="animate-fade-up" style={{ animationDelay: '175ms' }}>
+          <RegionalRiskMap 
+            regionalRisks={pipelineData.chartData.regionalRisks}
+            userRegion={pipelineData.riskSummary?.userRegion}
+            isLoading={pipelineLoading}
+          />
+        </div>
+      )}
 
       {/* Health Data Synthesis - Observed + Predicted */}
       <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>

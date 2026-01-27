@@ -113,3 +113,6 @@ verify_jwt = false
 
 [functions.health-data-synthesis]
 verify_jwt = false
+
+[functions.health-pipeline-orchestrator]
+verify_jwt = false
