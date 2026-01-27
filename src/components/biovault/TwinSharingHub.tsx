@@ -6,14 +6,15 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Share2, QrCode, Bluetooth, MapPin, Users, 
-  Shield, Heart, Activity, AlertTriangle, 
+  Shield, Heart, AlertTriangle, 
   Link2, Unlink, Scan, Copy, Check, 
-  Navigation, RefreshCw, Smartphone, Wifi
+  Navigation, RefreshCw, Wifi, Clock, Eye
 } from 'lucide-react';
 import { useTwinSharing, SharedTwin } from '@/hooks/useTwinSharing';
+import { useTwinAccessAgent } from '@/hooks/useTwinAccessAgent';
+import { QRScannerModal } from './QRScannerModal';
 import type { UserHealthProfile } from '@/pages/BioVault';
 import { toast } from 'sonner';
 
@@ -22,10 +23,11 @@ interface TwinSharingHubProps {
 }
 
 export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [joinCode, setJoinCode] = useState('');
   const [copied, setCopied] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<{ minutes: number; seconds: number } | null>(null);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   
   const {
@@ -42,12 +44,43 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
     disconnectBluetooth
   } = useTwinSharing(profile);
 
+  const {
+    isLoading: isAccessLoading,
+    currentSession,
+    createSession,
+    activateSession,
+    revokeSession,
+    getTimeRemaining
+  } = useTwinAccessAgent();
+
   // Generate QR Code using canvas
   useEffect(() => {
     if (sharingCode && qrCanvasRef.current) {
       generateQRCode(sharingCode, qrCanvasRef.current);
     }
   }, [sharingCode]);
+
+  // Update time remaining
+  useEffect(() => {
+    if (!currentSession?.expiresAt) {
+      setTimeRemaining(null);
+      return;
+    }
+
+    const updateTime = () => {
+      const remaining = getTimeRemaining(currentSession.expiresAt);
+      setTimeRemaining(remaining);
+      
+      if (!remaining) {
+        toast.warning('Phiên chia sẻ đã hết hạn');
+        stopSharing();
+      }
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, [currentSession?.expiresAt, getTimeRemaining, stopSharing]);
 
   const generateQRCode = (code: string, canvas: HTMLCanvasElement) => {
     const ctx = canvas.getContext('2d');
@@ -117,7 +150,47 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
 
   const handleJoin = async () => {
     if (joinCode.length === 6) {
-      const success = await joinSession(joinCode);
+      // First validate via access agent
+      const session = await activateSession(joinCode);
+      if (session) {
+        // Then join the realtime session
+        const success = await joinSession(joinCode);
+        if (success) {
+          setJoinCode('');
+        }
+      }
+    }
+  };
+
+  const handleStartSharing = async () => {
+    if (!profile) {
+      toast.error('Vui lòng đăng nhập trước');
+      return;
+    }
+
+    // Create access session first
+    const result = await createSession(profile.id, ['location', 'healthSummary', 'bioShield']);
+    if (result) {
+      // Then start realtime sharing
+      await startSharing();
+    }
+  };
+
+  const handleStopSharing = async () => {
+    if (currentSession) {
+      await revokeSession(currentSession.sessionCode);
+    }
+    await stopSharing();
+  };
+
+  const handleQRScanned = async (code: string) => {
+    setShowScanner(false);
+    setJoinCode(code);
+    
+    // Auto-join after scanning
+    const session = await activateSession(code);
+    if (session) {
+      const success = await joinSession(code);
       if (success) {
         setJoinCode('');
       }
@@ -194,9 +267,13 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
                   </p>
                   
                   <div className="flex flex-col gap-3">
-                    <Button onClick={startSharing} className="w-full gap-2">
+                    <Button 
+                      onClick={handleStartSharing} 
+                      className="w-full gap-2"
+                      disabled={isAccessLoading}
+                    >
                       <QrCode className="h-4 w-4" />
-                      Tạo mã QR chia sẻ
+                      {isAccessLoading ? 'Đang tạo...' : 'Tạo mã QR chia sẻ'}
                     </Button>
                     
                     {isBluetoothSupported && (
@@ -206,6 +283,12 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
                       </Button>
                     )}
                   </div>
+
+                  {/* Security note */}
+                  <p className="text-xs text-muted-foreground text-center mt-4">
+                    <Shield className="h-3 w-3 inline mr-1" />
+                    Mã QR không chứa dữ liệu y tế. Phiên có hiệu lực 30 phút.
+                  </p>
                 </div>
               </div>
             </TabsContent>
@@ -240,7 +323,12 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
                   </div>
                 </div>
 
-                <Button variant="outline" className="w-full gap-2" onClick={() => setShowScanner(true)}>
+                <Button 
+                  variant="outline" 
+                  className="w-full gap-2" 
+                  onClick={() => setShowScanner(true)}
+                  disabled={isAccessLoading}
+                >
                   <Scan className="h-4 w-4" />
                   Quét mã QR
                 </Button>
@@ -276,6 +364,24 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
               <p className="text-sm text-muted-foreground">
                 Chia sẻ mã này để người khác kết nối với bạn
               </p>
+
+              {/* Session info */}
+              {currentSession && (
+                <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {timeRemaining ? (
+                      <span>{timeRemaining.minutes}:{String(timeRemaining.seconds).padStart(2, '0')}</span>
+                    ) : (
+                      <span>Hết hạn</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Eye className="h-3 w-3" />
+                    <span>{currentSession.remainingAccesses} lượt còn lại</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* My Location */}
@@ -419,7 +525,8 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
             <Button 
               variant="destructive" 
               className="w-full gap-2"
-              onClick={stopSharing}
+              onClick={handleStopSharing}
+              disabled={isAccessLoading}
             >
               <Unlink className="h-4 w-4" />
               Ngắt kết nối chia sẻ
@@ -450,27 +557,12 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
         )}
       </CardContent>
 
-      {/* QR Scanner Dialog */}
-      <Dialog open={showScanner} onOpenChange={setShowScanner}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Scan className="h-5 w-5" />
-              Quét mã QR
-            </DialogTitle>
-          </DialogHeader>
-          <div className="aspect-square bg-black rounded-lg flex items-center justify-center">
-            <div className="text-center text-white/70">
-              <Smartphone className="h-12 w-12 mx-auto mb-3 animate-pulse" />
-              <p className="text-sm">Camera đang khởi động...</p>
-              <p className="text-xs mt-2">Hướng camera vào mã QR</p>
-            </div>
-          </div>
-          <p className="text-xs text-center text-muted-foreground">
-            Hoặc nhập mã thủ công ở tab "Tham gia"
-          </p>
-        </DialogContent>
-      </Dialog>
+      {/* QR Scanner Modal */}
+      <QRScannerModal
+        open={showScanner}
+        onOpenChange={setShowScanner}
+        onCodeScanned={handleQRScanned}
+      />
     </Card>
   );
 };
