@@ -9,7 +9,7 @@ import {
   Shield, Lock, Fingerprint, FileText, Upload, 
   Heart, Brain, Droplets, Activity, AlertTriangle,
   CheckCircle2, Sparkles, Crown, TrendingUp, Eye,
-  FileSearch, Scan, User, Calendar, Phone
+  FileSearch, Scan, User, Calendar, Phone, Share2, MapPin
 } from 'lucide-react';
 import { BioVaultUploader } from '@/components/biovault/BioVaultUploader';
 import { DigitalTwinAvatar } from '@/components/biovault/DigitalTwinAvatar';
@@ -18,6 +18,9 @@ import { BioShieldIndex } from '@/components/biovault/BioShieldIndex';
 import { PersonalRiskEngine } from '@/components/biovault/PersonalRiskEngine';
 import { HealthAuditReport } from '@/components/biovault/HealthAuditReport';
 import { PremiumConsultant } from '@/components/biovault/PremiumConsultant';
+import { TwinSharingHub } from '@/components/biovault/TwinSharingHub';
+import { TwinLocationMap } from '@/components/biovault/TwinLocationMap';
+import { useTwinSharing } from '@/hooks/useTwinSharing';
 import { toast } from 'sonner';
 
 export interface UserHealthProfile {
@@ -63,6 +66,9 @@ const BioVault: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [healthProfile, setHealthProfile] = useState<UserHealthProfile | null>(null);
+  
+  // Twin sharing hook
+  const twinSharing = useTwinSharing(healthProfile);
 
   // Simulate fingerprint scan authentication
   const handleAuthentication = () => {
@@ -253,7 +259,7 @@ const BioVault: React.FC = () => {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-5 w-full max-w-3xl">
+        <TabsList className="grid grid-cols-6 w-full max-w-4xl">
           <TabsTrigger value="overview" className="gap-2">
             <Activity className="h-4 w-4" />
             {t('biovault.tabs.overview', 'Tổng quan')}
@@ -265,6 +271,10 @@ const BioVault: React.FC = () => {
           <TabsTrigger value="twin" className="gap-2">
             <User className="h-4 w-4" />
             {t('biovault.tabs.digitalTwin', 'Digital Twin')}
+          </TabsTrigger>
+          <TabsTrigger value="sharing" className="gap-2">
+            <Share2 className="h-4 w-4" />
+            {t('biovault.tabs.sharing', 'Chia sẻ')}
           </TabsTrigger>
           <TabsTrigger value="predictions" className="gap-2">
             <TrendingUp className="h-4 w-4" />
@@ -292,6 +302,17 @@ const BioVault: React.FC = () => {
 
         <TabsContent value="twin" className="space-y-6">
           <DigitalTwinAvatar profile={healthProfile} />
+        </TabsContent>
+
+        <TabsContent value="sharing" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TwinSharingHub profile={healthProfile} />
+            <TwinLocationMap 
+              myLocation={twinSharing.myLocation}
+              connectedTwins={twinSharing.connectedTwins}
+              isSharing={twinSharing.isSharing}
+            />
+          </div>
         </TabsContent>
 
         <TabsContent value="predictions" className="space-y-6">
