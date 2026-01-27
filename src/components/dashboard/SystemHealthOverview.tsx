@@ -41,7 +41,10 @@ interface SystemStatus {
   articles: NewsArticle[];
   lastUpdated: Date;
   isLive: boolean;
+  isRealtime: boolean;
   sourcesChecked: string[];
+  searchEngine: string;
+  searchTime: string;
 }
 
 const RISK_CONFIG = {
@@ -99,7 +102,10 @@ export function SystemHealthOverview() {
     articles: [],
     lastUpdated: new Date(),
     isLive: false,
-    sourcesChecked: []
+    isRealtime: false,
+    sourcesChecked: [],
+    searchEngine: '',
+    searchTime: ''
   });
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -133,7 +139,10 @@ export function SystemHealthOverview() {
           articles: data.articles || [],
           lastUpdated: new Date(data.lastUpdated),
           isLive: true,
-          sourcesChecked: data.metadata?.sourcesChecked || []
+          isRealtime: data.isRealtime || false,
+          sourcesChecked: data.metadata?.sourcesChecked || [],
+          searchEngine: data.metadata?.searchEngine || 'AI',
+          searchTime: data.metadata?.searchTime || ''
         });
 
         toast.success(
@@ -186,9 +195,19 @@ export function SystemHealthOverview() {
                     LIVE
                   </Badge>
                 )}
+                {status.isRealtime && (
+                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/30">
+                    ⚡ Real-time
+                  </Badge>
+                )}
               </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {lang === 'vi' ? 'Tin tức y tế được AI tóm tắt từ nguồn chính thống' : 'AI-summarized health news from official sources'}
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                {status.searchEngine && (
+                  <span className="font-medium text-primary">{status.searchEngine}</span>
+                )}
+                {status.searchTime && (
+                  <span>• {lang === 'vi' ? 'Cập nhật lúc' : 'Updated at'} {status.searchTime}</span>
+                )}
               </p>
             </div>
           </div>
