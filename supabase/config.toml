@@ -1,5 +1,8 @@
 project_id = "eovndykfixqvvsvovmsw"
 
+[functions.twin-access-agent]
+verify_jwt = false
+
 [api]
 enabled = true
 port = 54321
