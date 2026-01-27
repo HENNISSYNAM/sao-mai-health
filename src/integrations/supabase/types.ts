@@ -1603,6 +1603,60 @@ export type Database = {
           },
         ]
       }
+      health_news_articles: {
+        Row: {
+          article_hash: string
+          classification: string | null
+          content_summary: string | null
+          crawled_at: string
+          created_at: string
+          disease_type: string | null
+          id: string
+          location: string | null
+          processed: boolean | null
+          published_at: string | null
+          raw_content: string | null
+          severity: string | null
+          source: string
+          title: string
+          url: string
+        }
+        Insert: {
+          article_hash: string
+          classification?: string | null
+          content_summary?: string | null
+          crawled_at?: string
+          created_at?: string
+          disease_type?: string | null
+          id?: string
+          location?: string | null
+          processed?: boolean | null
+          published_at?: string | null
+          raw_content?: string | null
+          severity?: string | null
+          source: string
+          title: string
+          url: string
+        }
+        Update: {
+          article_hash?: string
+          classification?: string | null
+          content_summary?: string | null
+          crawled_at?: string
+          created_at?: string
+          disease_type?: string | null
+          id?: string
+          location?: string | null
+          processed?: boolean | null
+          published_at?: string | null
+          raw_content?: string | null
+          severity?: string | null
+          source?: string
+          title?: string
+          url?: string
+        }
+        Relationships: []
+      }
       his_integrations: {
         Row: {
           api_key_encrypted: string | null
@@ -3120,6 +3174,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      scheduler_runs: {
+        Row: {
+          articles_found: number | null
+          articles_new: number | null
+          completed_at: string | null
+          error_message: string | null
+          id: string
+          job_name: string
+          metadata: Json | null
+          started_at: string
+          status: string | null
+        }
+        Insert: {
+          articles_found?: number | null
+          articles_new?: number | null
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          job_name: string
+          metadata?: Json | null
+          started_at?: string
+          status?: string | null
+        }
+        Update: {
+          articles_found?: number | null
+          articles_new?: number | null
+          completed_at?: string | null
+          error_message?: string | null
+          id?: string
+          job_name?: string
+          metadata?: Json | null
+          started_at?: string
+          status?: string | null
+        }
+        Relationships: []
       }
       scores_monthly: {
         Row: {
