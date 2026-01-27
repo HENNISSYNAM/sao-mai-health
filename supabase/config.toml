@@ -107,3 +107,6 @@ verify_jwt = false
 
 [functions.send-stroke-alert]
 verify_jwt = false
+
+[functions.health-news-intelligence]
+verify_jwt = false
