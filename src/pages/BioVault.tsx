@@ -9,7 +9,7 @@ import {
   Shield, Lock, Fingerprint, FileText, Upload, 
   Heart, Brain, Droplets, Activity, AlertTriangle,
   CheckCircle2, Sparkles, Crown, TrendingUp, Eye,
-  FileSearch, Scan, User, Calendar, Phone, Share2, MapPin
+  FileSearch, Scan, User, Calendar, Phone, Share2, MapPin, Cpu
 } from 'lucide-react';
 import { BioVaultUploader } from '@/components/biovault/BioVaultUploader';
 import { DigitalTwinAvatar } from '@/components/biovault/DigitalTwinAvatar';
@@ -20,7 +20,9 @@ import { HealthAuditReport } from '@/components/biovault/HealthAuditReport';
 import { PremiumConsultant } from '@/components/biovault/PremiumConsultant';
 import { TwinSharingHub } from '@/components/biovault/TwinSharingHub';
 import { TwinLocationMap } from '@/components/biovault/TwinLocationMap';
+import { TwinEngineStatus } from '@/components/biovault/TwinEngineStatus';
 import { useTwinSharing } from '@/hooks/useTwinSharing';
+import { usePersonalTwinEngine } from '@/hooks/usePersonalTwinEngine';
 import { toast } from 'sonner';
 
 export interface UserHealthProfile {
@@ -64,11 +66,14 @@ const BioVault: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('engine');
   const [healthProfile, setHealthProfile] = useState<UserHealthProfile | null>(null);
   
   // Twin sharing hook
   const twinSharing = useTwinSharing(healthProfile);
+  
+  // Personal Twin Engine hook
+  const twinEngine = usePersonalTwinEngine(healthProfile);
 
   // Simulate fingerprint scan authentication
   const handleAuthentication = () => {
@@ -259,7 +264,11 @@ const BioVault: React.FC = () => {
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-6 w-full max-w-4xl">
+        <TabsList className="grid grid-cols-7 w-full max-w-5xl">
+          <TabsTrigger value="engine" className="gap-2">
+            <Cpu className="h-4 w-4" />
+            {t('biovault.tabs.engine', 'Engine')}
+          </TabsTrigger>
           <TabsTrigger value="overview" className="gap-2">
             <Activity className="h-4 w-4" />
             {t('biovault.tabs.overview', 'Tổng quan')}
@@ -270,7 +279,7 @@ const BioVault: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger value="twin" className="gap-2">
             <User className="h-4 w-4" />
-            {t('biovault.tabs.digitalTwin', 'Digital Twin')}
+            {t('biovault.tabs.digitalTwin', 'Twin')}
           </TabsTrigger>
           <TabsTrigger value="sharing" className="gap-2">
             <Share2 className="h-4 w-4" />
@@ -282,9 +291,19 @@ const BioVault: React.FC = () => {
           </TabsTrigger>
           <TabsTrigger value="consultant" className="gap-2">
             <Sparkles className="h-4 w-4" />
-            {t('biovault.tabs.consultant', 'Tư vấn AI')}
+            {t('biovault.tabs.consultant', 'AI')}
           </TabsTrigger>
         </TabsList>
+
+        {/* NEW: Engine Tab */}
+        <TabsContent value="engine" className="space-y-6">
+          <TwinEngineStatus
+            state={twinEngine.twinState}
+            isProcessing={twinEngine.isProcessing}
+            inputQueueLength={twinEngine.inputQueue.length}
+            onRefresh={twinEngine.processInputs}
+          />
+        </TabsContent>
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

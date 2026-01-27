@@ -134,3 +134,6 @@ verify_jwt = false
 
 [functions.realtime-alert-orchestrator]
 verify_jwt = false
+
+[functions.personal-twin-agent]
+verify_jwt = false
