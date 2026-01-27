@@ -17,11 +17,14 @@ import {
   Sparkles,
   CheckCircle2,
   AlertCircle,
-  Lightbulb
+  Lightbulb,
+  Bell,
+  Zap
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAlertCounts } from "@/hooks/useAlertOrchestrator";
 
 interface NewsArticle {
   id: string;
@@ -109,6 +112,9 @@ export function SystemHealthOverview() {
   });
   const [loading, setLoading] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(true);
+
+  // Get alert counts from orchestrator
+  const alertCounts = useAlertCounts();
 
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const lang = i18n.language as 'en' | 'vi';
@@ -256,6 +262,55 @@ export function SystemHealthOverview() {
           </div>
           <div className="flex items-center gap-2">
             <Shield className={cn("h-8 w-8", riskConfig.color)} />
+          </div>
+        </div>
+
+        {/* Alert Counts from Orchestrator */}
+        <div className="grid grid-cols-4 gap-2">
+          <div className={cn(
+            "p-3 rounded-xl text-center border",
+            alertCounts.critical > 0 ? "bg-red-500/10 border-red-500/30 animate-pulse" : "bg-muted/30 border-border/50"
+          )}>
+            <AlertTriangle className={cn("h-4 w-4 mx-auto mb-1", alertCounts.critical > 0 ? "text-red-500" : "text-muted-foreground")} />
+            <p className={cn("text-lg font-bold", alertCounts.critical > 0 ? "text-red-500" : "text-muted-foreground")}>
+              {alertCounts.critical}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {lang === 'vi' ? 'Nguy hiểm' : 'Critical'}
+            </p>
+          </div>
+          <div className={cn(
+            "p-3 rounded-xl text-center border",
+            alertCounts.high > 0 ? "bg-orange-500/10 border-orange-500/30" : "bg-muted/30 border-border/50"
+          )}>
+            <AlertCircle className={cn("h-4 w-4 mx-auto mb-1", alertCounts.high > 0 ? "text-orange-500" : "text-muted-foreground")} />
+            <p className={cn("text-lg font-bold", alertCounts.high > 0 ? "text-orange-500" : "text-muted-foreground")}>
+              {alertCounts.high}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {lang === 'vi' ? 'Cao' : 'High'}
+            </p>
+          </div>
+          <div className={cn(
+            "p-3 rounded-xl text-center border",
+            alertCounts.medium > 0 ? "bg-yellow-500/10 border-yellow-500/30" : "bg-muted/30 border-border/50"
+          )}>
+            <Bell className={cn("h-4 w-4 mx-auto mb-1", alertCounts.medium > 0 ? "text-yellow-500" : "text-muted-foreground")} />
+            <p className={cn("text-lg font-bold", alertCounts.medium > 0 ? "text-yellow-500" : "text-muted-foreground")}>
+              {alertCounts.medium}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {lang === 'vi' ? 'Trung bình' : 'Medium'}
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-muted/30 text-center border border-border/50">
+            <Zap className="h-4 w-4 mx-auto mb-1 text-primary" />
+            <p className="text-lg font-bold text-primary">
+              {alertCounts.total}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {lang === 'vi' ? 'Tổng cộng' : 'Total'}
+            </p>
           </div>
         </div>
 

@@ -128,3 +128,6 @@ verify_jwt = false
 
 [functions.location-risk-classifier]
 verify_jwt = false
+
+[functions.realtime-alert-orchestrator]
+verify_jwt = false
