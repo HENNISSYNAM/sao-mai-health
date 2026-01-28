@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getDiseaseName, getDiseaseColor } from '@/lib/diseaseI18n';
+import { GpsRecommendations } from './GpsRecommendations';
 
 interface PredictiveHealthChartProps {
   observedData: any[];
@@ -32,13 +33,15 @@ interface PredictiveHealthChartProps {
   };
   isLoading?: boolean;
   lastUpdated?: Date | null;
+  userGPS?: { lat: number; lng: number } | null;
 }
 
 export function PredictiveHealthChart({ 
   observedData, 
   predictedData,
   isLoading,
-  lastUpdated 
+  lastUpdated,
+  userGPS
 }: PredictiveHealthChartProps) {
   const { t, i18n } = useTranslation();
   const [showPredictions, setShowPredictions] = useState(true);
@@ -332,6 +335,16 @@ export function PredictiveHealthChart({
                 })}
               </LineChart>
             </ResponsiveContainer>
+
+            {/* GPS-based AI Recommendations */}
+            {userGPS && (
+              <div className="mt-3 pt-3 border-t">
+                <GpsRecommendations 
+                  userGPS={userGPS}
+                  diseaseData={observedData}
+                />
+              </div>
+            )}
 
             {/* AI Disclaimer */}
             {showPredictions && (
