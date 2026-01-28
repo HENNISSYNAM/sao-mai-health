@@ -47,12 +47,6 @@ export function AppSidebar() {
       title: t('nav.dashboard'),
       url: "/",
       icon: BarChart3,
-    },
-    {
-      titleKey: "nav.surveillance",
-      title: t('nav.surveillance'),
-      url: "/surveillance",
-      icon: Shield,
     }
   ];
 
