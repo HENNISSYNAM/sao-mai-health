@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { Activity, AlertTriangle, Heart, Users, RefreshCw, Newspaper, ArrowRight } from "lucide-react"
+import { Activity, AlertTriangle, Heart, Users, ArrowRight } from "lucide-react"
 import { KpiCard } from "@/components/KpiCard"
 import { DashboardChart } from "@/components/DashboardChart"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -9,9 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHealth"
 import { supabase } from "@/integrations/supabase/client"
-import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { HealthNewsFeed } from "@/components/dashboard/HealthNewsFeed"
+import { GPSHealthIntelligence } from "@/components/dashboard/GPSHealthIntelligence"
 
 interface DailyCount {
   id: string
@@ -37,15 +36,14 @@ export default function Dashboard() {
   const [dailyCounts, setDailyCounts] = useState<DailyCount[]>([])
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
-  const [fetchingNews, setFetchingNews] = useState(false)
 
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US'
 
-  const { isConnected: countsConnected, nowTs } = useRealtimeDailyCounts((payload) => {
+  const { isConnected: countsConnected, nowTs } = useRealtimeDailyCounts(() => {
     fetchInitialData()
   })
 
-  const { isConnected: alertsConnected } = useRealtimeAlerts((payload) => {
+  const { isConnected: alertsConnected } = useRealtimeAlerts(() => {
     fetchAlerts()
   })
 
@@ -117,29 +115,6 @@ export default function Dashboard() {
     return 'unknown'
   }
 
-  const fetchNewsData = async () => {
-    setFetchingNews(true)
-    toast.info(t('common.loading'))
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-disease-news')
-      
-      if (error) throw error
-      
-      if (data?.success) {
-        toast.success(t('common.success'))
-        await Promise.all([fetchInitialData(), fetchAlerts()])
-      } else {
-        toast.error(t('common.error'))
-      }
-    } catch (error: any) {
-      console.error('Error fetching news:', error)
-      toast.error(t('common.error'))
-    } finally {
-      setFetchingNews(false)
-    }
-  }
-
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
@@ -148,54 +123,6 @@ export default function Dashboard() {
     }
     loadData()
   }, [])
-
-  const kpiData = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0]
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-
-    const todayCases = dailyCounts
-      .filter(count => count.day === today)
-      .reduce((sum, count) => sum + count.cases, 0)
-
-    const openAlerts = alerts.filter(alert => alert.status === 'open').length
-
-    const recentDiseases = new Set(
-      dailyCounts
-        .filter(count => count.day >= sevenDaysAgo)
-        .map(count => count.disease_code)
-    ).size
-
-    return [
-      {
-        title: t('dashboard.todayCases'),
-        value: todayCases.toLocaleString(locale),
-        change: { value: 12, type: 'increase' as const },
-        icon: Users,
-        variant: 'info' as const
-      },
-      {
-        title: t('dashboard.openAlerts'),
-        value: openAlerts.toString(),
-        change: { value: 2, type: 'decrease' as const },
-        icon: AlertTriangle,
-        variant: openAlerts > 5 ? 'danger' as const : 'warning' as const
-      },
-      {
-        title: t('dashboard.diseaseTypes'),
-        value: recentDiseases.toString(),
-        change: { value: 1, type: 'increase' as const },
-        icon: Activity,
-        variant: 'success' as const
-      },
-      {
-        title: t('dashboard.vaccinationRate'),
-        value: "92%",
-        change: { value: 3, type: 'increase' as const },
-        icon: Heart,
-        variant: 'success' as const
-      }
-    ]
-  }, [dailyCounts, alerts, t, locale])
 
   const trendData = useMemo(() => {
     const last7Days = []
@@ -244,10 +171,10 @@ export default function Dashboard() {
           <Skeleton className="h-8 sm:h-9 w-48 sm:w-64" />
           <Skeleton className="h-4 sm:h-5 w-64 sm:w-96" />
         </div>
-        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-28 sm:h-32 rounded-xl sm:rounded-2xl" />
-          ))}
+        <Skeleton className="h-[400px] rounded-2xl" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className="h-64 rounded-xl" />
         </div>
       </div>
     )
@@ -255,66 +182,36 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-      {/* Header - Mobile Optimized */}
-      <div className="flex flex-col gap-3 animate-fade-up">
-        <div className="flex items-start justify-between">
-          <div className="space-y-0.5 sm:space-y-1">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">
-              {t('dashboard.title')}
-            </h1>
-            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
-              {t('dashboard.subtitle')}
-            </p>
-          </div>
-          <Badge 
-            variant="outline" 
-            className={cn(
-              "rounded-lg px-2 sm:px-3 py-0.5 sm:py-1 text-xs shrink-0",
-              countsConnected && alertsConnected 
-                ? "border-success/50 bg-success/10 text-success" 
-                : "border-muted"
-            )}
-          >
-            {countsConnected && alertsConnected ? `● ${t('dashboard.live')}` : `○ ${t('dashboard.offline')}`}
-          </Badge>
+      {/* Header - Simplified */}
+      <div className="flex items-center justify-between animate-fade-up">
+        <div className="space-y-0.5">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">
+            {t('dashboard.title')}
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
+            {t('dashboard.subtitle')}
+          </p>
         </div>
-        
-        <div className="flex items-center gap-2 sm:gap-3">
-          <Button
-            onClick={fetchNewsData}
-            disabled={fetchingNews}
-            size="sm"
-            className="gap-1.5 sm:gap-2 rounded-xl text-xs sm:text-sm flex-1 sm:flex-none"
-          >
-            {fetchingNews ? (
-              <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
-            ) : (
-              <Newspaper className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-            )}
-            <span className="truncate">{t('dashboard.fetchNews')}</span>
-          </Button>
-          <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
-            {nowTs.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
-          </span>
-        </div>
+        <Badge 
+          variant="outline" 
+          className={cn(
+            "rounded-lg px-2 sm:px-3 py-0.5 sm:py-1 text-xs shrink-0",
+            countsConnected && alertsConnected 
+              ? "border-success/50 bg-success/10 text-success" 
+              : "border-muted"
+          )}
+        >
+          {countsConnected && alertsConnected ? `● ${t('dashboard.live')}` : `○ ${t('dashboard.offline')}`}
+        </Badge>
       </div>
 
-      {/* KPI Cards - 2 columns on mobile, 4 on desktop */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-        {kpiData.map((kpi, index) => (
-          <div key={index} className="animate-fade-up" style={{ animationDelay: `${index * 50}ms` }}>
-            <KpiCard {...kpi} />
-          </div>
-        ))}
+      {/* GPS-Centric Health Intelligence - Primary Focus */}
+      <div className="animate-fade-up" style={{ animationDelay: '50ms' }}>
+        <GPSHealthIntelligence />
       </div>
 
-      {/* Health News & Pipeline - Full width */}
-      <div className="animate-fade-up" style={{ animationDelay: '100ms' }}>
-        <HealthNewsFeed />
-      </div>
-
-      {/* Charts - Stack on mobile */}
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2 animate-fade-up" style={{ animationDelay: '150ms' }}>
+      {/* Charts Grid - Secondary */}
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2 animate-fade-up" style={{ animationDelay: '100ms' }}>
         <DashboardChart
           title={t('dashboard.caseTrend')}
           data={trendData}
@@ -330,7 +227,7 @@ export default function Dashboard() {
       </div>
 
       {/* District Chart */}
-      <div className="animate-fade-up" style={{ animationDelay: '180ms' }}>
+      <div className="animate-fade-up" style={{ animationDelay: '150ms' }}>
         <DashboardChart
           title={t('dashboard.districtDistribution')}
           data={districtData}
@@ -339,7 +236,7 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Recent Alerts - Mobile Optimized */}
+      {/* Recent Alerts - Compact */}
       <Card className="rounded-xl sm:rounded-2xl border-border/50 animate-fade-up" style={{ animationDelay: '200ms' }}>
         <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
           <div className="flex items-center justify-between gap-2">
