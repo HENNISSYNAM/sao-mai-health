@@ -395,7 +395,7 @@ export function RegionalRiskMap({ regionalRisks = [], userRegion, isLoading: ext
               </Badge>
             </div>
             <div className="grid grid-cols-5 gap-2">
-              {userRegion.diseases.map(disease => (
+              {userRegion.diseases?.map(disease => (
                 <div key={disease.disease} className="text-center p-2 rounded-lg bg-background/50">
                   <div className="flex items-center justify-center gap-1">
                     <span className="text-sm font-medium">{disease.cases}</span>
@@ -445,12 +445,12 @@ export function RegionalRiskMap({ regionalRisks = [], userRegion, isLoading: ext
                   </div>
                   
                   <div className="flex flex-wrap gap-1">
-                    {region.diseases.slice(0, 3).map(disease => (
+                    {region.diseases?.slice(0, 3).map(disease => (
                       <div 
                         key={disease.disease} 
                         className="flex items-center gap-1 text-xs bg-background/50 px-1.5 py-0.5 rounded"
                       >
-                        <span className="uppercase font-medium">{disease.disease.slice(0, 3)}</span>
+                        <span className="uppercase font-medium">{disease.disease?.slice(0, 3)}</span>
                         <span className="text-muted-foreground">{disease.cases}</span>
                         {getTrendIcon(disease.trend)}
                       </div>
