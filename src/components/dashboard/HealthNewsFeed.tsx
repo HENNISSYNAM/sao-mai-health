@@ -304,7 +304,7 @@ export function HealthNewsFeed() {
       </CardHeader>
 
       <CardContent className="pt-0 px-3 sm:px-6 pb-3 sm:pb-6">
-        <ScrollArea className="h-[280px] sm:h-[350px] lg:h-[400px] pr-2 sm:pr-4">
+        <ScrollArea className="h-[240px] sm:h-[300px] lg:h-[340px] pr-2 sm:pr-4">
           <div className="space-y-2 sm:space-y-3">
             {articles.length === 0 ? (
               <div className="text-center py-6 sm:py-8 text-muted-foreground">
@@ -398,6 +398,36 @@ export function HealthNewsFeed() {
             )}
           </div>
         </ScrollArea>
+
+        {/* Verified Sources & Disclaimer Footer */}
+        <div className="mt-3 pt-3 border-t border-dashed space-y-2">
+          {/* Verified Sources */}
+          <div className="flex flex-wrap items-center gap-1.5 justify-center">
+            <span className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              {i18n.language === 'vi' ? 'Nguồn đã kiểm tra:' : 'Verified sources:'}
+            </span>
+            {['Bộ Y tế Việt Nam', 'WHO', 'CDC', 'VnExpress', 'Tuổi Trẻ', 'Thanh Niên'].map((source) => (
+              <Badge 
+                key={source}
+                variant="outline" 
+                className="text-[9px] sm:text-[10px] px-1.5 py-0.5 bg-muted/50 font-normal"
+              >
+                {source}
+              </Badge>
+            ))}
+          </div>
+
+          {/* Disclaimer */}
+          <div className="flex items-center justify-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
+            <Zap className="h-3 w-3 text-primary" />
+            <span>
+              {i18n.language === 'vi' 
+                ? 'Cập nhật tự động mỗi 5 phút • AI tóm tắt không thay thế tư vấn y tế'
+                : 'Auto-updates every 5 min • AI summary does not replace medical advice'}
+            </span>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
