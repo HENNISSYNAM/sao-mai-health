@@ -75,29 +75,30 @@ export function AppSidebar() {
       className="border-r border-border bg-background"
       collapsible="icon"
     >
-      <SidebarContent className="flex flex-col h-full px-3 py-6">
-        {/* Logo - Instagram style */}
-        <NavLink to="/" className="mb-8 px-3">
-          {collapsed ? (
+      <SidebarContent className="flex flex-col h-full py-4 md:py-6">
+        {/* Logo - Always animated heartbeat like IG icon */}
+        <NavLink 
+          to="/" 
+          className="flex items-center justify-center md:justify-start px-3 mb-6 md:mb-8"
+        >
+          <div className="relative">
             <img 
               src={logoImg} 
-              alt="Logo" 
-              className="w-7 h-7 object-contain"
+              alt="Sao Mai Health" 
+              className="w-8 h-8 md:w-7 md:h-7 object-contain animate-heartbeat"
             />
-          ) : (
-            <div className="flex items-center gap-3">
-              <img 
-                src={logoImg} 
-                alt="Logo" 
-                className="w-7 h-7 object-contain"
-              />
-              <span className="text-xl font-bold tracking-tight">Sao Mai</span>
-            </div>
+            {/* Pulse ring effect */}
+            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-30" />
+          </div>
+          {!collapsed && (
+            <span className="ml-3 text-lg md:text-xl font-bold tracking-tight hidden md:inline">
+              Sao Mai
+            </span>
           )}
         </NavLink>
 
-        {/* Main Navigation - Instagram style */}
-        <SidebarMenu className="flex-1 space-y-1">
+        {/* Main Navigation - Responsive */}
+        <SidebarMenu className="flex-1 space-y-0.5 md:space-y-1 px-2 md:px-3">
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.titleKey}>
               <SidebarMenuButton asChild>
@@ -105,9 +106,9 @@ export function AppSidebar() {
                   to={item.url}
                   end={item.url === '/'}
                   className={cn(
-                    "flex items-center gap-4 px-3 py-3 rounded-lg text-base transition-all duration-200 group",
+                    "flex items-center justify-center md:justify-start gap-3 md:gap-4 p-3 md:px-3 md:py-3 rounded-lg text-sm md:text-base transition-all duration-200",
                     isActive(item.url)
-                      ? "font-bold"
+                      ? "font-bold bg-accent"
                       : "font-normal hover:bg-accent"
                   )}
                   onMouseEnter={() => handleMouseEnter(item.url)}
@@ -119,22 +120,26 @@ export function AppSidebar() {
                     )} 
                     strokeWidth={isActive(item.url) ? 2.5 : 1.5}
                   />
-                  {!collapsed && <span>{item.title}</span>}
+                  {!collapsed && (
+                    <span className="hidden md:inline">{item.title}</span>
+                  )}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
 
-        {/* Bottom Section - More menu like Instagram */}
-        <div className="space-y-1">
+        {/* Bottom Section - More menu */}
+        <div className="px-2 md:px-3 mt-auto">
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-4 px-3 py-3 rounded-lg text-base font-normal hover:bg-accent w-full transition-all">
+                  <button className="flex items-center justify-center md:justify-start gap-3 md:gap-4 p-3 md:px-3 md:py-3 rounded-lg text-sm md:text-base font-normal hover:bg-accent w-full transition-all">
                     <Menu className="h-6 w-6 flex-shrink-0" strokeWidth={1.5} />
-                    {!collapsed && <span>{t('common.more', 'Thêm')}</span>}
+                    {!collapsed && (
+                      <span className="hidden md:inline">{t('common.more', 'Thêm')}</span>
+                    )}
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="start" className="w-56 mb-2">
@@ -153,9 +158,7 @@ export function AppSidebar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="flex items-center gap-3 cursor-pointer">
                     <Activity className="h-5 w-5 text-destructive" />
-                    <div>
-                      <span className="text-destructive font-semibold">Cấp cứu: 115</span>
-                    </div>
+                    <span className="text-destructive font-semibold">Cấp cứu: 115</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
