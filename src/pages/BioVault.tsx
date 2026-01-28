@@ -22,6 +22,7 @@ import { TwinSharingHub } from '@/components/biovault/TwinSharingHub';
 import { TwinLocationMap } from '@/components/biovault/TwinLocationMap';
 import { TwinEngineStatus } from '@/components/biovault/TwinEngineStatus';
 import { ProximityRadar } from '@/components/biovault/ProximityRadar';
+import { TwinRealtimeInsights } from '@/components/biovault/TwinRealtimeInsights';
 import { useTwinSharing } from '@/hooks/useTwinSharing';
 import { usePersonalTwinEngine } from '@/hooks/usePersonalTwinEngine';
 import { toast } from 'sonner';
@@ -69,6 +70,7 @@ const BioVault: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [activeTab, setActiveTab] = useState('engine');
   const [healthProfile, setHealthProfile] = useState<UserHealthProfile | null>(null);
+  const [proximityContext, setProximityContext] = useState<any>(null);
   
   // Twin sharing hook
   const twinSharing = useTwinSharing(healthProfile);
@@ -296,10 +298,11 @@ const BioVault: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Engine Tab with Proximity Radar */}
+        {/* Engine Tab with Proximity Radar and AI Insights */}
         <TabsContent value="engine" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            {/* Twin Engine Status - Main Panel */}
+            <div className="xl:col-span-2">
               <TwinEngineStatus
                 state={twinEngine.twinState}
                 isProcessing={twinEngine.isProcessing}
@@ -307,10 +310,13 @@ const BioVault: React.FC = () => {
                 onRefresh={twinEngine.processInputs}
               />
             </div>
+            
+            {/* Proximity Radar */}
             <div>
               <ProximityRadar 
                 twinId={healthProfile?.id || 'anonymous'}
                 onContextUpdate={(data) => {
+                  setProximityContext(data);
                   // Inject proximity context into twin engine
                   if (data.context?.shouldTriggerReeval) {
                     twinEngine.addInput({
@@ -324,6 +330,15 @@ const BioVault: React.FC = () => {
                     });
                   }
                 }}
+              />
+            </div>
+
+            {/* AI Realtime Insights */}
+            <div>
+              <TwinRealtimeInsights
+                twinId={healthProfile?.id || 'anonymous'}
+                twinState={twinEngine.twinState}
+                proximityContext={proximityContext}
               />
             </div>
           </div>

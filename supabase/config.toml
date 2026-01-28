@@ -140,3 +140,6 @@ verify_jwt = false
 
 [functions.proximity-signal-agent]
 verify_jwt = false
+
+[functions.personal-twin-realtime-ai]
+verify_jwt = false
