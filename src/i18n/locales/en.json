@@ -330,5 +330,37 @@
     "vi": "Tiếng Việt",
     "es": "Español",
     "fr": "Français"
+  },
+  "newsFeed": {
+    "title": "News & Pipeline",
+    "autoUpdates": "Auto-updates",
+    "step": "Step",
+    "processing": "Processing...",
+    "running": "Running...",
+    "update": "Update",
+    "new": "new",
+    "predictions": "predictions",
+    "steps": "steps",
+    "noNews": "No news yet",
+    "startScan": "Start scanning",
+    "readMore": "Read more",
+    "verifiedSources": "Verified sources",
+    "disclaimer": "Auto-updates every 5 min • AI summary does not replace medical advice",
+    "severity": {
+      "critical": "CRITICAL",
+      "high": "HIGH",
+      "medium": "MEDIUM",
+      "low": "LOW"
+    },
+    "diseaseTypes": {
+      "dengue": "Dengue Fever",
+      "covid19": "COVID-19",
+      "hfmd": "Hand, Foot & Mouth",
+      "influenza": "Influenza",
+      "ari": "Respiratory",
+      "environmental": "Environmental",
+      "food_safety": "Food Safety",
+      "other": "Other"
+    }
   }
 }

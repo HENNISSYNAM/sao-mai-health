@@ -330,5 +330,37 @@
     "vi": "Tiếng Việt",
     "es": "Español",
     "fr": "Français"
+  },
+  "newsFeed": {
+    "title": "Tin tức & Pipeline",
+    "autoUpdates": "Tự động cập nhật",
+    "step": "Bước",
+    "processing": "Đang xử lý...",
+    "running": "Đang chạy...",
+    "update": "Cập nhật",
+    "new": "mới",
+    "predictions": "dự báo",
+    "steps": "bước",
+    "noNews": "Chưa có tin tức",
+    "startScan": "Bắt đầu quét",
+    "readMore": "Đọc thêm",
+    "verifiedSources": "Nguồn đã kiểm tra",
+    "disclaimer": "Cập nhật tự động mỗi 5 phút • AI tóm tắt không thay thế tư vấn y tế",
+    "severity": {
+      "critical": "NGHIÊM TRỌNG",
+      "high": "CAO",
+      "medium": "TRUNG BÌNH",
+      "low": "THẤP"
+    },
+    "diseaseTypes": {
+      "dengue": "Sốt xuất huyết",
+      "covid19": "COVID-19",
+      "hfmd": "Tay chân miệng",
+      "influenza": "Cúm",
+      "ari": "Hô hấp",
+      "environmental": "Môi trường",
+      "food_safety": "An toàn thực phẩm",
+      "other": "Khác"
+    }
   }
 }

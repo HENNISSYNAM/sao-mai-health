@@ -48,7 +48,7 @@ const STEP_ICONS: Record<number, React.ElementType> = {
 };
 
 export function HealthNewsFeed() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { articles, latestRun, isLoading: newsLoading, isConnected: newsConnected, triggerSearch } = useHealthNewsFeed(15);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showPipeline, setShowPipeline] = useState(false);
@@ -78,15 +78,16 @@ export function HealthNewsFeed() {
     low: 'bg-success/20 text-success border-success/30'
   };
 
-  const diseaseLabels: Record<string, string> = {
-    dengue: 'Sốt xuất huyết',
-    covid19: 'COVID-19',
-    hfmd: 'Tay chân miệng',
-    influenza: 'Cúm',
-    ari: 'Hô hấp',
-    environmental: 'Môi trường',
-    food_safety: 'An toàn thực phẩm',
-    other: 'Khác'
+  // Get disease label from i18n
+  const getDiseaseLabel = (diseaseType: string | null) => {
+    if (!diseaseType) return '';
+    return t(`newsFeed.diseaseTypes.${diseaseType}`, t(`diseases.${diseaseType}`, diseaseType));
+  };
+
+  // Get severity label from i18n
+  const getSeverityLabel = (severity: string | null) => {
+    if (!severity) return '';
+    return t(`newsFeed.severity.${severity}`, severity.toUpperCase());
   };
 
   const formatTime = (dateStr: string | null) => {
@@ -154,12 +155,12 @@ export function HealthNewsFeed() {
             </div>
             <div className="min-w-0">
               <CardTitle className="text-sm sm:text-base truncate">
-                {i18n.language === 'vi' ? 'Tin tức & Pipeline' : 'News & Pipeline'}
+                {t('newsFeed.title')}
               </CardTitle>
               <CardDescription className="text-[10px] sm:text-xs">
                 {pipeline?.status === 'running' 
-                  ? `Bước ${pipeline.currentStep}/${pipeline.totalSteps}`
-                  : i18n.language === 'vi' ? 'Tự động cập nhật' : 'Auto-updates'}
+                  ? `${t('newsFeed.step')} ${pipeline.currentStep}/${pipeline.totalSteps}`
+                  : t('newsFeed.autoUpdates')}
               </CardDescription>
             </div>
           </div>
@@ -199,7 +200,7 @@ export function HealthNewsFeed() {
                 <Play className="h-3 w-3" />
               )}
               <span className="hidden sm:inline text-xs">
-                {isLoading ? 'Đang chạy...' : 'Cập nhật'}
+                {isLoading ? t('newsFeed.running') : t('newsFeed.update')}
               </span>
             </Button>
           </div>
@@ -210,7 +211,7 @@ export function HealthNewsFeed() {
           <div className="space-y-1.5 mt-3 pt-3 border-t">
             <div className="flex justify-between text-[10px] sm:text-xs">
               <span className="text-muted-foreground truncate">
-                {pipeline.steps.find(s => s.status === 'running')?.name || 'Đang xử lý...'}
+                {pipeline.steps.find(s => s.status === 'running')?.name || t('newsFeed.processing')}
               </span>
               <span className="font-medium shrink-0">{progress}%</span>
             </div>
@@ -235,14 +236,14 @@ export function HealthNewsFeed() {
                   ) : (
                     <RefreshCw className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" />
                   )}
-                  {latestRun.articles_new} {i18n.language === 'vi' ? 'mới' : 'new'}
+                  {latestRun.articles_new} {t('newsFeed.new')}
                 </span>
               </>
             )}
             {pipeline?.dataStats && pipeline.status !== 'running' && (
               <span className="flex items-center gap-1">
                 <Activity className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                {pipeline.dataStats.predictionsGenerated} dự báo
+                {pipeline.dataStats.predictionsGenerated} {t('newsFeed.predictions')}
               </span>
             )}
           </div>
@@ -255,7 +256,7 @@ export function HealthNewsFeed() {
               onClick={() => setShowPipeline(!showPipeline)}
               className="h-5 sm:h-6 text-[10px] sm:text-xs text-muted-foreground gap-1 px-1.5 -mr-1.5"
             >
-              10 bước
+              10 {t('newsFeed.steps')}
               {showPipeline ? (
                 <ChevronUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
               ) : (
@@ -310,7 +311,7 @@ export function HealthNewsFeed() {
               <div className="text-center py-6 sm:py-8 text-muted-foreground">
                 <Newspaper className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-xs sm:text-sm">
-                  {i18n.language === 'vi' ? 'Chưa có tin tức' : 'No news yet'}
+                  {t('newsFeed.noNews')}
                 </p>
                 <Button 
                   size="sm" 
@@ -318,7 +319,7 @@ export function HealthNewsFeed() {
                   onClick={handleFullRefresh}
                   className="mt-2 text-xs"
                 >
-                  {i18n.language === 'vi' ? 'Bắt đầu quét' : 'Start scanning'}
+                  {t('newsFeed.startScan')}
                 </Button>
               </div>
             ) : (
@@ -342,12 +343,12 @@ export function HealthNewsFeed() {
                             variant="outline" 
                             className={cn("text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0", severityColors[article.severity])}
                           >
-                            {article.severity.toUpperCase()}
+                            {getSeverityLabel(article.severity)}
                           </Badge>
                         )}
                         {article.disease_type && (
                           <Badge variant="outline" className="text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0">
-                            {diseaseLabels[article.disease_type] || article.disease_type}
+                            {getDiseaseLabel(article.disease_type)}
                           </Badge>
                         )}
                       </div>
@@ -386,7 +387,7 @@ export function HealthNewsFeed() {
                               className="inline-flex items-center gap-1 mt-2 text-[10px] sm:text-xs text-primary hover:underline"
                             >
                               <ExternalLink className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                              {i18n.language === 'vi' ? 'Đọc thêm' : 'Read more'}
+                              {t('newsFeed.readMore')}
                             </a>
                           )}
                         </div>
@@ -405,9 +406,12 @@ export function HealthNewsFeed() {
           <div className="flex flex-wrap items-center gap-1.5 justify-center">
             <span className="text-[10px] sm:text-xs text-muted-foreground flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" />
-              {i18n.language === 'vi' ? 'Nguồn đã kiểm tra:' : 'Verified sources:'}
+              {t('newsFeed.verifiedSources')}:
             </span>
-            {['Bộ Y tế Việt Nam', 'WHO', 'CDC', 'VnExpress', 'Tuổi Trẻ', 'Thanh Niên'].map((source) => (
+            {(i18n.language === 'vi' 
+              ? ['Bộ Y tế Việt Nam', 'WHO', 'CDC', 'VnExpress', 'Tuổi Trẻ', 'Thanh Niên']
+              : ['Vietnam MOH', 'WHO', 'CDC', 'VnExpress', 'Tuoi Tre', 'Thanh Nien']
+            ).map((source) => (
               <Badge 
                 key={source}
                 variant="outline" 
@@ -422,9 +426,7 @@ export function HealthNewsFeed() {
           <div className="flex items-center justify-center gap-1 text-[10px] sm:text-xs text-muted-foreground">
             <Zap className="h-3 w-3 text-primary" />
             <span>
-              {i18n.language === 'vi' 
-                ? 'Cập nhật tự động mỗi 5 phút • AI tóm tắt không thay thế tư vấn y tế'
-                : 'Auto-updates every 5 min • AI summary does not replace medical advice'}
+              {t('newsFeed.disclaimer')}
             </span>
           </div>
         </div>
