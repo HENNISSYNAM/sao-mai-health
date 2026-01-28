@@ -21,7 +21,6 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 
 // Mapbox access token
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
-
 interface Prediction {
   h3: string;
   predicted: number;
@@ -33,7 +32,6 @@ interface Prediction {
   district?: string;
   caseData?: any; // Store full case event data
 }
-
 interface FormData {
   lat: string;
   lon: string;
@@ -46,17 +44,13 @@ const sha256Hex = async (text: string): Promise<string> => {
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
   const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('');
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 };
-
 const getColorForPrediction = (predicted: number): string => {
   if (predicted < 60) return 'hsl(142, 71%, 45%)'; // green
   if (predicted < 80) return 'hsl(48, 96%, 53%)'; // yellow
   return 'hsl(0, 72%, 51%)'; // red
 };
-
 const getLabelForPrediction = (predicted: number): string => {
   if (predicted < 60) return 'low';
   if (predicted < 80) return 'medium';
@@ -64,53 +58,117 @@ const getLabelForPrediction = (predicted: number): string => {
 };
 
 // HCMC Districts data based on the reference map
-const hcmcDistricts = [
-  { id: 1, name: 'Quận 1', center: [106.7009, 10.7756] },
-  { id: 2, name: 'Quận 2', center: [106.7314, 10.7474] },
-  { id: 3, name: 'Quận 3', center: [106.6917, 10.7756] },
-  { id: 4, name: 'Quận 4', center: [106.7028, 10.7556] },
-  { id: 5, name: 'Quận 5', center: [106.6814, 10.7556] },
-  { id: 6, name: 'Quận 6', center: [106.6486, 10.7556] },
-  { id: 7, name: 'Quận 7', center: [106.7219, 10.7356] },
-  { id: 8, name: 'Quận 8', center: [106.6714, 10.7356] },
-  { id: 9, name: 'Quận 9', center: [106.8019, 10.7756] },
-  { id: 10, name: 'Quận 10', center: [106.6714, 10.7756] },
-  { id: 11, name: 'Quận 11', center: [106.6514, 10.7656] },
-  { id: 12, name: 'Quận 12', center: [106.6514, 10.8756] },
-  { id: 'bt', name: 'Q. Bình Tân', center: [106.6019, 10.7656] },
-  { id: 'tb', name: 'Q. Tân Bình', center: [106.6519, 10.8156] },
-  { id: 'pn', name: 'Q. Phú Nhuận', center: [106.6919, 10.7956] },
-  { id: 'gv', name: 'Q. Gò Vấp', center: [106.6819, 10.8456] },
-  { id: 'bd', name: 'Q. Bình Dương', center: [106.7519, 10.8156] },
-  { id: 'tp', name: 'Q. Tân Phú', center: [106.6319, 10.7956] },
-  { id: 'bc', name: 'H. Bình Chánh', center: [106.5919, 10.7156] },
-  { id: 'cc', name: 'H. Củ Chi', center: [106.4919, 10.7756] },
-  { id: 'hm', name: 'H. Hóc Môn', center: [106.5919, 10.8756] },
-  { id: 'nbe', name: 'H. Nhà Bè', center: [106.7319, 10.7056] },
-  { id: 'cg', name: 'H. Cần Giờ', center: [106.9519, 10.4156] }
-];
-
+const hcmcDistricts = [{
+  id: 1,
+  name: 'Quận 1',
+  center: [106.7009, 10.7756]
+}, {
+  id: 2,
+  name: 'Quận 2',
+  center: [106.7314, 10.7474]
+}, {
+  id: 3,
+  name: 'Quận 3',
+  center: [106.6917, 10.7756]
+}, {
+  id: 4,
+  name: 'Quận 4',
+  center: [106.7028, 10.7556]
+}, {
+  id: 5,
+  name: 'Quận 5',
+  center: [106.6814, 10.7556]
+}, {
+  id: 6,
+  name: 'Quận 6',
+  center: [106.6486, 10.7556]
+}, {
+  id: 7,
+  name: 'Quận 7',
+  center: [106.7219, 10.7356]
+}, {
+  id: 8,
+  name: 'Quận 8',
+  center: [106.6714, 10.7356]
+}, {
+  id: 9,
+  name: 'Quận 9',
+  center: [106.8019, 10.7756]
+}, {
+  id: 10,
+  name: 'Quận 10',
+  center: [106.6714, 10.7756]
+}, {
+  id: 11,
+  name: 'Quận 11',
+  center: [106.6514, 10.7656]
+}, {
+  id: 12,
+  name: 'Quận 12',
+  center: [106.6514, 10.8756]
+}, {
+  id: 'bt',
+  name: 'Q. Bình Tân',
+  center: [106.6019, 10.7656]
+}, {
+  id: 'tb',
+  name: 'Q. Tân Bình',
+  center: [106.6519, 10.8156]
+}, {
+  id: 'pn',
+  name: 'Q. Phú Nhuận',
+  center: [106.6919, 10.7956]
+}, {
+  id: 'gv',
+  name: 'Q. Gò Vấp',
+  center: [106.6819, 10.8456]
+}, {
+  id: 'bd',
+  name: 'Q. Bình Dương',
+  center: [106.7519, 10.8156]
+}, {
+  id: 'tp',
+  name: 'Q. Tân Phú',
+  center: [106.6319, 10.7956]
+}, {
+  id: 'bc',
+  name: 'H. Bình Chánh',
+  center: [106.5919, 10.7156]
+}, {
+  id: 'cc',
+  name: 'H. Củ Chi',
+  center: [106.4919, 10.7756]
+}, {
+  id: 'hm',
+  name: 'H. Hóc Môn',
+  center: [106.5919, 10.8756]
+}, {
+  id: 'nbe',
+  name: 'H. Nhà Bè',
+  center: [106.7319, 10.7056]
+}, {
+  id: 'cg',
+  name: 'H. Cần Giờ',
+  center: [106.9519, 10.4156]
+}];
 const getDistrictName = (lat: number, lon: number): string => {
   // Simple distance-based district assignment
   let minDistance = Infinity;
   let closestDistrict = 'Unknown';
-  
   hcmcDistricts.forEach(district => {
-    const distance = Math.sqrt(
-      Math.pow(lat - district.center[1], 2) + 
-      Math.pow(lon - district.center[0], 2)
-    );
+    const distance = Math.sqrt(Math.pow(lat - district.center[1], 2) + Math.pow(lon - district.center[0], 2));
     if (distance < minDistance) {
       minDistance = distance;
       closestDistrict = district.name;
     }
   });
-  
   return closestDistrict;
 };
-
 export default function MapView() {
-  const { t, i18n } = useTranslation();
+  const {
+    t,
+    i18n
+  } = useTranslation();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [formData, setFormData] = useState<FormData>({
     lat: '10.7756',
@@ -128,7 +186,6 @@ export default function MapView() {
   const [analyzingCase, setAnalyzingCase] = useState(false);
   const [mapPrompt, setMapPrompt] = useState('');
   const [processingMapCommand, setProcessingMapCommand] = useState(false);
-  
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<any>(null);
   const mapSource = useRef<any>(null);
@@ -140,21 +197,22 @@ export default function MapView() {
     const initializeData = async () => {
       try {
         // Load real case events from database
-        const { data: caseEvents, error } = await supabase
-          .from('case_events')
-          .select('*')
-          .order('occurred_at', { ascending: false })
-          .limit(100);
-
+        const {
+          data: caseEvents,
+          error
+        } = await supabase.from('case_events').select('*').order('occurred_at', {
+          ascending: false
+        }).limit(100);
         if (error) {
           console.error('Error loading case events:', error);
           // Generate mock data as fallback
-          const mockPredictions: Prediction[] = Array.from({ length: 15 }, (_, i) => {
+          const mockPredictions: Prediction[] = Array.from({
+            length: 15
+          }, (_, i) => {
             const lat = 10.7756 + (Math.random() - 0.5) * 0.2;
             const lon = 106.7009 + (Math.random() - 0.5) * 0.3;
             const predicted = Math.floor(Math.random() * 45) + 55;
             const district = getDistrictName(lat, lon);
-            
             return {
               h3: h3.latLngToCell(lat, lon, 8),
               predicted,
@@ -169,38 +227,31 @@ export default function MapView() {
           setPredictions(mockPredictions);
         } else {
           // Convert case events to predictions format
-          const casePredictions: Prediction[] = caseEvents
-            .filter((event: any) => event.lat && event.lon)
-            .map((event: any) => {
-              // Calculate risk based on disease code and nearby cases
-              let predicted = 50;
-              if (event.disease_code === 'dengue') predicted = 75;
-              else if (event.disease_code === 'covid19') predicted = 85;
-              else if (event.disease_code === 'tcm') predicted = 60;
-              
-              const district = getDistrictName(event.lat, event.lon);
-              
-              return {
-                h3: h3.latLngToCell(event.lat, event.lon, 8),
-                predicted,
-                label: getLabelForPrediction(predicted),
-                lat: event.lat,
-                lon: event.lon,
-                district,
-                created_at: event.occurred_at,
-                model_version: 'case-data-v1',
-                caseData: event // Store full case data
-              };
-            });
-          
+          const casePredictions: Prediction[] = caseEvents.filter((event: any) => event.lat && event.lon).map((event: any) => {
+            // Calculate risk based on disease code and nearby cases
+            let predicted = 50;
+            if (event.disease_code === 'dengue') predicted = 75;else if (event.disease_code === 'covid19') predicted = 85;else if (event.disease_code === 'tcm') predicted = 60;
+            const district = getDistrictName(event.lat, event.lon);
+            return {
+              h3: h3.latLngToCell(event.lat, event.lon, 8),
+              predicted,
+              label: getLabelForPrediction(predicted),
+              lat: event.lat,
+              lon: event.lon,
+              district,
+              created_at: event.occurred_at,
+              model_version: 'case-data-v1',
+              caseData: event // Store full case data
+            };
+          });
           setPredictions(casePredictions);
-          
           toast({
             title: t("maps.toast.dataLoaded"),
-            description: t("maps.toast.casesDisplayed", { count: casePredictions.length }),
+            description: t("maps.toast.casesDisplayed", {
+              count: casePredictions.length
+            })
           });
         }
-
         setLastUpdate(new Date());
       } catch (error) {
         console.error('Error loading data:', error);
@@ -213,62 +264,47 @@ export default function MapView() {
         setLoading(false);
       }
     };
-
     initializeData();
 
     // Setup realtime subscription for case_events
-    const caseChannel = supabase
-      .channel('case-events-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'case_events'
-        },
-        (payload) => {
-          console.log('New case event received:', payload);
-          const newCase = payload.new as any;
-          
-          if (newCase.lat && newCase.lon) {
-            // Calculate risk based on disease
-            let predicted = 50;
-            if (newCase.disease_code === 'dengue') predicted = 75;
-            else if (newCase.disease_code === 'covid19') predicted = 85;
-            else if (newCase.disease_code === 'tcm') predicted = 60;
-            
-            const district = getDistrictName(newCase.lat, newCase.lon);
-            
-            const newPrediction: Prediction = {
-              h3: h3.latLngToCell(newCase.lat, newCase.lon, 8),
-              predicted,
-              label: getLabelForPrediction(predicted),
-              lat: newCase.lat,
-              lon: newCase.lon,
-              district,
-              created_at: newCase.occurred_at,
-              model_version: 'realtime-v1',
-              caseData: newCase
-            };
-            
-            // Add to predictions and update map
-            setPredictions(prev => [newPrediction, ...prev]);
-            setLastUpdate(new Date());
-            
-            toast({
-              title: t("maps.toast.newCase"),
-              description: `${newCase.disease_code} - ${district}`,
-            });
-            
-            // Update map if it's initialized
-            if (map.current && mapSource.current) {
-              updateMapData([newPrediction, ...predictions]);
-            }
-          }
-        }
-      )
-      .subscribe();
+    const caseChannel = supabase.channel('case-events-realtime').on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'case_events'
+    }, payload => {
+      console.log('New case event received:', payload);
+      const newCase = payload.new as any;
+      if (newCase.lat && newCase.lon) {
+        // Calculate risk based on disease
+        let predicted = 50;
+        if (newCase.disease_code === 'dengue') predicted = 75;else if (newCase.disease_code === 'covid19') predicted = 85;else if (newCase.disease_code === 'tcm') predicted = 60;
+        const district = getDistrictName(newCase.lat, newCase.lon);
+        const newPrediction: Prediction = {
+          h3: h3.latLngToCell(newCase.lat, newCase.lon, 8),
+          predicted,
+          label: getLabelForPrediction(predicted),
+          lat: newCase.lat,
+          lon: newCase.lon,
+          district,
+          created_at: newCase.occurred_at,
+          model_version: 'realtime-v1',
+          caseData: newCase
+        };
 
+        // Add to predictions and update map
+        setPredictions(prev => [newPrediction, ...prev]);
+        setLastUpdate(new Date());
+        toast({
+          title: t("maps.toast.newCase"),
+          description: `${newCase.disease_code} - ${district}`
+        });
+
+        // Update map if it's initialized
+        if (map.current && mapSource.current) {
+          updateMapData([newPrediction, ...predictions]);
+        }
+      }
+    }).subscribe();
     return () => {
       supabase.removeChannel(caseChannel);
     };
@@ -280,16 +316,15 @@ export default function MapView() {
       initializeMap();
     }
   }, [showMap]);
-
   const initializeMap = async () => {
     try {
       map.current = new mapboxgl.Map({
         container: mapContainer.current!,
         style: 'mapbox://styles/mapbox/light-v11',
-        center: [106.7009, 10.7756], // Central HCMC
+        center: [106.7009, 10.7756],
+        // Central HCMC
         zoom: 11.5 // Adjusted for better HCMC coverage
       });
-
       map.current.on('load', () => {
         // Add predictions source
         map.current.addSource('predictions', {
@@ -306,19 +341,8 @@ export default function MapView() {
           type: 'circle',
           source: 'predictions',
           paint: {
-            'circle-radius': [
-              'interpolate',
-              ['linear'],
-              ['get', 'predicted'],
-              50, 8,
-              100, 16
-            ],
-            'circle-color': [
-              'case',
-              ['<', ['get', 'predicted'], 60], 'hsl(142, 71%, 45%)',
-              ['<', ['get', 'predicted'], 80], 'hsl(48, 96%, 53%)',
-              'hsl(0, 72%, 51%)'
-            ],
+            'circle-radius': ['interpolate', ['linear'], ['get', 'predicted'], 50, 8, 100, 16],
+            'circle-color': ['case', ['<', ['get', 'predicted'], 60], 'hsl(142, 71%, 45%)', ['<', ['get', 'predicted'], 80], 'hsl(48, 96%, 53%)', 'hsl(0, 72%, 51%)'],
             'circle-opacity': 0.7,
             'circle-stroke-width': 2,
             'circle-stroke-color': '#fff'
@@ -331,7 +355,7 @@ export default function MapView() {
           if (features && features.length > 0) {
             const clickedFeature = features[0];
             const h3Id = clickedFeature.properties.h3;
-            
+
             // Find the full prediction data
             const prediction = predictions.find(p => p.h3 === h3Id);
             if (prediction?.caseData) {
@@ -344,11 +368,9 @@ export default function MapView() {
         map.current.on('mouseenter', 'prediction-circles', () => {
           map.current.getCanvas().style.cursor = 'pointer';
         });
-
         map.current.on('mouseleave', 'prediction-circles', () => {
           map.current.getCanvas().style.cursor = '';
         });
-
         mapSource.current = map.current.getSource('predictions');
         updateMapData(predictions);
       });
@@ -361,10 +383,8 @@ export default function MapView() {
       });
     }
   };
-
   const updateMapData = (data: Prediction[]) => {
     if (!mapSource.current) return;
-
     const features = data.map(pred => ({
       type: 'Feature',
       geometry: {
@@ -378,18 +398,15 @@ export default function MapView() {
         district: pred.district
       }
     }));
-
     mapSource.current.setData({
       type: 'FeatureCollection',
       features
     });
   };
-
   const handleCaseClick = async (caseData: any) => {
     setSelectedCase(caseData);
     setAiAnalysis('');
     setAnalyzingCase(true);
-
     try {
       // Prepare case information for AI analysis
       const caseInfo = {
@@ -401,7 +418,10 @@ export default function MapView() {
       };
 
       // Call AI for medical analysis
-      const { data, error } = await supabase.functions.invoke('surveillance-ai', {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('surveillance-ai', {
         body: {
           messages: [{
             role: 'user',
@@ -420,9 +440,7 @@ Hãy cung cấp:
           }]
         }
       });
-
       if (error) throw error;
-
       setAiAnalysis(data.reply || 'Không thể phân tích ca bệnh này.');
     } catch (error) {
       console.error('AI analysis error:', error);
@@ -431,12 +449,10 @@ Hãy cung cấp:
       setAnalyzingCase(false);
     }
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setPredictionResult(null);
-
     try {
       // Validate inputs
       const lat = parseFloat(formData.lat);
@@ -453,24 +469,28 @@ Hãy cung cấp:
           variant: "default"
         });
       }
-
-      console.log('Calling AI prediction for:', { lat, lon });
-
-      // Call AI prediction API
-      const { data, error } = await supabase.functions.invoke('predict-disease-risk', {
-        body: { lat, lon }
+      console.log('Calling AI prediction for:', {
+        lat,
+        lon
       });
 
+      // Call AI prediction API
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('predict-disease-risk', {
+        body: {
+          lat,
+          lon
+        }
+      });
       if (error) throw error;
-
       console.log('Prediction result:', data);
-
       setPredictionResult(data);
 
       // Create prediction object for map
       const h3Cell = h3.latLngToCell(lat, lon, 8);
       const district = getDistrictName(lat, lon);
-      
       const newPrediction: Prediction = {
         h3: h3Cell,
         predicted: data.riskScore || 50,
@@ -490,12 +510,10 @@ Hãy cung cấp:
       if (showMap && mapSource.current) {
         updateMapData([newPrediction, ...predictions]);
       }
-
       toast({
         title: t("maps.toast.predictionComplete"),
-        description: `${district} | ${t("maps.risk")}: ${data.riskLevel} (${data.riskScore}/100)`,
+        description: `${district} | ${t("maps.risk")}: ${data.riskLevel} (${data.riskScore}/100)`
       });
-
     } catch (error) {
       console.error('Prediction error:', error);
       toast({
@@ -512,30 +530,33 @@ Hãy cung cấp:
   const handleMapPrompt = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mapPrompt.trim()) return;
-
     setProcessingMapCommand(true);
     try {
-      const { data, error } = await supabase.functions.invoke('map-agent', {
-        body: { prompt: mapPrompt }
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('map-agent', {
+        body: {
+          prompt: mapPrompt
+        }
       });
-
       if (error) throw error;
-
       if (data?.commands) {
         executeMapCommands(data.commands);
         toast({
           title: t("maps.toast.commandProcessed"),
-          description: t("maps.toast.actionsExecuted", { count: data.commands.length }),
+          description: t("maps.toast.actionsExecuted", {
+            count: data.commands.length
+          })
         });
       }
-
       setMapPrompt('');
     } catch (error: any) {
       console.error('Map agent error:', error);
       toast({
         title: t("common.error"),
         description: error.message || t("common.error"),
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setProcessingMapCommand(false);
@@ -548,26 +569,22 @@ Hãy cung cấp:
       toast({
         title: t("common.error"),
         description: t("maps.toast.enableMapFirst"),
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
-    commands.forEach((cmd) => {
+    commands.forEach(cmd => {
       try {
         switch (cmd.cmd) {
           case 'add-marker':
-            const marker = new mapboxgl.Marker({ color: cmd.color || 'red' })
-              .setLngLat([cmd.lng, cmd.lat])
-              .setPopup(new mapboxgl.Popup().setHTML(`<strong>${cmd.label || 'Marker'}</strong>`))
-              .addTo(map.current);
+            const marker = new mapboxgl.Marker({
+              color: cmd.color || 'red'
+            }).setLngLat([cmd.lng, cmd.lat]).setPopup(new mapboxgl.Popup().setHTML(`<strong>${cmd.label || 'Marker'}</strong>`)).addTo(map.current);
             mapMarkers.current.push(marker);
             break;
-
           case 'add-circle':
             const circleId = `circle-${Date.now()}-${Math.random()}`;
             const radiusInMeters = (cmd.radius_km || 1) * 1000;
-            
             map.current.addSource(circleId, {
               type: 'geojson',
               data: {
@@ -579,7 +596,6 @@ Hãy cung cấp:
                 properties: {}
               }
             });
-
             map.current.addLayer({
               id: circleId,
               type: 'circle',
@@ -595,7 +611,6 @@ Hãy cung cấp:
             });
             mapLayers.current.push(circleId);
             break;
-
           case 'add-heatmap':
             if (cmd.points && cmd.points.length > 0) {
               const heatmapId = `heatmap-${Date.now()}`;
@@ -615,7 +630,6 @@ Hãy cung cấp:
                   }))
                 }
               });
-
               map.current.addLayer({
                 id: heatmapId,
                 type: 'heatmap',
@@ -630,7 +644,6 @@ Hãy cung cấp:
               mapLayers.current.push(heatmapId);
             }
             break;
-
           case 'add-route':
             if (cmd.points && cmd.points.length > 1) {
               const routeId = `route-${Date.now()}`;
@@ -645,7 +658,6 @@ Hãy cung cấp:
                   properties: {}
                 }
               });
-
               map.current.addLayer({
                 id: routeId,
                 type: 'line',
@@ -659,12 +671,11 @@ Hãy cung cấp:
               mapLayers.current.push(routeId);
             }
             break;
-
           case 'clear':
             // Remove all markers
             mapMarkers.current.forEach(m => m.remove());
             mapMarkers.current = [];
-            
+
             // Remove all layers
             mapLayers.current.forEach(layerId => {
               if (map.current.getLayer(layerId)) {
@@ -676,10 +687,11 @@ Hãy cung cấp:
             });
             mapLayers.current = [];
             break;
-
           case 'fit-bounds':
             if (cmd.bounds) {
-              map.current.fitBounds(cmd.bounds, { padding: 50 });
+              map.current.fitBounds(cmd.bounds, {
+                padding: 50
+              });
             }
             break;
         }
@@ -697,14 +709,9 @@ Hãy cung cấp:
       }
       return acc;
     }, {} as Record<string, Prediction>);
-
-    return Object.values(grouped)
-      .sort((a, b) => b.predicted - a.predicted)
-      .slice(0, 10);
+    return Object.values(grouped).sort((a, b) => b.predicted - a.predicted).slice(0, 10);
   }, [predictions]);
-
-  return (
-    <div className="min-h-screen bg-background p-4">
+  return <div className="min-h-screen bg-background p-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -718,12 +725,10 @@ Hãy cung cấp:
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
               {t("dashboard.live")}
             </Badge>
-            {lastUpdate && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {lastUpdate && <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4" />
                 {lastUpdate.toLocaleTimeString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
-              </div>
-            )}
+              </div>}
           </div>
         </div>
 
@@ -744,31 +749,17 @@ Hãy cung cấp:
               <CardContent className="pt-6">
                 <form onSubmit={handleMapPrompt} className="space-y-4">
                   <div>
-                    <Textarea
-                      id="mapPrompt"
-                      value={mapPrompt}
-                      onChange={(e) => setMapPrompt(e.target.value)}
-                      placeholder={t("maps.aiAgent.placeholder")}
-                      className="min-h-[80px]"
-                    />
+                    <Textarea id="mapPrompt" value={mapPrompt} onChange={e => setMapPrompt(e.target.value)} placeholder={t("maps.aiAgent.placeholder")} className="min-h-[80px]" />
                   </div>
                   
-                  <Button 
-                    type="submit" 
-                    disabled={processingMapCommand || !mapPrompt.trim()} 
-                    className="w-full h-12 text-base font-semibold bg-purple-500 hover:bg-purple-600"
-                  >
-                    {processingMapCommand ? (
-                      <>
+                  <Button type="submit" disabled={processingMapCommand || !mapPrompt.trim()} className="w-full h-12 text-base font-semibold bg-purple-500 hover:bg-purple-600">
+                    {processingMapCommand ? <>
                         <Activity className="h-4 w-4 mr-2 animate-spin" />
                         {t("maps.aiAgent.processing")}
-                      </>
-                    ) : (
-                      <>
+                      </> : <>
                         <Map className="h-4 w-4 mr-2" />
                         {t("maps.aiAgent.execute")}
-                      </>
-                    )}
+                      </>}
                   </Button>
                 </form>
               </CardContent>
@@ -792,67 +783,37 @@ Hãy cung cấp:
                       <Label htmlFor="lat" className="text-sm font-semibold">
                         {t("maps.prediction.latPlaceholder")} <span className="text-destructive">*</span>
                       </Label>
-                      <Input
-                        id="lat"
-                        type="number"
-                        step="any"
-                        value={formData.lat}
-                        onChange={(e) => setFormData(prev => ({ ...prev, lat: e.target.value }))}
-                        required
-                        className="font-mono"
-                        placeholder="10.7756"
-                      />
+                      <Input id="lat" type="number" step="any" value={formData.lat} onChange={e => setFormData(prev => ({
+                      ...prev,
+                      lat: e.target.value
+                    }))} required className="font-mono" placeholder="10.7756" />
                     </div>
                     <div>
                       <Label htmlFor="lon" className="text-sm font-semibold">
                         {t("maps.prediction.lonPlaceholder")} <span className="text-destructive">*</span>
                       </Label>
-                      <Input
-                        id="lon"
-                        type="number"
-                        step="any"
-                        value={formData.lon}
-                        onChange={(e) => setFormData(prev => ({ ...prev, lon: e.target.value }))}
-                        required
-                        className="font-mono"
-                        placeholder="106.7009"
-                      />
+                      <Input id="lon" type="number" step="any" value={formData.lon} onChange={e => setFormData(prev => ({
+                      ...prev,
+                      lon: e.target.value
+                    }))} required className="font-mono" placeholder="106.7009" />
                     </div>
                   </div>
                   
-                  <Button 
-                    type="submit" 
-                    disabled={submitting} 
-                    className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
-                  >
-                    {submitting ? (
-                      <>
+                  <Button type="submit" disabled={submitting} className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90">
+                    {submitting ? <>
                         <Activity className="h-4 w-4 mr-2 animate-spin" />
                         {t("maps.aiAgent.processing")}
-                      </>
-                    ) : (
-                      <>
+                      </> : <>
                         <Activity className="h-4 w-4 mr-2" />
                         {t("maps.prediction.submit")}
-                      </>
-                    )}
+                      </>}
                   </Button>
 
                   {/* Prediction Result */}
-                  {predictionResult && (
-                    <div className={`mt-4 p-4 rounded-lg border-2 ${
-                      predictionResult.riskLevel === 'CAO' 
-                        ? 'bg-destructive/5 border-destructive' 
-                        : predictionResult.riskLevel === 'TRUNG BÌNH'
-                        ? 'bg-yellow-500/5 border-yellow-500'
-                        : 'bg-green-500/5 border-green-500'
-                    }`}>
+                  {predictionResult && <div className={`mt-4 p-4 rounded-lg border-2 ${predictionResult.riskLevel === 'CAO' ? 'bg-destructive/5 border-destructive' : predictionResult.riskLevel === 'TRUNG BÌNH' ? 'bg-yellow-500/5 border-yellow-500' : 'bg-green-500/5 border-green-500'}`}>
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="font-semibold">{t("maps.prediction.result")}</h4>
-                        <Badge variant={
-                          predictionResult.riskLevel === 'CAO' ? 'destructive' :
-                          predictionResult.riskLevel === 'TRUNG BÌNH' ? 'default' : 'secondary'
-                        } className="text-sm">
+                        <Badge variant={predictionResult.riskLevel === 'CAO' ? 'destructive' : predictionResult.riskLevel === 'TRUNG BÌNH' ? 'default' : 'secondary'} className="text-sm">
                           {predictionResult.riskLevel}
                         </Badge>
                       </div>
@@ -868,98 +829,30 @@ Hãy cung cấp:
                         </div>
                       </div>
 
-                      {predictionResult.topDiseases?.length > 0 && (
-                        <div className="mt-3 pt-3 border-t">
+                      {predictionResult.topDiseases?.length > 0 && <div className="mt-3 pt-3 border-t">
                           <p className="text-xs font-semibold mb-2">{t("maps.prediction.topDiseases")}:</p>
                           <div className="space-y-1">
-                            {predictionResult.topDiseases.map((d: any) => (
-                              <div key={d.disease} className="flex justify-between text-xs">
-                                <span>{t(`diseases.${d.disease}`, { defaultValue: d.disease }) as string}</span>
+                            {predictionResult.topDiseases.map((d: any) => <div key={d.disease} className="flex justify-between text-xs">
+                                <span>{t(`diseases.${d.disease}`, {
+                            defaultValue: d.disease
+                          }) as string}</span>
                                 <span className="font-semibold">{d.count} {t("common.cases")}</span>
-                              </div>
-                            ))}
+                              </div>)}
                           </div>
-                        </div>
-                      )}
+                        </div>}
 
                       <div className="mt-3 pt-3 border-t">
                         <p className="text-xs text-muted-foreground whitespace-pre-wrap">
                           {predictionResult.prediction}
                         </p>
                       </div>
-                    </div>
-                  )}
+                    </div>}
                 </form>
               </CardContent>
             </Card>
 
             {/* Top Hotspots */}
-            <Card className="rounded-2xl shadow-lg">
-              <CardHeader>
-                <CardTitle>{t("maps.topHotspots")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="space-y-3">
-                    {[...Array(5)].map((_, i) => (
-                      <Skeleton key={i} className="h-16 w-full" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {topHotspots.map((hotspot, index) => (
-                      <div
-                        key={hotspot.h3}
-                        className="flex items-center justify-between p-3 rounded-lg border bg-card"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="text-lg font-mono">
-                            #{index + 1}
-                          </div>
-                          <div>
-                            <div className="font-medium flex items-center gap-2">
-                              <span>H3: {hotspot.h3.slice(0, 8)}...</span>
-                              {hotspot.district && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {hotspot.district}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {new Date(hotspot.created_at).toLocaleTimeString(i18n.language === 'vi' ? 'vi-VN' : 'en-US')}
-                              {hotspot.district && ` • ${hotspot.district}`}
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <div className="font-bold text-lg">
-                              {hotspot.predicted.toFixed(1)}
-                            </div>
-                            <Badge
-                              variant="outline"
-                              style={{
-                                borderColor: getColorForPrediction(hotspot.predicted),
-                                color: getColorForPrediction(hotspot.predicted)
-                              }}
-                            >
-                              {hotspot.label}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {topHotspots.length === 0 && (
-                      <div className="text-center text-muted-foreground py-8">
-                        {t("maps.noPredictions")}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            
           </div>
 
           {/* Right Column: Map Panel */}
@@ -973,29 +866,18 @@ Hãy cung cấp:
                   </CardTitle>
                   
                   <div className="flex items-center space-x-2">
-                    <Switch
-                      id="show-map"
-                      checked={showMap}
-                      onCheckedChange={setShowMap}
-                    />
+                    <Switch id="show-map" checked={showMap} onCheckedChange={setShowMap} />
                     <Label htmlFor="show-map">{showMap ? t("maps.disableMap") : t("maps.enableMap")}</Label>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                {showMap ? (
-                  <div
-                    ref={mapContainer}
-                    className="w-full h-96 rounded-lg overflow-hidden"
-                  />
-                ) : (
-                  <div className="w-full h-96 rounded-lg border-2 border-dashed border-muted flex items-center justify-center">
+                {showMap ? <div ref={mapContainer} className="w-full h-96 rounded-lg overflow-hidden" /> : <div className="w-full h-96 rounded-lg border-2 border-dashed border-muted flex items-center justify-center">
                     <div className="text-center text-muted-foreground">
                       <Map className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>{t("maps.enableMap")}</p>
                     </div>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
 
@@ -1016,8 +898,7 @@ Hãy cung cấp:
       </div>
       
       {/* Case Detail Modal */}
-      {selectedCase && (
-        <Dialog open={!!selectedCase} onOpenChange={() => setSelectedCase(null)}>
+      {selectedCase && <Dialog open={!!selectedCase} onOpenChange={() => setSelectedCase(null)}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-3 text-xl">
@@ -1039,7 +920,9 @@ Hãy cung cấp:
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-sm font-medium text-muted-foreground">{t("maps.caseDetail.disease")}:</span>
-                      <Badge className="ml-2">{t(`diseases.${selectedCase.disease_code}`, { defaultValue: selectedCase.disease_code }) as string}</Badge>
+                      <Badge className="ml-2">{t(`diseases.${selectedCase.disease_code}`, {
+                      defaultValue: selectedCase.disease_code
+                    }) as string}</Badge>
                     </div>
                     <div>
                       <span className="text-sm font-medium text-muted-foreground">{t("maps.caseDetail.date")}:</span>
@@ -1055,18 +938,12 @@ Hãy cung cấp:
                     </div>
                   </div>
 
-                  {selectedCase.symptoms && (
-                    <div className="mt-4">
+                  {selectedCase.symptoms && <div className="mt-4">
                       <span className="text-sm font-medium text-muted-foreground block mb-2">{t("maps.caseDetail.symptoms")}:</span>
                       <div className="flex flex-wrap gap-2">
-                        {Object.entries(selectedCase.symptoms)
-                          .filter(([_, value]) => value === true)
-                          .map(([key]) => (
-                            <Badge key={key} variant="secondary">{key}</Badge>
-                          ))}
+                        {Object.entries(selectedCase.symptoms).filter(([_, value]) => value === true).map(([key]) => <Badge key={key} variant="secondary">{key}</Badge>)}
                       </div>
-                    </div>
-                  )}
+                    </div>}
                 </CardContent>
               </Card>
 
@@ -1079,26 +956,20 @@ Hãy cung cấp:
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  {analyzingCase ? (
-                    <div className="space-y-3">
+                  {analyzingCase ? <div className="space-y-3">
                       <Skeleton className="h-4 w-full" />
                       <Skeleton className="h-4 w-5/6" />
                       <Skeleton className="h-4 w-4/6" />
                       <div className="text-center text-sm text-muted-foreground mt-4">
                         {t("maps.caseDetail.analyzing")}
                       </div>
-                    </div>
-                  ) : aiAnalysis ? (
-                    <div className="prose prose-sm max-w-none">
+                    </div> : aiAnalysis ? <div className="prose prose-sm max-w-none">
                       <div className="whitespace-pre-wrap text-sm leading-relaxed">
                         {aiAnalysis}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-muted-foreground italic text-center py-4">
+                    </div> : <div className="text-muted-foreground italic text-center py-4">
                       {t("common.noData")}
-                    </div>
-                  )}
+                    </div>}
                 </CardContent>
               </Card>
             </div>
@@ -1109,33 +980,28 @@ Hãy cung cấp:
               </Button>
             </div>
           </DialogContent>
-        </Dialog>
-      )}
+        </Dialog>}
 
       {/* Global AI Assistant */}
       <GlobalAIAssistant />
-    </div>
-  );
+    </div>;
 }
 
 // New Component for Disease Statistics
 function DiseaseStatsPanel() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const { data: caseEvents } = await supabase
-          .from('case_events')
-          .select('*')
-          .order('occurred_at', { ascending: false })
-          .limit(200);
-
-        const { data: alerts } = await supabase
-          .from('alerts')
-          .select('*')
-          .eq('status', 'open');
+        const {
+          data: caseEvents
+        } = await supabase.from('case_events').select('*').order('occurred_at', {
+          ascending: false
+        }).limit(200);
+        const {
+          data: alerts
+        } = await supabase.from('alerts').select('*').eq('status', 'open');
 
         // Calculate statistics
         const totalCases = caseEvents?.length || 0;
@@ -1153,9 +1019,7 @@ function DiseaseStatsPanel() {
         });
 
         // Top diseases
-        const topDiseases = Object.entries(diseaseStats)
-          .sort(([,a], [,b]) => b - a)
-          .slice(0, 3);
+        const topDiseases = Object.entries(diseaseStats).sort(([, a], [, b]) => b - a).slice(0, 3);
 
         // Group by district
         const districtStats: Record<string, number> = {};
@@ -1164,11 +1028,7 @@ function DiseaseStatsPanel() {
             districtStats[c.district_id] = (districtStats[c.district_id] || 0) + 1;
           }
         });
-
-        const topDistricts = Object.entries(districtStats)
-          .sort(([,a], [,b]) => b - a)
-          .slice(0, 3);
-
+        const topDistricts = Object.entries(districtStats).sort(([, a], [, b]) => b - a).slice(0, 3);
         setStats({
           totalCases,
           todayCases,
@@ -1182,38 +1042,31 @@ function DiseaseStatsPanel() {
         setLoading(false);
       }
     };
-
     fetchStats();
 
     // Realtime subscription
-    const channel = supabase
-      .channel('stats-updates')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'case_events' }, () => {
-        fetchStats();
-      })
-      .subscribe();
-
+    const channel = supabase.channel('stats-updates').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'case_events'
+    }, () => {
+      fetchStats();
+    }).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
-
   if (loading) {
-    return (
-      <div className="space-y-4">
+    return <div className="space-y-4">
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-16 w-full" />
-      </div>
-    );
+      </div>;
   }
-
   if (!stats) {
     return <div className="text-center text-muted-foreground">Không có dữ liệu</div>;
   }
-
-  return (
-    <div className="space-y-4">
+  return <div className="space-y-4">
       {/* Overview Stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="text-center p-3 bg-primary/5 rounded-lg">
@@ -1236,12 +1089,10 @@ function DiseaseStatsPanel() {
           <AlertTriangle className="h-4 w-4" />
           Bệnh phổ biến nhất:
         </div>
-        {stats.topDiseases.map(([disease, count]: [string, number]) => (
-          <div key={disease} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+        {stats.topDiseases.map(([disease, count]: [string, number]) => <div key={disease} className="flex items-center justify-between p-2 bg-muted/30 rounded">
             <span className="text-sm font-medium">{disease}</span>
             <Badge variant="secondary">{count} ca</Badge>
-          </div>
-        ))}
+          </div>)}
       </div>
 
       {/* Top Districts */}
@@ -1250,13 +1101,10 @@ function DiseaseStatsPanel() {
           <TrendingUp className="h-4 w-4" />
           Ổ bệnh chính:
         </div>
-        {stats.topDistricts.map(([district, count]: [string, number]) => (
-          <div key={district} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+        {stats.topDistricts.map(([district, count]: [string, number]) => <div key={district} className="flex items-center justify-between p-2 bg-muted/30 rounded">
             <span className="text-sm font-medium">{district}</span>
             <Badge variant="destructive">{count} ca</Badge>
-          </div>
-        ))}
+          </div>)}
       </div>
-    </div>
-  );
+    </div>;
 }
