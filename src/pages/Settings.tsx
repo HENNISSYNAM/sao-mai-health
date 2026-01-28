@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,27 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  Bell, Globe, Shield, Moon, Smartphone, 
+  Bell, Globe, Shield, Moon, 
   Volume2, Vibrate, MapPin, Activity, Save,
   CheckCircle2, Loader2, Zap, Brain, FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+
+const SETTINGS_KEY = 'health_hub_settings';
+
+interface UserSettings {
+  language: "vi" | "en";
+  darkMode: boolean;
+  notifications: boolean;
+  soundAlerts: boolean;
+  vibration: boolean;
+  gpsTracking: boolean;
+  autoSync: boolean;
+  dataSharing: boolean;
+  emergencyAlerts: boolean;
+  weeklyReport: boolean;
+}
 
 interface ActionReport {
   user_id: string;
@@ -35,23 +50,64 @@ interface ActionReport {
   timestamp: string;
 }
 
+const defaultSettings: UserSettings = {
+  language: "vi",
+  darkMode: true,
+  notifications: true,
+  soundAlerts: true,
+  vibration: true,
+  gpsTracking: true,
+  autoSync: true,
+  dataSharing: false,
+  emergencyAlerts: true,
+  weeklyReport: true
+};
+
+const loadSettings = (): UserSettings => {
+  try {
+    const stored = localStorage.getItem(SETTINGS_KEY);
+    if (stored) {
+      return { ...defaultSettings, ...JSON.parse(stored) };
+    }
+  } catch (e) {
+    console.error('Failed to load settings:', e);
+  }
+  return defaultSettings;
+};
+
+const saveSettings = (settings: UserSettings) => {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch (e) {
+    console.error('Failed to save settings:', e);
+  }
+};
+
 const Settings = () => {
   const { t, i18n } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [actionReport, setActionReport] = useState<ActionReport | null>(null);
-  
-  const [settings, setSettings] = useState({
-    language: i18n.language as "vi" | "en",
-    darkMode: true,
-    notifications: true,
-    soundAlerts: true,
-    vibration: true,
-    gpsTracking: true,
-    autoSync: true,
-    dataSharing: false,
-    emergencyAlerts: true,
-    weeklyReport: true
-  });
+  const [settings, setSettings] = useState<UserSettings>(loadSettings);
+  const [initialized, setInitialized] = useState(false);
+
+  // Load settings on mount and sync language
+  useEffect(() => {
+    const loaded = loadSettings();
+    setSettings(loaded);
+    
+    // Sync language with i18n
+    if (loaded.language !== i18n.language) {
+      i18n.changeLanguage(loaded.language);
+    }
+    setInitialized(true);
+  }, []);
+
+  // Auto-save to localStorage when settings change (after initialization)
+  useEffect(() => {
+    if (initialized) {
+      saveSettings(settings);
+    }
+  }, [settings, initialized]);
 
   const handleSave = async () => {
     setSaving(true);
