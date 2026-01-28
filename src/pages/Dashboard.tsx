@@ -14,9 +14,10 @@ import { cn } from "@/lib/utils"
 import { SystemHealthOverview } from "@/components/dashboard/SystemHealthOverview"
 import { HealthDataSynthesis } from "@/components/dashboard/HealthDataSynthesis"
 import { RegionalRiskMap } from "@/components/dashboard/RegionalRiskMap"
-import { PipelineStatus } from "@/components/dashboard/PipelineStatus"
 import { HealthNewsFeed } from "@/components/dashboard/HealthNewsFeed"
-import { useHealthPipeline } from "@/hooks/useHealthPipeline"
+import { OrchestratorStatus } from "@/components/dashboard/OrchestratorStatus"
+import { PredictiveChart } from "@/components/dashboard/PredictiveChart"
+import { useHealthSystemOrchestrator } from "@/hooks/useHealthSystemOrchestrator"
 
 interface DailyCount {
   id: string
@@ -46,14 +47,16 @@ export default function Dashboard() {
 
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US'
 
-  // Multi-agent pipeline hook
+  // 10-Step System Orchestrator hook
   const { 
-    data: pipelineData, 
-    isLoading: pipelineLoading, 
-    isConnected: pipelineConnected,
-    lastUpdated: pipelineLastUpdated,
+    pipeline,
+    dashboard: orchestratorData,
+    isLoading: orchestratorLoading, 
+    isConnected: orchestratorConnected,
+    lastUpdated: orchestratorLastUpdated,
+    cycleCount,
     triggerPipeline
-  } = useHealthPipeline(true, 5 * 60 * 1000) // Auto-refresh every 5 minutes
+  } = useHealthSystemOrchestrator('5min', true)
 
   const { isConnected: countsConnected, nowTs } = useRealtimeDailyCounts((payload) => {
     fetchInitialData()
@@ -319,16 +322,27 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Multi-Agent Pipeline Status */}
+      {/* 10-Step System Orchestrator Status */}
       <div className="animate-fade-up" style={{ animationDelay: '120ms' }}>
-        <PipelineStatus 
-          isLoading={pipelineLoading}
-          isConnected={pipelineConnected}
-          lastUpdated={pipelineLastUpdated}
-          onRefresh={triggerPipeline}
-          dataQuality={pipelineData?.dataQuality}
+        <OrchestratorStatus 
+          pipeline={pipeline}
+          isLoading={orchestratorLoading}
+          isConnected={orchestratorConnected}
+          lastUpdated={orchestratorLastUpdated}
+          cycleCount={cycleCount}
+          onTrigger={triggerPipeline}
         />
       </div>
+
+      {/* Predictive Chart - Observed vs Predicted */}
+      {orchestratorData?.chartData && (
+        <div className="animate-fade-up" style={{ animationDelay: '140ms' }}>
+          <PredictiveChart 
+            chartData={orchestratorData.chartData}
+            isLoading={orchestratorLoading}
+          />
+        </div>
+      )}
 
       {/* System Health Overview - News Intelligence */}
       <div className="animate-fade-up" style={{ animationDelay: '150ms' }}>
@@ -336,12 +350,12 @@ export default function Dashboard() {
       </div>
 
       {/* Regional Risk Map - GPS-based Classification */}
-      {pipelineData?.chartData?.regionalRisks && pipelineData.chartData.regionalRisks.length > 0 && (
+      {orchestratorData?.regionalRisks && orchestratorData.regionalRisks.length > 0 && (
         <div className="animate-fade-up" style={{ animationDelay: '175ms' }}>
           <RegionalRiskMap 
-            regionalRisks={pipelineData.chartData.regionalRisks}
-            userRegion={pipelineData.riskSummary?.userRegion}
-            isLoading={pipelineLoading}
+            regionalRisks={orchestratorData.regionalRisks}
+            userRegion={orchestratorData.regionalRisks.find((r: any) => r.isUserRegion)}
+            isLoading={orchestratorLoading}
           />
         </div>
       )}
