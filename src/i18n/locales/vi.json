@@ -289,6 +289,12 @@
     "diarrhea": "Tiêu chảy",
     "unknown": "Không xác định"
   },
+  "kpi": {
+    "todayCases": "Ca hôm nay",
+    "openAlerts": "Cảnh báo",
+    "diseaseTypes": "Loại bệnh",
+    "vaccinationRate": "Tỷ lệ tiêm"
+  },
   "geography": {
     "country": "Quốc gia",
     "state": "Tỉnh/Thành phố",

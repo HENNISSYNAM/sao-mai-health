@@ -289,6 +289,12 @@
     "diarrhea": "Diarrhea",
     "unknown": "Unknown"
   },
+  "kpi": {
+    "todayCases": "Today's Cases",
+    "openAlerts": "Open Alerts",
+    "diseaseTypes": "Disease Types",
+    "vaccinationRate": "Vaccination Rate"
+  },
   "geography": {
     "country": "Country",
     "state": "State/Province",
