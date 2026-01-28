@@ -5,9 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { 
-  Heart, Brain, Shield, Users, Globe, Zap,
-  Target, Rocket, Star, Mail, ExternalLink,
-  Award, TrendingUp, Activity, Fingerprint
+  Heart, Brain, Shield, Users, Zap,
+  Target, Rocket, Activity, Fingerprint
 } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 
@@ -20,12 +19,6 @@ const About = () => {
     { value: '1M+', label: isVi ? 'Cảnh báo' : 'Alerts', icon: Activity },
     { value: '24/7', label: isVi ? 'Giám sát' : 'Monitoring', icon: Shield },
     { value: '99.9%', label: isVi ? 'Uptime' : 'Uptime', icon: Zap }
-  ];
-
-  const team = [
-    { name: 'Dr. Nguyễn Minh', role: isVi ? 'CEO & Nhà sáng lập' : 'CEO & Founder', specialty: 'AI Healthcare' },
-    { name: 'TS. Trần Hương', role: isVi ? 'CTO' : 'CTO', specialty: 'Digital Twin Systems' },
-    { name: 'BS. Lê Văn Đức', role: isVi ? 'Cố vấn Y khoa' : 'Medical Advisor', specialty: 'Epidemiology' }
   ];
 
   return (
@@ -206,59 +199,6 @@ const About = () => {
         </CardContent>
       </Card>
 
-      {/* Team */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-xl">
-            <Award className="h-6 w-6 text-info" />
-            {isVi ? 'Đội ngũ sáng lập' : 'Founding Team'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
-            {team.map((member, idx) => (
-              <div key={idx} className="text-center p-4 rounded-2xl bg-muted/30">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/50 mx-auto mb-3 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-primary-foreground">
-                    {member.name.charAt(0)}
-                  </span>
-                </div>
-                <h4 className="font-semibold">{member.name}</h4>
-                <p className="text-sm text-primary">{member.role}</p>
-                <Badge variant="outline" className="mt-2 text-xs">{member.specialty}</Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Contact */}
-      <Card className="bg-gradient-to-r from-primary/10 to-info/10 border-primary/20">
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                <Mail className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold">{isVi ? 'Liên hệ với chúng tôi' : 'Contact Us'}</h3>
-                <p className="text-sm text-muted-foreground">hello@saomaihealth.vn</p>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="outline" className="gap-2">
-                <Globe className="h-4 w-4" />
-                {isVi ? 'Website' : 'Website'}
-                <ExternalLink className="h-3 w-3" />
-              </Button>
-              <Button className="gap-2">
-                <Star className="h-4 w-4" />
-                {isVi ? 'Dùng thử miễn phí' : 'Try Free'}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Version */}
       <div className="text-center text-sm text-muted-foreground">
