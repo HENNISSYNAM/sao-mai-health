@@ -12,8 +12,6 @@ import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { HealthNewsFeed } from "@/components/dashboard/HealthNewsFeed"
-import { OrchestratorStatus } from "@/components/dashboard/OrchestratorStatus"
-import { useHealthSystemOrchestrator } from "@/hooks/useHealthSystemOrchestrator"
 
 interface DailyCount {
   id: string
@@ -42,17 +40,6 @@ export default function Dashboard() {
   const [fetchingNews, setFetchingNews] = useState(false)
 
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US'
-
-  // 10-Step System Orchestrator hook
-  const { 
-    pipeline,
-    dashboard: orchestratorData,
-    isLoading: orchestratorLoading, 
-    isConnected: orchestratorConnected,
-    lastUpdated: orchestratorLastUpdated,
-    cycleCount,
-    triggerPipeline
-  } = useHealthSystemOrchestrator('5min', true)
 
   const { isConnected: countsConnected, nowTs } = useRealtimeDailyCounts((payload) => {
     fetchInitialData()
@@ -321,21 +308,9 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Orchestrator + News Feed - Stack on mobile, side by side on desktop */}
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3 animate-fade-up" style={{ animationDelay: '100ms' }}>
-        <div className="lg:col-span-2 order-2 lg:order-1">
-          <OrchestratorStatus 
-            pipeline={pipeline}
-            isLoading={orchestratorLoading}
-            isConnected={orchestratorConnected}
-            lastUpdated={orchestratorLastUpdated}
-            cycleCount={cycleCount}
-            onTrigger={triggerPipeline}
-          />
-        </div>
-        <div className="order-1 lg:order-2">
-          <HealthNewsFeed />
-        </div>
+      {/* Health News & Pipeline - Full width */}
+      <div className="animate-fade-up" style={{ animationDelay: '100ms' }}>
+        <HealthNewsFeed />
       </div>
 
       {/* Charts - Stack on mobile */}
