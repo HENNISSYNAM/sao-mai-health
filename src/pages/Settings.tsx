@@ -173,9 +173,109 @@ const Settings = () => {
     }
   };
 
-  const updateSetting = (key: string, value: any) => {
+  // Handle individual setting changes with real actions
+  const updateSetting = async (key: string, value: any) => {
     setSettings(prev => ({ ...prev, [key]: value }));
-    setActionReport(null); // Clear previous report when settings change
+    setActionReport(null);
+
+    // Execute real actions based on setting type
+    switch (key) {
+      case 'notifications':
+        if (value) {
+          // Request push notification permission
+          if ('Notification' in window) {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+              toast.success('Đã bật thông báo đẩy');
+            } else if (permission === 'denied') {
+              toast.error('Quyền thông báo bị từ chối. Vui lòng bật trong cài đặt trình duyệt.');
+              setSettings(prev => ({ ...prev, notifications: false }));
+            }
+          } else {
+            toast.error('Trình duyệt không hỗ trợ thông báo');
+            setSettings(prev => ({ ...prev, notifications: false }));
+          }
+        } else {
+          toast.info('Đã tắt thông báo đẩy');
+        }
+        break;
+
+      case 'gpsTracking':
+        if (value) {
+          // Request geolocation permission
+          if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                toast.success(`Đã bật định vị GPS (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`);
+              },
+              (error) => {
+                toast.error('Không thể truy cập vị trí. Vui lòng cho phép trong cài đặt trình duyệt.');
+                setSettings(prev => ({ ...prev, gpsTracking: false }));
+              }
+            );
+          } else {
+            toast.error('Trình duyệt không hỗ trợ GPS');
+            setSettings(prev => ({ ...prev, gpsTracking: false }));
+          }
+        } else {
+          toast.info('Đã tắt định vị GPS - cảnh báo sẽ ít cá nhân hóa hơn');
+        }
+        break;
+
+      case 'vibration':
+        if (value && 'vibrate' in navigator) {
+          // Test vibration
+          navigator.vibrate(200);
+          toast.success('Đã bật rung (thử nghiệm)');
+        } else if (value) {
+          toast.warning('Thiết bị không hỗ trợ rung');
+        } else {
+          toast.info('Đã tắt rung');
+        }
+        break;
+
+      case 'soundAlerts':
+        if (value) {
+          // Play a test sound
+          try {
+            const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1cXmBkZ2tvcHFycnJycXBvbWpmYl5aVlNQTUtJR0VEQ0JBQUFBQUJDREVHSUtNT1JWWl5iZmptcHFycnJycXBvbWtpZmJeWlZTUE1LSUdFRENCQUFBQUFCQ0RFR0lLTU9SVlpeYmZpbXBxcnJycnFwb21raWZiXlpWU1BNSU==');
+            audio.volume = 0.3;
+            audio.play();
+            toast.success('Đã bật âm thanh cảnh báo');
+          } catch (e) {
+            toast.info('Đã bật âm thanh cảnh báo');
+          }
+        } else {
+          toast.info('Đã tắt âm thanh cảnh báo');
+        }
+        break;
+
+      case 'darkMode':
+        applyTheme(value);
+        toast.success(value ? 'Đã bật chế độ tối' : 'Đã bật chế độ sáng');
+        break;
+
+      case 'language':
+        await i18n.changeLanguage(value);
+        toast.success(value === 'vi' ? 'Đã chuyển sang Tiếng Việt' : 'Switched to English');
+        break;
+
+      case 'dataSharing':
+        toast.info(value ? 'Đã bật chia sẻ ẩn danh - giúp cải thiện dự báo' : 'Đã tắt chia sẻ ẩn danh');
+        break;
+
+      case 'emergencyAlerts':
+        toast.info(value ? 'Đã bật cảnh báo khẩn cấp' : 'Đã tắt cảnh báo khẩn cấp');
+        break;
+
+      case 'weeklyReport':
+        toast.info(value ? 'Đã đăng ký báo cáo tuần (mỗi Chủ nhật)' : 'Đã hủy đăng ký báo cáo tuần');
+        break;
+
+      case 'autoSync':
+        toast.info(value ? 'Đã bật đồng bộ realtime - Digital Twin cập nhật liên tục' : 'Đã chuyển sang đồng bộ thủ công');
+        break;
+    }
   };
 
   return (
