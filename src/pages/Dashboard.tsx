@@ -11,12 +11,8 @@ import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHe
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
-import { SystemHealthOverview } from "@/components/dashboard/SystemHealthOverview"
-import { HealthDataSynthesis } from "@/components/dashboard/HealthDataSynthesis"
-import { RegionalRiskMap } from "@/components/dashboard/RegionalRiskMap"
 import { HealthNewsFeed } from "@/components/dashboard/HealthNewsFeed"
 import { OrchestratorStatus } from "@/components/dashboard/OrchestratorStatus"
-import { PredictiveChart } from "@/components/dashboard/PredictiveChart"
 import { useHealthSystemOrchestrator } from "@/hooks/useHealthSystemOrchestrator"
 
 interface DailyCount {
@@ -322,82 +318,47 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* 10-Step System Orchestrator Status */}
-      <div className="animate-fade-up" style={{ animationDelay: '120ms' }}>
-        <OrchestratorStatus 
-          pipeline={pipeline}
-          isLoading={orchestratorLoading}
-          isConnected={orchestratorConnected}
-          lastUpdated={orchestratorLastUpdated}
-          cycleCount={cycleCount}
-          onTrigger={triggerPipeline}
-        />
-      </div>
-
-      {/* Predictive Chart - Observed vs Predicted */}
-      {orchestratorData?.chartData && (
-        <div className="animate-fade-up" style={{ animationDelay: '140ms' }}>
-          <PredictiveChart 
-            chartData={orchestratorData.chartData}
+      {/* Compact Orchestrator + News Feed Row */}
+      <div className="grid gap-6 lg:grid-cols-3 animate-fade-up" style={{ animationDelay: '120ms' }}>
+        <div className="lg:col-span-2">
+          <OrchestratorStatus 
+            pipeline={pipeline}
             isLoading={orchestratorLoading}
+            isConnected={orchestratorConnected}
+            lastUpdated={orchestratorLastUpdated}
+            cycleCount={cycleCount}
+            onTrigger={triggerPipeline}
           />
         </div>
-      )}
-
-      {/* System Health Overview - News Intelligence */}
-      <div className="animate-fade-up" style={{ animationDelay: '150ms' }}>
-        <SystemHealthOverview />
-      </div>
-
-      {/* Regional Risk Map - GPS-based Classification */}
-      {orchestratorData?.regionalRisks && orchestratorData.regionalRisks.length > 0 && (
-        <div className="animate-fade-up" style={{ animationDelay: '175ms' }}>
-          <RegionalRiskMap 
-            regionalRisks={orchestratorData.regionalRisks}
-            userRegion={orchestratorData.regionalRisks.find((r: any) => r.isUserRegion)}
-            isLoading={orchestratorLoading}
-          />
-        </div>
-      )}
-
-      {/* Health Data Synthesis - Observed + Predicted */}
-      <div className="animate-fade-up" style={{ animationDelay: '200ms' }}>
-        <HealthDataSynthesis />
-      </div>
-
-      {/* Charts Row 1 - with News Feed */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="animate-fade-up lg:col-span-2" style={{ animationDelay: '200ms' }}>
-          <DashboardChart
-            title={t('dashboard.caseTrend')}
-            data={trendData}
-            type="line"
-            multiSeries={false}
-          />
-        </div>
-        <div className="animate-fade-up" style={{ animationDelay: '250ms' }}>
+        <div>
           <HealthNewsFeed />
         </div>
       </div>
 
-      {/* Charts Row 2 */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="animate-fade-up" style={{ animationDelay: '300ms' }}>
-          <DashboardChart
-            title={t('dashboard.diseaseDistribution')}
-            data={diseaseData}
-            type="bar"
-            multiSeries={false}
-          />
-        </div>
-        <div className="animate-fade-up" style={{ animationDelay: '350ms' }}>
-          <DashboardChart
-            title={t('dashboard.districtDistribution')}
-            data={districtData}
-            type="bar"
-            multiSeries={false}
-          />
-        </div>
+      {/* Charts Row */}
+      <div className="grid gap-6 lg:grid-cols-2 animate-fade-up" style={{ animationDelay: '180ms' }}>
+        <DashboardChart
+          title={t('dashboard.caseTrend')}
+          data={trendData}
+          type="line"
+          multiSeries={false}
+        />
+        <DashboardChart
+          title={t('dashboard.diseaseDistribution')}
+          data={diseaseData}
+          type="bar"
+          multiSeries={false}
+        />
+      </div>
+
+      {/* District Distribution Chart */}
+      <div className="animate-fade-up" style={{ animationDelay: '220ms' }}>
+        <DashboardChart
+          title={t('dashboard.districtDistribution')}
+          data={districtData}
+          type="bar"
+          multiSeries={false}
+        />
       </div>
 
       {/* Recent Alerts */}
