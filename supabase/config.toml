@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.personal-twin-agent]
 verify_jwt = false
+
+[functions.proximity-signal-agent]
+verify_jwt = false
