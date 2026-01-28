@@ -143,3 +143,6 @@ verify_jwt = false
 
 [functions.personal-twin-realtime-ai]
 verify_jwt = false
+
+[functions.health-system-orchestrator]
+verify_jwt = false
