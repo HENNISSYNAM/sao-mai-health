@@ -19,10 +19,12 @@ import {
   MapPin,
   User,
   Bell,
-  Send
+  Send,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { PipelineState, StepResult } from '@/hooks/useHealthSystemOrchestrator';
+import type { PipelineState } from '@/hooks/useHealthSystemOrchestrator';
 
 interface OrchestratorStatusProps {
   pipeline: PipelineState | null;
@@ -56,7 +58,7 @@ export function OrchestratorStatus({
   onTrigger,
   className
 }: OrchestratorStatusProps) {
-  const [showAllSteps, setShowAllSteps] = useState(false);
+  const [showSteps, setShowSteps] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -83,31 +85,29 @@ export function OrchestratorStatus({
     ? Math.round((pipeline.currentStep / pipeline.totalSteps) * 100)
     : 0;
 
-  const displayedSteps = showAllSteps 
-    ? pipeline?.steps 
-    : pipeline?.steps.slice(0, 5);
+  const completedSteps = pipeline?.steps.filter(s => s.status === 'completed').length || 0;
 
   return (
-    <Card className={cn("rounded-2xl border-border/50", className)}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <Card className={cn("rounded-xl sm:rounded-2xl border-border/50 h-full", className)}>
+      <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className={cn(
-              "p-2 rounded-xl",
+              "p-1.5 sm:p-2 rounded-lg sm:rounded-xl shrink-0",
               pipeline?.status === 'running' ? "bg-primary/10" : "bg-muted"
             )}>
               <Zap className={cn(
-                "h-5 w-5",
+                "h-4 w-4 sm:h-5 sm:w-5",
                 pipeline?.status === 'running' ? "text-primary animate-pulse" : "text-muted-foreground"
               )} />
             </div>
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                10-Step Orchestrator
+            <div className="min-w-0">
+              <CardTitle className="text-sm sm:text-base flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <span className="truncate">Pipeline</span>
                 <Badge 
                   variant="outline" 
                   className={cn(
-                    "text-xs",
+                    "text-[10px] sm:text-xs px-1.5 sm:px-2",
                     isConnected 
                       ? "border-success/50 bg-success/10 text-success" 
                       : "border-muted"
@@ -116,77 +116,91 @@ export function OrchestratorStatus({
                   {isConnected ? '● Live' : '○ Offline'}
                 </Badge>
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-[10px] sm:text-xs">
                 {pipeline?.status === 'running' 
-                  ? `Step ${pipeline.currentStep}/${pipeline.totalSteps}` 
-                  : `Cycle #${cycleCount} • ${lastUpdated?.toLocaleTimeString() || 'Never'}`}
+                  ? `Bước ${pipeline.currentStep}/${pipeline.totalSteps}` 
+                  : `#${cycleCount} • ${lastUpdated?.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) || '—'}`}
               </CardDescription>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => onTrigger(true)}
-              disabled={isLoading}
-              size="sm"
-              variant="outline"
-              className="gap-1.5 h-8"
-            >
-              {isLoading ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Play className="h-3.5 w-3.5" />
-              )}
-              {isLoading ? 'Running...' : 'Run Now'}
-            </Button>
-          </div>
+          <Button
+            onClick={() => onTrigger(true)}
+            disabled={isLoading}
+            size="sm"
+            variant="outline"
+            className="gap-1 sm:gap-1.5 h-7 sm:h-8 px-2 sm:px-3 shrink-0"
+          >
+            {isLoading ? (
+              <RefreshCw className="h-3 w-3 sm:h-3.5 sm:w-3.5 animate-spin" />
+            ) : (
+              <Play className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+            )}
+            <span className="hidden sm:inline">{isLoading ? 'Đang chạy...' : 'Chạy ngay'}</span>
+          </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Progress Bar */}
+      <CardContent className="pt-0 px-3 sm:px-6 pb-3 sm:pb-6 space-y-3 sm:space-y-4">
+        {/* Progress Bar - Always visible when running */}
         {pipeline?.status === 'running' && (
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">
-                {pipeline.steps.find(s => s.status === 'running')?.name || 'Processing...'}
+          <div className="space-y-1 sm:space-y-1.5">
+            <div className="flex justify-between text-[10px] sm:text-xs">
+              <span className="text-muted-foreground truncate">
+                {pipeline.steps.find(s => s.status === 'running')?.name || 'Đang xử lý...'}
               </span>
-              <span className="font-medium">{progress}%</span>
+              <span className="font-medium shrink-0">{progress}%</span>
             </div>
-            <Progress value={progress} className="h-2" />
+            <Progress value={progress} className="h-1.5 sm:h-2" />
           </div>
         )}
 
-        {/* Pipeline Status Badge */}
+        {/* Compact Status + Stats Row */}
         {pipeline && pipeline.status !== 'running' && (
-          <div className="flex items-center gap-2">
-            {pipeline.status === 'completed' && (
-              <Badge className="bg-success/10 text-success border-success/30">
-                <CheckCircle2 className="h-3 w-3 mr-1" />
-                Completed
-              </Badge>
-            )}
-            {pipeline.status === 'stopped' && (
-              <Badge className="bg-warning/10 text-warning border-warning/30">
-                <Pause className="h-3 w-3 mr-1" />
-                Stopped
-              </Badge>
-            )}
-            {pipeline.status === 'failed' && (
-              <Badge className="bg-destructive/10 text-destructive border-destructive/30">
-                <XCircle className="h-3 w-3 mr-1" />
-                Failed
-              </Badge>
-            )}
-            {pipeline.stopReason && (
-              <span className="text-xs text-muted-foreground">{pipeline.stopReason}</span>
-            )}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              {pipeline.status === 'completed' && (
+                <Badge className="bg-success/10 text-success border-success/30 text-[10px] sm:text-xs">
+                  <CheckCircle2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                  Hoàn thành
+                </Badge>
+              )}
+              {pipeline.status === 'stopped' && (
+                <Badge className="bg-warning/10 text-warning border-warning/30 text-[10px] sm:text-xs">
+                  <Pause className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                  Dừng
+                </Badge>
+              )}
+              {pipeline.status === 'failed' && (
+                <Badge className="bg-destructive/10 text-destructive border-destructive/30 text-[10px] sm:text-xs">
+                  <XCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                  Lỗi
+                </Badge>
+              )}
+              <span className="text-[10px] sm:text-xs text-muted-foreground">
+                {completedSteps}/10 bước
+              </span>
+            </div>
+            
+            {/* Toggle Steps Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSteps(!showSteps)}
+              className="h-6 sm:h-7 text-[10px] sm:text-xs text-muted-foreground gap-1 px-2"
+            >
+              {showSteps ? (
+                <>Ẩn <ChevronUp className="h-3 w-3" /></>
+              ) : (
+                <>Chi tiết <ChevronDown className="h-3 w-3" /></>
+              )}
+            </Button>
           </div>
         )}
 
-        {/* Steps List */}
-        {pipeline && (
-          <div className="space-y-1">
-            {displayedSteps?.map((step) => {
+        {/* Steps List - Collapsible */}
+        {pipeline && showSteps && (
+          <div className="space-y-0.5 sm:space-y-1 max-h-[200px] overflow-y-auto">
+            {pipeline.steps.map((step) => {
               const StatusIcon = getStatusIcon(step.status);
               const StepIcon = STEP_ICONS[step.step] || Activity;
               
@@ -194,80 +208,62 @@ export function OrchestratorStatus({
                 <div 
                   key={step.step}
                   className={cn(
-                    "flex items-center justify-between py-1.5 px-2 rounded-lg transition-colors",
+                    "flex items-center justify-between py-1 sm:py-1.5 px-1.5 sm:px-2 rounded-md sm:rounded-lg transition-colors",
                     step.status === 'running' && "bg-primary/5",
                     step.status === 'completed' && "bg-success/5",
                     step.status === 'failed' && "bg-destructive/5"
                   )}
                 >
-                  <div className="flex items-center gap-2">
-                    <StepIcon className={cn("h-3.5 w-3.5", getStatusColor(step.status))} />
+                  <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                    <StepIcon className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0", getStatusColor(step.status))} />
                     <span className={cn(
-                      "text-xs",
+                      "text-[10px] sm:text-xs truncate",
                       step.status === 'pending' ? "text-muted-foreground/60" : "text-foreground"
                     )}>
                       {step.step}. {step.name}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {step.duration && (
-                      <span className="text-[10px] text-muted-foreground">
-                        {step.duration}ms
-                      </span>
-                    )}
-                    <StatusIcon className={cn("h-3.5 w-3.5", getStatusColor(step.status))} />
-                  </div>
+                  <StatusIcon className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0", getStatusColor(step.status))} />
                 </div>
               );
             })}
-            
-            {pipeline.steps.length > 5 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAllSteps(!showAllSteps)}
-                className="w-full h-7 text-xs text-muted-foreground"
-              >
-                {showAllSteps ? 'Show less' : `Show ${pipeline.steps.length - 5} more steps`}
-              </Button>
-            )}
           </div>
         )}
 
-        {/* Data Stats */}
+        {/* Data Stats - Compact Grid */}
         {pipeline?.dataStats && pipeline.status !== 'running' && (
-          <div className="grid grid-cols-4 gap-2 pt-2 border-t border-border/50">
-            <div className="text-center">
-              <div className="text-lg font-semibold">{pipeline.dataStats.articlesNew}</div>
-              <div className="text-[10px] text-muted-foreground">New Articles</div>
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-2 pt-2 sm:pt-3 border-t border-border/50">
+            <div className="text-center p-1.5 sm:p-2 rounded-lg bg-muted/30">
+              <div className="text-sm sm:text-lg font-semibold">{pipeline.dataStats.articlesNew}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground">Tin mới</div>
             </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold">{pipeline.dataStats.dataPointsExtracted}</div>
-              <div className="text-[10px] text-muted-foreground">Data Points</div>
+            <div className="text-center p-1.5 sm:p-2 rounded-lg bg-muted/30">
+              <div className="text-sm sm:text-lg font-semibold">{pipeline.dataStats.dataPointsExtracted}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground">Dữ liệu</div>
             </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold">{pipeline.dataStats.predictionsGenerated}</div>
-              <div className="text-[10px] text-muted-foreground">Predictions</div>
+            <div className="text-center p-1.5 sm:p-2 rounded-lg bg-muted/30">
+              <div className="text-sm sm:text-lg font-semibold">{pipeline.dataStats.predictionsGenerated}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground">Dự báo</div>
             </div>
-            <div className="text-center">
-              <div className="text-lg font-semibold">{pipeline.dataStats.alertsTriggered}</div>
-              <div className="text-[10px] text-muted-foreground">Alerts</div>
+            <div className="text-center p-1.5 sm:p-2 rounded-lg bg-muted/30">
+              <div className="text-sm sm:text-lg font-semibold">{pipeline.dataStats.alertsTriggered}</div>
+              <div className="text-[9px] sm:text-[10px] text-muted-foreground">Cảnh báo</div>
             </div>
           </div>
         )}
 
         {/* Empty State */}
         {!pipeline && !isLoading && (
-          <div className="text-center py-6">
-            <Zap className="h-8 w-8 mx-auto mb-2 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">No pipeline data yet</p>
+          <div className="text-center py-4 sm:py-6">
+            <Zap className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 text-muted-foreground/30" />
+            <p className="text-xs sm:text-sm text-muted-foreground">Chưa có dữ liệu pipeline</p>
             <Button
               onClick={() => onTrigger(true)}
               size="sm"
-              className="mt-3"
+              className="mt-2 sm:mt-3 text-xs"
             >
-              <Play className="h-3.5 w-3.5 mr-1.5" />
-              Start Pipeline
+              <Play className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 sm:mr-1.5" />
+              Bắt đầu
             </Button>
           </div>
         )}

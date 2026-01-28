@@ -46,40 +46,40 @@ export function KpiCard({ title, value, change, icon: Icon, variant = 'default' 
 
   return (
     <Card className={cn(
-      "relative overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 group",
+      "relative overflow-hidden rounded-xl sm:rounded-2xl transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 group",
       getVariantStyles()
     )}>
-      {/* Background decoration */}
-      <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br from-primary/5 to-primary/10 group-hover:scale-110 transition-transform duration-300" />
+      {/* Background decoration - hidden on mobile for cleaner look */}
+      <div className="absolute -right-6 -top-6 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-primary/5 to-primary/10 group-hover:scale-110 transition-transform duration-300 hidden sm:block" />
       
-      <CardContent className="p-5 relative">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">
+      <CardContent className="p-3 sm:p-5 relative">
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-0.5 sm:space-y-1 min-w-0 flex-1">
+            <p className="text-xs sm:text-sm font-medium text-muted-foreground truncate">
               {title}
             </p>
-            <p className="text-3xl font-bold tracking-tight text-foreground">
+            <p className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">
               {value}
             </p>
             {change && (
               <div className={cn(
-                "flex items-center gap-1 text-xs font-medium",
+                "flex items-center gap-1 text-[10px] sm:text-xs font-medium",
                 change.type === 'increase' ? 'text-success' : 'text-danger'
               )}>
                 {change.type === 'increase' ? (
-                  <TrendingUp className="h-3 w-3" />
+                  <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
                 ) : (
-                  <TrendingDown className="h-3 w-3" />
+                  <TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
                 )}
-                <span>{Math.abs(change.value)}% so với tuần trước</span>
+                <span className="truncate">{Math.abs(change.value)}%</span>
               </div>
             )}
           </div>
           <div className={cn(
-            "p-3 rounded-xl transition-transform duration-300 group-hover:scale-110",
+            "p-2 sm:p-3 rounded-lg sm:rounded-xl transition-transform duration-300 group-hover:scale-110 shrink-0",
             getIconStyles()
           )}>
-            <Icon className="h-5 w-5" />
+            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
           </div>
         </div>
       </CardContent>
