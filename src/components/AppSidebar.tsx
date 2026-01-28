@@ -19,14 +19,32 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEffect, useState } from "react";
 
 export function AppSidebar() {
   const { t } = useTranslation();
-  const { state } = useSidebar();
+  const { state, setOpen } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
   const { prefetchByRoute } = usePrefetch();
+  const [isHovering, setIsHovering] = useState(false);
+
+  // Auto collapse on mount
+  useEffect(() => {
+    setOpen(false);
+  }, []);
+
+  // Handle hover to expand
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+    setOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setOpen(false);
+  };
 
   const menuItems = [
     {
@@ -66,39 +84,44 @@ export function AppSidebar() {
     return currentPath.startsWith(path);
   };
 
-  const handleMouseEnter = (url: string) => {
+  const handlePrefetch = (url: string) => {
     prefetchByRoute(url);
   };
 
   return (
     <Sidebar 
-      className="border-r border-border bg-background"
+      className="border-r border-border bg-background transition-all duration-300"
       collapsible="icon"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
-      <SidebarContent className="flex flex-col h-full py-4 md:py-6">
-        {/* Logo - Always animated heartbeat like IG icon */}
+      <SidebarContent className="flex flex-col h-full py-6">
+        {/* Logo - Centered, bigger, with heartbeat */}
         <NavLink 
           to="/" 
-          className="flex items-center justify-center md:justify-start px-3 mb-6 md:mb-8"
+          className="flex items-center justify-center px-3 mb-10"
         >
-          <div className="relative">
+          <div className="relative flex items-center justify-center">
             <img 
               src={logoImg} 
               alt="Sao Mai Health" 
-              className="w-8 h-8 md:w-7 md:h-7 object-contain animate-heartbeat"
+              className={cn(
+                "object-contain animate-heartbeat transition-all duration-300",
+                collapsed ? "w-9 h-9" : "w-10 h-10"
+              )}
             />
-            {/* Pulse ring effect */}
-            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-30" />
+            {/* Pulse ring */}
+            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-20" />
           </div>
           {!collapsed && (
-            <span className="ml-3 text-lg md:text-xl font-bold tracking-tight hidden md:inline">
+            <span className="ml-3 text-xl font-bold tracking-tight whitespace-nowrap overflow-hidden">
               Sao Mai
             </span>
           )}
         </NavLink>
 
-        {/* Main Navigation - Responsive */}
-        <SidebarMenu className="flex-1 space-y-0.5 md:space-y-1 px-2 md:px-3">
+        {/* Main Navigation - Evenly spaced */}
+        <SidebarMenu className="flex-1 flex flex-col justify-start gap-2 px-3">
           {menuItems.map((item) => (
             <SidebarMenuItem key={item.titleKey}>
               <SidebarMenuButton asChild>
@@ -106,22 +129,23 @@ export function AppSidebar() {
                   to={item.url}
                   end={item.url === '/'}
                   className={cn(
-                    "flex items-center justify-center md:justify-start gap-3 md:gap-4 p-3 md:px-3 md:py-3 rounded-lg text-sm md:text-base transition-all duration-200",
+                    "flex items-center gap-4 px-3 py-3.5 rounded-xl text-base transition-all duration-200",
+                    collapsed ? "justify-center" : "justify-start",
                     isActive(item.url)
-                      ? "font-bold bg-accent"
+                      ? "bg-primary text-primary-foreground font-semibold shadow-md"
                       : "font-normal hover:bg-accent"
                   )}
-                  onMouseEnter={() => handleMouseEnter(item.url)}
+                  onMouseEnter={() => handlePrefetch(item.url)}
                 >
                   <item.icon 
                     className={cn(
-                      "h-6 w-6 flex-shrink-0 transition-all",
-                      isActive(item.url) && "scale-105"
+                      "h-6 w-6 flex-shrink-0 transition-transform duration-200",
+                      isActive(item.url) && "scale-110"
                     )} 
                     strokeWidth={isActive(item.url) ? 2.5 : 1.5}
                   />
                   {!collapsed && (
-                    <span className="hidden md:inline">{item.title}</span>
+                    <span className="whitespace-nowrap overflow-hidden">{item.title}</span>
                   )}
                 </NavLink>
               </SidebarMenuButton>
@@ -129,16 +153,21 @@ export function AppSidebar() {
           ))}
         </SidebarMenu>
 
-        {/* Bottom Section - More menu */}
-        <div className="px-2 md:px-3 mt-auto">
+        {/* Bottom - More menu */}
+        <div className="px-3 mt-auto">
           <SidebarMenu>
             <SidebarMenuItem>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center justify-center md:justify-start gap-3 md:gap-4 p-3 md:px-3 md:py-3 rounded-lg text-sm md:text-base font-normal hover:bg-accent w-full transition-all">
+                  <button 
+                    className={cn(
+                      "flex items-center gap-4 px-3 py-3.5 rounded-xl text-base font-normal hover:bg-accent w-full transition-all duration-200",
+                      collapsed ? "justify-center" : "justify-start"
+                    )}
+                  >
                     <Menu className="h-6 w-6 flex-shrink-0" strokeWidth={1.5} />
                     {!collapsed && (
-                      <span className="hidden md:inline">{t('common.more', 'Thêm')}</span>
+                      <span className="whitespace-nowrap">{t('common.more', 'Thêm')}</span>
                     )}
                   </button>
                 </DropdownMenuTrigger>
