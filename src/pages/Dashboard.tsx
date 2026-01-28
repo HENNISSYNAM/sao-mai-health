@@ -257,6 +257,7 @@ export default function Dashboard() {
             observedData={dailyCounts}
             predictedData={predictiveData || undefined}
             isLoading={loading}
+            userGPS={userGPS}
           />
         </div>
 
