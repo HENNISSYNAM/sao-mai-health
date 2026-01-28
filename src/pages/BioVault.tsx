@@ -9,7 +9,7 @@ import {
   Shield, Lock, Fingerprint, FileText, Upload, 
   Heart, Brain, Droplets, Activity, AlertTriangle,
   CheckCircle2, Sparkles, Crown, TrendingUp, Eye,
-  FileSearch, Scan, User, Calendar, Phone, Share2, MapPin, Cpu
+  FileSearch, Scan, User, Calendar, Phone, Share2, MapPin, Cpu, Radio
 } from 'lucide-react';
 import { BioVaultUploader } from '@/components/biovault/BioVaultUploader';
 import { DigitalTwinAvatar } from '@/components/biovault/DigitalTwinAvatar';
@@ -21,6 +21,7 @@ import { PremiumConsultant } from '@/components/biovault/PremiumConsultant';
 import { TwinSharingHub } from '@/components/biovault/TwinSharingHub';
 import { TwinLocationMap } from '@/components/biovault/TwinLocationMap';
 import { TwinEngineStatus } from '@/components/biovault/TwinEngineStatus';
+import { ProximityRadar } from '@/components/biovault/ProximityRadar';
 import { useTwinSharing } from '@/hooks/useTwinSharing';
 import { usePersonalTwinEngine } from '@/hooks/usePersonalTwinEngine';
 import { toast } from 'sonner';
@@ -295,14 +296,37 @@ const BioVault: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* NEW: Engine Tab */}
+        {/* Engine Tab with Proximity Radar */}
         <TabsContent value="engine" className="space-y-6">
-          <TwinEngineStatus
-            state={twinEngine.twinState}
-            isProcessing={twinEngine.isProcessing}
-            inputQueueLength={twinEngine.inputQueue.length}
-            onRefresh={twinEngine.processInputs}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <TwinEngineStatus
+                state={twinEngine.twinState}
+                isProcessing={twinEngine.isProcessing}
+                inputQueueLength={twinEngine.inputQueue.length}
+                onRefresh={twinEngine.processInputs}
+              />
+            </div>
+            <div>
+              <ProximityRadar 
+                twinId={healthProfile?.id || 'anonymous'}
+                onContextUpdate={(data) => {
+                  // Inject proximity context into twin engine
+                  if (data.context?.shouldTriggerReeval) {
+                    twinEngine.addInput({
+                      type: 'environment',
+                      timestamp: new Date().toISOString(),
+                      data: {
+                        proximityRisk: data.exposure?.exposureScore || 0,
+                        crowdDensity: data.context?.crowdDensity,
+                        riskZone: data.context?.riskZone?.name
+                      }
+                    });
+                  }
+                }}
+              />
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="overview" className="space-y-6">
