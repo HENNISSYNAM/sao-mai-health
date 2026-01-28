@@ -252,14 +252,14 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6 animate-fade-up">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 animate-fade-up">
         <div className="space-y-1">
-          <Skeleton className="h-9 w-64" />
-          <Skeleton className="h-5 w-96" />
+          <Skeleton className="h-8 sm:h-9 w-48 sm:w-64" />
+          <Skeleton className="h-4 sm:h-5 w-64 sm:w-96" />
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-32 rounded-2xl" />
+            <Skeleton key={i} className="h-28 sm:h-32 rounded-xl sm:rounded-2xl" />
           ))}
         </div>
       </div>
@@ -267,35 +267,22 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fade-up">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            {t('dashboard.title')}
-          </h1>
-          <p className="text-muted-foreground">
-            {t('dashboard.subtitle')}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={fetchNewsData}
-            disabled={fetchingNews}
-            size="sm"
-            className="gap-2 rounded-xl"
-          >
-            {fetchingNews ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Newspaper className="h-4 w-4" />
-            )}
-            {t('dashboard.fetchNews')}
-          </Button>
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      {/* Header - Mobile Optimized */}
+      <div className="flex flex-col gap-3 animate-fade-up">
+        <div className="flex items-start justify-between">
+          <div className="space-y-0.5 sm:space-y-1">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">
+              {t('dashboard.title')}
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+              {t('dashboard.subtitle')}
+            </p>
+          </div>
           <Badge 
             variant="outline" 
             className={cn(
-              "rounded-lg px-3 py-1",
+              "rounded-lg px-2 sm:px-3 py-0.5 sm:py-1 text-xs shrink-0",
               countsConnected && alertsConnected 
                 ? "border-success/50 bg-success/10 text-success" 
                 : "border-muted"
@@ -303,24 +290,40 @@ export default function Dashboard() {
           >
             {countsConnected && alertsConnected ? `● ${t('dashboard.live')}` : `○ ${t('dashboard.offline')}`}
           </Badge>
-          <span className="text-xs text-muted-foreground hidden sm:inline">
-            {nowTs.toLocaleTimeString(locale)}
+        </div>
+        
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button
+            onClick={fetchNewsData}
+            disabled={fetchingNews}
+            size="sm"
+            className="gap-1.5 sm:gap-2 rounded-xl text-xs sm:text-sm flex-1 sm:flex-none"
+          >
+            {fetchingNews ? (
+              <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+            ) : (
+              <Newspaper className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            )}
+            <span className="truncate">{t('dashboard.fetchNews')}</span>
+          </Button>
+          <span className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
+            {nowTs.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {/* KPI Cards - 2 columns on mobile, 4 on desktop */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         {kpiData.map((kpi, index) => (
-          <div key={index} className="animate-fade-up" style={{ animationDelay: `${index * 100}ms` }}>
+          <div key={index} className="animate-fade-up" style={{ animationDelay: `${index * 50}ms` }}>
             <KpiCard {...kpi} />
           </div>
         ))}
       </div>
 
-      {/* Compact Orchestrator + News Feed Row */}
-      <div className="grid gap-6 lg:grid-cols-3 animate-fade-up" style={{ animationDelay: '120ms' }}>
-        <div className="lg:col-span-2">
+      {/* Orchestrator + News Feed - Stack on mobile, side by side on desktop */}
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3 animate-fade-up" style={{ animationDelay: '100ms' }}>
+        <div className="lg:col-span-2 order-2 lg:order-1">
           <OrchestratorStatus 
             pipeline={pipeline}
             isLoading={orchestratorLoading}
@@ -330,13 +333,13 @@ export default function Dashboard() {
             onTrigger={triggerPipeline}
           />
         </div>
-        <div>
+        <div className="order-1 lg:order-2">
           <HealthNewsFeed />
         </div>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid gap-6 lg:grid-cols-2 animate-fade-up" style={{ animationDelay: '180ms' }}>
+      {/* Charts - Stack on mobile */}
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2 animate-fade-up" style={{ animationDelay: '150ms' }}>
         <DashboardChart
           title={t('dashboard.caseTrend')}
           data={trendData}
@@ -351,8 +354,8 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* District Distribution Chart */}
-      <div className="animate-fade-up" style={{ animationDelay: '220ms' }}>
+      {/* District Chart */}
+      <div className="animate-fade-up" style={{ animationDelay: '180ms' }}>
         <DashboardChart
           title={t('dashboard.districtDistribution')}
           data={districtData}
@@ -361,54 +364,59 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Recent Alerts */}
-      <Card className="rounded-2xl border-border/50 animate-fade-up" style={{ animationDelay: '400ms' }}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-warning/10">
-                <AlertTriangle className="h-4 w-4 text-warning" />
+      {/* Recent Alerts - Mobile Optimized */}
+      <Card className="rounded-xl sm:rounded-2xl border-border/50 animate-fade-up" style={{ animationDelay: '200ms' }}>
+        <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-warning/10 shrink-0">
+                <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-warning" />
               </div>
-              <div>
-                <CardTitle className="text-base">{t('dashboard.recentAlerts')}</CardTitle>
-                <CardDescription className="text-xs">
+              <div className="min-w-0">
+                <CardTitle className="text-sm sm:text-base truncate">{t('dashboard.recentAlerts')}</CardTitle>
+                <CardDescription className="text-[10px] sm:text-xs">
                   {alerts.filter(a => a.status === 'open').length} {t('alerts.open').toLowerCase()}
                 </CardDescription>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="gap-1 text-xs" onClick={() => window.location.href = '/alerts'}>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="gap-1 text-[10px] sm:text-xs h-7 sm:h-8 px-2 sm:px-3 shrink-0" 
+              onClick={() => window.location.href = '/alerts'}
+            >
               {t('common.all')}
-              <ArrowRight className="h-3 w-3" />
+              <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-1.5 sm:space-y-2 px-3 sm:px-6 pb-3 sm:pb-6">
           {alerts.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">{t('common.noData')}</p>
+            <div className="text-center py-6 sm:py-8 text-muted-foreground">
+              <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-xs sm:text-sm">{t('common.noData')}</p>
             </div>
           ) : (
             alerts.slice(0, 4).map((alert) => (
               <div 
                 key={alert.id} 
-                className="flex items-center justify-between p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
+                className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group gap-2"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   <div className={cn(
-                    "w-2 h-2 rounded-full",
+                    "w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0",
                     alert.status === 'open' ? "bg-danger animate-pulse" : "bg-muted"
                   )} />
-                  <div>
-                    <p className="text-sm font-medium">
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium truncate">
                       {t(`diseases.${alert.disease_code}`, alert.disease_code.toUpperCase())} - {alert.cases} {i18n.language === 'vi' ? 'ca' : 'cases'}
                     </p>
-                    <p className="text-xs text-muted-foreground">{alert.day}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">{alert.day}</p>
                   </div>
                 </div>
                 <Badge 
                   variant={alert.status === 'open' ? 'destructive' : 'secondary'}
-                  className="text-xs"
+                  className="text-[10px] sm:text-xs shrink-0"
                 >
                   {alert.status === 'open' ? t('alerts.open') : t('alerts.closed')}
                 </Badge>
