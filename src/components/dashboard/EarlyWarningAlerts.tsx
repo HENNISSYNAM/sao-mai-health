@@ -12,12 +12,12 @@ import {
   ChevronDown, 
   ChevronUp,
   Shield,
-  TrendingUp,
   Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
+import { getDiseaseName } from '@/lib/diseaseI18n';
 
 interface EarlyWarning {
   id: string;
@@ -38,11 +38,12 @@ interface EarlyWarningAlertsProps {
 }
 
 export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }: EarlyWarningAlertsProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   
-  const locale = i18n.language === 'vi' ? vi : enUS;
+  const language = i18n.language as 'vi' | 'en';
+  const locale = language === 'vi' ? vi : enUS;
 
   // Generate AI early warnings based on data patterns
   const generateAIWarnings = (): EarlyWarning[] => {
@@ -54,10 +55,10 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
         id: 'ai-1',
         type: 'ai_prediction',
         severity: 'medium',
-        title: i18n.language === 'vi' 
+        title: language === 'vi' 
           ? 'Tín hiệu sớm: Gia tăng ca bệnh' 
           : 'Early Signal: Increasing Cases',
-        description: i18n.language === 'vi'
+        description: language === 'vi'
           ? 'Phát hiện xu hướng tăng không theo mùa. Cần theo dõi thêm trong 48h tới.'
           : 'Detected off-season increase trend. Monitor closely for next 48h.',
         location: 'Quận 1, TP.HCM',
@@ -73,13 +74,13 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
         id: 'ai-gps-1',
         type: 'ai_prediction',
         severity: 'low',
-        title: i18n.language === 'vi'
+        title: language === 'vi'
           ? 'Khu vực của bạn: Nguy cơ thấp'
           : 'Your Area: Low Risk',
-        description: i18n.language === 'vi'
+        description: language === 'vi'
           ? 'Không phát hiện tín hiệu bất thường tại khu vực hiện tại.'
           : 'No unusual signals detected in your current area.',
-        location: i18n.language === 'vi' ? 'Vị trí hiện tại' : 'Current location',
+        location: language === 'vi' ? 'Vị trí hiện tại' : 'Current location',
         confidence: 'high',
         createdAt: new Date().toISOString()
       });
@@ -90,18 +91,23 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
 
   const allWarnings = generateAIWarnings();
   
-  // Separate verified and AI warnings
-  const verified = verifiedAlerts.map(alert => ({
-    id: alert.id,
-    type: 'verified' as const,
-    severity: alert.status === 'critical' ? 'critical' : 'high' as const,
-    title: `${alert.disease_code.toUpperCase()}: ${alert.cases} ca`,
-    description: `Ngưỡng cảnh báo vượt mức cho phép`,
-    location: alert.district_id,
-    confidence: 'high' as const,
-    createdAt: alert.created_at,
-    diseaseType: alert.disease_code
-  }));
+  // Separate verified and AI warnings - use localized disease names
+  const verified = verifiedAlerts.map(alert => {
+    const diseaseName = getDiseaseName(alert.disease_code, language);
+    return {
+      id: alert.id,
+      type: 'verified' as const,
+      severity: alert.status === 'critical' ? 'critical' : 'high' as const,
+      title: `${diseaseName}: ${alert.cases} ${t('common.cases')}`,
+      description: language === 'vi' 
+        ? 'Ngưỡng cảnh báo vượt mức cho phép'
+        : 'Alert threshold exceeded',
+      location: alert.district_id,
+      confidence: 'high' as const,
+      createdAt: alert.created_at,
+      diseaseType: alert.disease_code
+    };
+  });
 
   const aiPredictions = allWarnings.filter(w => w.type === 'ai_prediction');
 
@@ -116,9 +122,9 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
 
   const getConfidenceLabel = (confidence: string) => {
     const labels = {
-      high: i18n.language === 'vi' ? 'Tin cậy cao' : 'High confidence',
-      medium: i18n.language === 'vi' ? 'Tin cậy TB' : 'Medium confidence',
-      low: i18n.language === 'vi' ? 'Tin cậy thấp' : 'Low confidence'
+      high: language === 'vi' ? 'Tin cậy cao' : 'High confidence',
+      medium: language === 'vi' ? 'Tin cậy TB' : 'Medium confidence',
+      low: language === 'vi' ? 'Tin cậy thấp' : 'Low confidence'
     };
     return labels[confidence as keyof typeof labels] || confidence;
   };
@@ -143,7 +149,7 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
             </div>
             <div>
               <CardTitle className="text-sm sm:text-base">
-                {i18n.language === 'vi' ? 'Cảnh báo & Tín hiệu sớm' : 'Alerts & Early Signals'}
+                {language === 'vi' ? 'Cảnh báo & Tín hiệu sớm' : 'Alerts & Early Signals'}
               </CardTitle>
             </div>
           </div>
@@ -166,7 +172,7 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
           <div className="text-center py-6 text-muted-foreground">
             <Eye className="h-6 w-6 mx-auto mb-2 opacity-50" />
             <p className="text-xs">
-              {i18n.language === 'vi' ? 'Không có cảnh báo' : 'No alerts'}
+              {language === 'vi' ? 'Không có cảnh báo' : 'No alerts'}
             </p>
           </div>
         ) : (
@@ -200,12 +206,12 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
                           {alert.type === 'verified' ? (
                             <>
                               <Shield className="h-2 w-2 mr-0.5" />
-                              {i18n.language === 'vi' ? 'Xác nhận' : 'Verified'}
+                              {language === 'vi' ? 'Xác nhận' : 'Verified'}
                             </>
                           ) : (
                             <>
                               <Brain className="h-2 w-2 mr-0.5" />
-                              {i18n.language === 'vi' ? 'Dự báo AI' : 'AI Prediction'}
+                              {language === 'vi' ? 'Dự báo AI' : 'AI Prediction'}
                             </>
                           )}
                         </Badge>
@@ -250,7 +256,7 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
                           {alert.type === 'ai_prediction' && (
                             <p className="text-[10px] text-warning mt-1 flex items-center gap-1">
                               <AlertTriangle className="h-2.5 w-2.5" />
-                              {i18n.language === 'vi' 
+                              {language === 'vi' 
                                 ? 'Đây là cảnh báo sớm từ AI, cần theo dõi thêm'
                                 : 'This is an AI early warning, requires monitoring'}
                             </p>
@@ -283,8 +289,8 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
             className="w-full mt-2 text-xs h-7"
           >
             {showAll 
-              ? (i18n.language === 'vi' ? 'Thu gọn' : 'Show less')
-              : (i18n.language === 'vi' ? `Xem tất cả (${verified.length + aiPredictions.length})` : `View all (${verified.length + aiPredictions.length})`)
+              ? (language === 'vi' ? 'Thu gọn' : 'Show less')
+              : (language === 'vi' ? `Xem tất cả (${verified.length + aiPredictions.length})` : `View all (${verified.length + aiPredictions.length})`)
             }
           </Button>
         )}

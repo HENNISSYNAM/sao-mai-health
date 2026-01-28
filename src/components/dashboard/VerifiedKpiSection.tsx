@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Activity, AlertTriangle, Heart, Users, Shield } from "lucide-react";
+import { Activity, AlertTriangle, Heart, Users } from "lucide-react";
 import { KpiCard } from "@/components/KpiCard";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -32,28 +32,28 @@ export function VerifiedKpiSection({ dailyCounts, alerts, isConnected }: Verifie
 
   const kpiData = [
     {
-      title: i18n.language === 'vi' ? 'Ca hôm nay' : 'Today Cases',
+      title: t('kpi.todayCases'),
       value: todayCases.toLocaleString(locale),
       change: todayCases > 0 ? { value: 12, type: 'increase' as const } : undefined,
       icon: Users,
       variant: 'info' as const
     },
     {
-      title: i18n.language === 'vi' ? 'Cảnh báo' : 'Open Alerts',
+      title: t('kpi.openAlerts'),
       value: openAlerts.toString(),
       change: openAlerts > 0 ? { value: 2, type: 'decrease' as const } : undefined,
       icon: AlertTriangle,
       variant: openAlerts > 5 ? 'danger' as const : 'warning' as const
     },
     {
-      title: i18n.language === 'vi' ? 'Loại bệnh' : 'Disease Types',
+      title: t('kpi.diseaseTypes'),
       value: recentDiseases.toString(),
       change: recentDiseases > 0 ? { value: 1, type: 'increase' as const } : undefined,
       icon: Activity,
       variant: 'success' as const
     },
     {
-      title: i18n.language === 'vi' ? 'Tỷ lệ tiêm' : 'Vaccination',
+      title: t('kpi.vaccinationRate'),
       value: "92%",
       change: { value: 3, type: 'increase' as const },
       icon: Heart,
@@ -63,55 +63,30 @@ export function VerifiedKpiSection({ dailyCounts, alerts, isConnected }: Verifie
 
   return (
     <div className="space-y-3">
-      {/* Header with Verified Data Label */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-success/10">
-            <Shield className="h-4 w-4 text-success" />
-          </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold">
-              {i18n.language === 'vi' ? 'Tổng quan hệ thống' : 'System Overview'}
-            </h2>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">
-              {i18n.language === 'vi' ? 'Giám sát y tế công cộng' : 'Public health monitoring'}
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {/* Verified Data Badge */}
-          <Badge 
-            variant="outline" 
-            className="text-[10px] sm:text-xs gap-1 border-success/50 bg-success/10 text-success"
-          >
-            <Shield className="h-3 w-3" />
-            {i18n.language === 'vi' ? 'Dữ liệu thực' : 'Verified'}
-          </Badge>
-          
-          {/* Live Status */}
-          <Badge 
-            variant="outline" 
-            className={cn(
-              "rounded-lg px-2 py-0.5 text-xs",
-              isConnected 
-                ? "border-success/50 bg-success/10 text-success" 
-                : "border-muted"
-            )}
-          >
-            {isConnected ? (
-              <span className="flex items-center gap-1">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-                </span>
-                {i18n.language === 'vi' ? 'Trực tiếp' : 'Live'}
+      {/* Header with Status Badges */}
+      <div className="flex items-center justify-end gap-2">
+        {/* Live Status */}
+        <Badge 
+          variant="outline" 
+          className={cn(
+            "rounded-lg px-2 py-0.5 text-xs",
+            isConnected 
+              ? "border-success/50 bg-success/10 text-success" 
+              : "border-muted"
+          )}
+        >
+          {isConnected ? (
+            <span className="flex items-center gap-1">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
               </span>
-            ) : (
-              <span>○ Offline</span>
-            )}
-          </Badge>
-        </div>
+              {t('dashboard.live')}
+            </span>
+          ) : (
+            <span>○ {t('dashboard.offline')}</span>
+          )}
+        </Badge>
       </div>
 
       {/* KPI Cards - VERIFIED DATA ONLY */}

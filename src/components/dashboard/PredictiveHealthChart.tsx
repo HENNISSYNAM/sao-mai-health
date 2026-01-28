@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   LineChart,
   Line,
@@ -13,20 +12,16 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Area,
-  AreaChart,
   ReferenceLine
 } from 'recharts';
 import { 
-  TrendingUp, 
   Brain, 
-  AlertTriangle, 
   Activity,
   Eye,
-  EyeOff,
-  Info
+  EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getDiseaseName, getDiseaseColor } from '@/lib/diseaseI18n';
 
 interface PredictiveHealthChartProps {
   observedData: any[];
@@ -39,23 +34,17 @@ interface PredictiveHealthChartProps {
   lastUpdated?: Date | null;
 }
 
-const DISEASE_COLORS: Record<string, { solid: string; faded: string }> = {
-  dengue: { solid: 'hsl(var(--chart-1))', faded: 'hsl(var(--chart-1) / 0.3)' },
-  covid19: { solid: 'hsl(var(--chart-2))', faded: 'hsl(var(--chart-2) / 0.3)' },
-  hfmd: { solid: 'hsl(var(--chart-3))', faded: 'hsl(var(--chart-3) / 0.3)' },
-  influenza: { solid: 'hsl(var(--chart-4))', faded: 'hsl(var(--chart-4) / 0.3)' },
-  ari: { solid: 'hsl(var(--chart-5))', faded: 'hsl(var(--chart-5) / 0.3)' }
-};
-
 export function PredictiveHealthChart({ 
   observedData, 
   predictedData,
   isLoading,
   lastUpdated 
 }: PredictiveHealthChartProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showPredictions, setShowPredictions] = useState(true);
   const [selectedScenario, setSelectedScenario] = useState<'bestCase' | 'mostLikely' | 'worstCase'>('mostLikely');
+
+  const language = i18n.language as 'vi' | 'en';
 
   const { chartData, diseases, todayIndex } = useMemo(() => {
     if (!observedData || observedData.length === 0) {
@@ -71,7 +60,7 @@ export function PredictiveHealthChart({
       if (!dateMap.has(date)) {
         dateMap.set(date, { 
           date, 
-          name: new Date(date).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' }),
+          name: new Date(date).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US', { day: 'numeric', month: 'numeric' }),
           isObserved: true
         });
       }
@@ -91,7 +80,7 @@ export function PredictiveHealthChart({
         if (!dateMap.has(date)) {
           dateMap.set(date, { 
             date, 
-            name: new Date(date).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' }),
+            name: new Date(date).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US', { day: 'numeric', month: 'numeric' }),
             isObserved: false,
             isPredicted: true
           });
@@ -107,11 +96,11 @@ export function PredictiveHealthChart({
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Find today's index for reference line
-    const todayFormatted = new Date(today).toLocaleDateString('vi-VN', { day: 'numeric', month: 'numeric' });
+    const todayFormatted = new Date(today).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US', { day: 'numeric', month: 'numeric' });
     const todayIndex = chartData.findIndex(d => d.name === todayFormatted);
 
     return { chartData, diseases: Array.from(diseases), todayIndex };
-  }, [observedData, predictedData, showPredictions, selectedScenario]);
+  }, [observedData, predictedData, showPredictions, selectedScenario, language]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || payload.length === 0) return null;
@@ -132,24 +121,30 @@ export function PredictiveHealthChart({
             )}
           >
             {isProjection 
-              ? (i18n.language === 'vi' ? 'Dự báo AI' : 'AI Prediction')
-              : (i18n.language === 'vi' ? 'Dữ liệu thực' : 'Verified')
+              ? (language === 'vi' ? 'Dự báo AI' : 'AI Prediction')
+              : (language === 'vi' ? 'Dữ liệu thực' : 'Verified')
             }
           </Badge>
         </div>
         <div className="space-y-0.5">
-          {payload.map((entry: any, idx: number) => (
-            <div key={idx} className="flex items-center justify-between gap-4 text-xs">
-              <span className="flex items-center gap-1">
-                <span 
-                  className="w-2 h-2 rounded-full" 
-                  style={{ backgroundColor: entry.color }}
-                />
-                {entry.name}
-              </span>
-              <span className="font-medium">{entry.value} ca</span>
-            </div>
-          ))}
+          {payload.map((entry: any, idx: number) => {
+            // Extract disease code from dataKey (e.g., "dengue_observed" -> "dengue")
+            const diseaseCode = entry.dataKey.replace(/_observed|_predicted/, '');
+            const displayName = getDiseaseName(diseaseCode, language);
+            
+            return (
+              <div key={idx} className="flex items-center justify-between gap-4 text-xs">
+                <span className="flex items-center gap-1">
+                  <span 
+                    className="w-2 h-2 rounded-full" 
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  {displayName}
+                </span>
+                <span className="font-medium">{entry.value} {t('common.cases')}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -175,10 +170,10 @@ export function PredictiveHealthChart({
             </div>
             <div>
               <CardTitle className="text-sm sm:text-base">
-                {i18n.language === 'vi' ? 'Biểu đồ theo dõi' : 'Monitoring Chart'}
+                {language === 'vi' ? 'Biểu đồ theo dõi' : 'Monitoring Chart'}
               </CardTitle>
               <CardDescription className="text-[10px] sm:text-xs">
-                {i18n.language === 'vi' 
+                {language === 'vi' 
                   ? 'Đường liền: Dữ liệu thực • Đường đứt: Dự báo AI' 
                   : 'Solid: Verified • Dashed: AI Prediction'}
               </CardDescription>
@@ -189,12 +184,12 @@ export function PredictiveHealthChart({
             {/* Legend badges */}
             <Badge variant="outline" className="text-[10px] gap-1 border-success/30 bg-success/5">
               <span className="w-3 h-0.5 bg-success rounded" />
-              {i18n.language === 'vi' ? 'Thực' : 'Observed'}
+              {language === 'vi' ? 'Thực' : 'Observed'}
             </Badge>
             {showPredictions && (
               <Badge variant="outline" className="text-[10px] gap-1 border-primary/30 bg-primary/5">
                 <span className="w-3 h-0.5 bg-primary rounded" style={{ borderStyle: 'dashed', borderWidth: 1 }} />
-                {i18n.language === 'vi' ? 'Dự báo' : 'Predicted'}
+                {language === 'vi' ? 'Dự báo' : 'Predicted'}
               </Badge>
             )}
             
@@ -222,7 +217,7 @@ export function PredictiveHealthChart({
             <div className="text-center">
               <Activity className="h-8 w-8 mx-auto mb-2 opacity-30" />
               <p className="text-sm">
-                {i18n.language === 'vi' ? 'Chưa có dữ liệu' : 'No data available'}
+                {language === 'vi' ? 'Chưa có dữ liệu' : 'No data available'}
               </p>
             </div>
           </div>
@@ -232,7 +227,7 @@ export function PredictiveHealthChart({
             {showPredictions && predictedData && (
               <div className="flex items-center gap-1 mb-3">
                 <span className="text-[10px] text-muted-foreground mr-1">
-                  {i18n.language === 'vi' ? 'Kịch bản:' : 'Scenario:'}
+                  {language === 'vi' ? 'Kịch bản:' : 'Scenario:'}
                 </span>
                 {(['bestCase', 'mostLikely', 'worstCase'] as const).map(scenario => (
                   <Button
@@ -246,9 +241,9 @@ export function PredictiveHealthChart({
                       scenario === 'worstCase' && "border-destructive/50"
                     )}
                   >
-                    {scenario === 'bestCase' && (i18n.language === 'vi' ? 'Tốt nhất' : 'Best')}
-                    {scenario === 'mostLikely' && (i18n.language === 'vi' ? 'Nhiều khả năng' : 'Likely')}
-                    {scenario === 'worstCase' && (i18n.language === 'vi' ? 'Xấu nhất' : 'Worst')}
+                    {scenario === 'bestCase' && (language === 'vi' ? 'Tốt nhất' : 'Best')}
+                    {scenario === 'mostLikely' && (language === 'vi' ? 'Nhiều khả năng' : 'Likely')}
+                    {scenario === 'worstCase' && (language === 'vi' ? 'Xấu nhất' : 'Worst')}
                   </Button>
                 ))}
               </div>
@@ -271,6 +266,18 @@ export function PredictiveHealthChart({
                 <Legend 
                   wrapperStyle={{ fontSize: '10px' }}
                   iconSize={8}
+                  formatter={(value: string) => {
+                    // Parse legend value to get disease name
+                    const match = value.match(/^(\w+)_/);
+                    if (match) {
+                      const diseaseCode = match[1];
+                      const suffix = value.includes('observed') 
+                        ? (language === 'vi' ? ' (thực)' : ' (real)')
+                        : (language === 'vi' ? ' (dự báo)' : ' (pred)');
+                      return getDiseaseName(diseaseCode, language) + suffix;
+                    }
+                    return value;
+                  }}
                 />
                 
                 {/* Reference line for today */}
@@ -280,7 +287,7 @@ export function PredictiveHealthChart({
                     stroke="hsl(var(--muted-foreground))"
                     strokeDasharray="5 5"
                     label={{ 
-                      value: i18n.language === 'vi' ? 'Hôm nay' : 'Today', 
+                      value: language === 'vi' ? 'Hôm nay' : 'Today', 
                       fontSize: 10, 
                       fill: 'hsl(var(--muted-foreground))',
                       position: 'top'
@@ -289,34 +296,40 @@ export function PredictiveHealthChart({
                 )}
 
                 {/* Observed data lines (solid) */}
-                {diseases.slice(0, 4).map((disease, idx) => (
-                  <Line
-                    key={`${disease}_observed`}
-                    type="monotone"
-                    dataKey={`${disease}_observed`}
-                    name={`${disease.toUpperCase()} (${i18n.language === 'vi' ? 'thực' : 'real'})`}
-                    stroke={DISEASE_COLORS[disease]?.solid || `hsl(var(--chart-${idx + 1}))`}
-                    strokeWidth={2}
-                    dot={{ r: 3, fill: DISEASE_COLORS[disease]?.solid || `hsl(var(--chart-${idx + 1}))` }}
-                    connectNulls
-                  />
-                ))}
+                {diseases.slice(0, 4).map((disease, idx) => {
+                  const color = getDiseaseColor(disease);
+                  return (
+                    <Line
+                      key={`${disease}_observed`}
+                      type="monotone"
+                      dataKey={`${disease}_observed`}
+                      name={`${disease}_observed`}
+                      stroke={color.solid}
+                      strokeWidth={2}
+                      dot={{ r: 3, fill: color.solid }}
+                      connectNulls
+                    />
+                  );
+                })}
 
                 {/* Predicted data lines (dashed) - only if enabled */}
-                {showPredictions && diseases.slice(0, 4).map((disease, idx) => (
-                  <Line
-                    key={`${disease}_predicted`}
-                    type="monotone"
-                    dataKey={`${disease}_predicted`}
-                    name={`${disease.toUpperCase()} (${i18n.language === 'vi' ? 'dự báo' : 'pred'})`}
-                    stroke={DISEASE_COLORS[disease]?.solid || `hsl(var(--chart-${idx + 1}))`}
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={{ r: 2, strokeDasharray: "none" }}
-                    connectNulls
-                    opacity={0.7}
-                  />
-                ))}
+                {showPredictions && diseases.slice(0, 4).map((disease, idx) => {
+                  const color = getDiseaseColor(disease);
+                  return (
+                    <Line
+                      key={`${disease}_predicted`}
+                      type="monotone"
+                      dataKey={`${disease}_predicted`}
+                      name={`${disease}_predicted`}
+                      stroke={color.solid}
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={{ r: 2, strokeDasharray: "none" }}
+                      connectNulls
+                      opacity={0.7}
+                    />
+                  );
+                })}
               </LineChart>
             </ResponsiveContainer>
 
@@ -325,7 +338,7 @@ export function PredictiveHealthChart({
               <div className="flex items-center justify-center gap-2 mt-3 pt-2 border-t border-dashed text-[10px] text-muted-foreground">
                 <Brain className="h-3 w-3 text-primary" />
                 <span>
-                  {i18n.language === 'vi' 
+                  {language === 'vi' 
                     ? 'Dữ liệu dự báo được tạo bởi AI, chỉ mang tính tham khảo'
                     : 'Predicted data is AI-generated, for reference only'}
                 </span>
