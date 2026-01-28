@@ -90,7 +90,15 @@ const Settings = () => {
   const [settings, setSettings] = useState<UserSettings>(loadSettings);
   const [initialized, setInitialized] = useState(false);
 
-  // Load settings on mount and sync language
+  // Apply theme to document
+  const applyTheme = (isDark: boolean) => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark');
+    root.classList.add(isDark ? 'dark' : 'light');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  };
+
+  // Load settings on mount and sync language + theme
   useEffect(() => {
     const loaded = loadSettings();
     setSettings(loaded);
@@ -99,6 +107,10 @@ const Settings = () => {
     if (loaded.language !== i18n.language) {
       i18n.changeLanguage(loaded.language);
     }
+    
+    // Apply theme
+    applyTheme(loaded.darkMode);
+    
     setInitialized(true);
   }, []);
 
@@ -106,6 +118,8 @@ const Settings = () => {
   useEffect(() => {
     if (initialized) {
       saveSettings(settings);
+      // Apply theme when darkMode changes
+      applyTheme(settings.darkMode);
     }
   }, [settings, initialized]);
 
