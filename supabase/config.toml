@@ -146,3 +146,6 @@ verify_jwt = false
 
 [functions.health-system-orchestrator]
 verify_jwt = false
+
+[functions.onboarding-agent]
+verify_jwt = false

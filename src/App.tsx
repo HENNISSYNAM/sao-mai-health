@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavbar } from "@/components/TopNavbar";
+import { MobileBottomNav } from "@/components/navigation/MobileBottomNav";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalAIAssistant } from "@/components/GlobalAIAssistant";
@@ -39,10 +40,13 @@ const queryClient = new QueryClient({
 // Layout with sidebar for most pages
 const MainLayout = () => (
   <SidebarProvider>
-    <AppSidebar />
-    <SidebarInset>
+    {/* Desktop Sidebar - hidden on mobile */}
+    <div className="hidden md:block">
+      <AppSidebar />
+    </div>
+    <SidebarInset className="pb-20 md:pb-0">
       <TopNavbar />
-      <main className="flex-1 p-6 bg-background">
+      <main className="flex-1 p-4 md:p-6 bg-background">
         <Routes>
           <Route index element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -67,6 +71,8 @@ const MainLayout = () => (
         <GlobalAIAssistant />
       </main>
     </SidebarInset>
+    {/* Mobile Bottom Nav - hidden on desktop */}
+    <MobileBottomNav />
   </SidebarProvider>
 );
 

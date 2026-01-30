@@ -334,3 +334,15 @@
 .leaflet-popup-tip {
   @apply bg-card;
 }
+
+/* Mobile Safe Area for Bottom Navigation */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide scrollbar on mobile bottom nav */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 4rem;
+  }
+}
