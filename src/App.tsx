@@ -10,6 +10,7 @@ import { MobileBottomNav } from "@/components/navigation/MobileBottomNav";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalAIAssistant } from "@/components/GlobalAIAssistant";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 import Dashboard from "./pages/Dashboard";
 import Surveillance from "./pages/Surveillance";
 import CaseIntake from "./pages/CaseIntake";
@@ -84,14 +85,16 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            {/* Stroke Risk - Full screen without sidebar */}
-            <Route path="/stroke-risk/*" element={<StrokeRisk />} />
-            {/* Auth - Full screen without sidebar */}
-            <Route path="/auth" element={<Auth />} />
-            {/* All other routes with sidebar layout */}
-            <Route path="/*" element={<MainLayout />} />
-          </Routes>
+          <AuthProvider>
+            <Routes>
+              {/* Stroke Risk - Full screen without sidebar */}
+              <Route path="/stroke-risk/*" element={<StrokeRisk />} />
+              {/* Auth - Full screen without sidebar */}
+              <Route path="/auth" element={<Auth />} />
+              {/* All other routes with sidebar layout */}
+              <Route path="/*" element={<MainLayout />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
