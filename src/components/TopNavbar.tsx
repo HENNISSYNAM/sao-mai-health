@@ -23,6 +23,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { UserProfileButton } from "./auth/UserProfileButton";
+import { useUserAlerts } from "@/hooks/useUserAlerts";
 
 interface RealtimeStatus {
   connected: boolean;
@@ -81,10 +83,12 @@ export function TopNavbar() {
     });
   };
 
+  const { alerts, unreadCount } = useUserAlerts();
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
       <div className="flex h-16 items-center px-4 gap-4">
-        <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+        <SidebarTrigger className="text-muted-foreground hover:text-foreground hidden md:flex" />
         
         {/* Logo/Title for mobile */}
         <div className="flex items-center gap-3 lg:hidden">
@@ -153,14 +157,16 @@ export function TopNavbar() {
             <RefreshCw className="h-4 w-4" />
           </Button>
 
-          {/* Notifications */}
+          {/* Notifications - Use real user alerts */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="relative rounded-xl border-border hover:bg-accent">
                 <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-danger text-danger-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
-                  3
-                </span>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-danger text-danger-foreground text-[10px] font-bold flex items-center justify-center animate-pulse">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-96 rounded-2xl p-0 overflow-hidden">
@@ -242,6 +248,9 @@ export function TopNavbar() {
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* User Profile Button */}
+          <UserProfileButton />
         </div>
       </div>
     </header>
