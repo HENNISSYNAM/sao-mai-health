@@ -1,4 +1,25 @@
 {
+  "auth": {
+    "login": "Login",
+    "signup": "Sign up",
+    "logout": "Sign out",
+    "continueWithGoogle": "Continue with Google",
+    "or": "Or",
+    "password": "Password",
+    "fullName": "Full name",
+    "subtitle": "Smart Health Alert System",
+    "loginSuccess": "Login successful",
+    "welcomeBack": "Welcome back!",
+    "signupSuccess": "Sign up successful",
+    "checkEmail": "Please check your email to confirm your account.",
+    "terms": "By signing in, you agree to our Terms of Service and Privacy Policy.",
+    "errors": {
+      "googleFailed": "Google login failed",
+      "loginFailed": "Login failed",
+      "signupFailed": "Sign up failed",
+      "emailExists": "This email is already registered"
+    }
+  },
   "common": {
     "loading": "Loading...",
     "save": "Save",

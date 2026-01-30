@@ -26,6 +26,7 @@ import Facilities from "./pages/Facilities";
 import StrokeRisk from "./pages/StrokeRisk";
 import BioVault from "./pages/BioVault";
 import Settings from "./pages/Settings";
+import Auth from "./pages/Auth";
 import About from "./pages/About";
 
 const queryClient = new QueryClient({
@@ -86,6 +87,8 @@ const App = () => (
           <Routes>
             {/* Stroke Risk - Full screen without sidebar */}
             <Route path="/stroke-risk/*" element={<StrokeRisk />} />
+            {/* Auth - Full screen without sidebar */}
+            <Route path="/auth" element={<Auth />} />
             {/* All other routes with sidebar layout */}
             <Route path="/*" element={<MainLayout />} />
           </Routes>
