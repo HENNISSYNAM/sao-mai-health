@@ -1,4 +1,25 @@
 {
+  "auth": {
+    "login": "Đăng nhập",
+    "signup": "Đăng ký",
+    "logout": "Đăng xuất",
+    "continueWithGoogle": "Tiếp tục với Google",
+    "or": "Hoặc",
+    "password": "Mật khẩu",
+    "fullName": "Họ và tên",
+    "subtitle": "Hệ thống cảnh báo sức khỏe thông minh",
+    "loginSuccess": "Đăng nhập thành công",
+    "welcomeBack": "Chào mừng bạn quay lại!",
+    "signupSuccess": "Đăng ký thành công",
+    "checkEmail": "Vui lòng kiểm tra email để xác nhận tài khoản.",
+    "terms": "Bằng việc đăng nhập, bạn đồng ý với Điều khoản sử dụng và Chính sách bảo mật của chúng tôi.",
+    "errors": {
+      "googleFailed": "Đăng nhập Google thất bại",
+      "loginFailed": "Đăng nhập thất bại",
+      "signupFailed": "Đăng ký thất bại",
+      "emailExists": "Email này đã được đăng ký"
+    }
+  },
   "common": {
     "loading": "Đang tải...",
     "save": "Lưu",
