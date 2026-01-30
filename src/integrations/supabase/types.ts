@@ -3828,6 +3828,78 @@ export type Database = {
           },
         ]
       }
+      user_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string | null
+          dismissed_at: string | null
+          id: string
+          message: string | null
+          metadata: Json | null
+          read_at: string | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string | null
+          dismissed_at?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          read_at?: string | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string | null
+          dismissed_at?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          read_at?: string | null
+          severity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_health_data: {
+        Row: {
+          created_at: string | null
+          data_type: string
+          id: string
+          notes: string | null
+          recorded_at: string | null
+          source: string | null
+          user_id: string
+          value: Json
+        }
+        Insert: {
+          created_at?: string | null
+          data_type: string
+          id?: string
+          notes?: string | null
+          recorded_at?: string | null
+          source?: string | null
+          user_id: string
+          value: Json
+        }
+        Update: {
+          created_at?: string | null
+          data_type?: string
+          id?: string
+          notes?: string | null
+          recorded_at?: string | null
+          source?: string | null
+          user_id?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       user_plans: {
         Row: {
           created_at: string
