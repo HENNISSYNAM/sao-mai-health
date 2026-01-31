@@ -11,7 +11,7 @@ import {
   Shield, Lock, Fingerprint, FileText, Upload, 
   Heart, Brain, Droplets, Activity, AlertTriangle,
   CheckCircle2, Sparkles, Crown, TrendingUp, Eye,
-  FileSearch, Scan, User, Calendar, Phone, Share2, MapPin, Cpu, Radio, Link2
+  FileSearch, Scan, User, Calendar, Phone, Share2, MapPin, Cpu, Radio, Link2, Cloud
 } from 'lucide-react';
 import { BioVaultUploader } from '@/components/biovault/BioVaultUploader';
 import { DigitalTwinAvatar } from '@/components/biovault/DigitalTwinAvatar';
@@ -28,11 +28,13 @@ import { TwinRealtimeInsights } from '@/components/biovault/TwinRealtimeInsights
 import { RetinaScanUnlock } from '@/components/biovault/RetinaScanUnlock';
 import { Face3DHealthScanner, FacialHealthData } from '@/components/biovault/Face3DHealthScanner';
 import { ExternalHealthConnector } from '@/components/biovault/ExternalHealthConnector';
+import { EnvironmentHealthPanel } from '@/components/biovault/EnvironmentHealthPanel';
 import { useTwinSharing } from '@/hooks/useTwinSharing';
 import { usePersonalTwinEngine } from '@/hooks/usePersonalTwinEngine';
 import { useAuth } from '@/hooks/useAuth';
 import { useBiometricScans } from '@/hooks/useBiometricScans';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { EnvironmentHealthImpact } from '@/hooks/useEnvironmentData';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -87,6 +89,8 @@ const BioVault: React.FC = () => {
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [onboardingStep, setOnboardingStep] = useState<'info' | 'faceScan' | 'complete'>('info');
   const [retinaScanCompleted, setRetinaScanCompleted] = useState(false);
+  const [environmentData, setEnvironmentData] = useState<any>(null);
+  const [environmentImpact, setEnvironmentImpact] = useState<EnvironmentHealthImpact | null>(null);
   const [profileForm, setProfileForm] = useState({
     dateOfBirth: '',
     gender: 'male' as 'male' | 'female' | 'other',
@@ -759,8 +763,35 @@ const BioVault: React.FC = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* Engine Tab with Proximity Radar and AI Insights */}
+        {/* Engine Tab with Proximity Radar, Environment Health and AI Insights */}
         <TabsContent value="engine" className="space-y-6">
+          {/* Environment Health Panel - Full Width at Top */}
+          <EnvironmentHealthPanel 
+            profile={healthProfile}
+            onEnvironmentUpdate={(data, impact) => {
+              setEnvironmentData(data);
+              setEnvironmentImpact(impact);
+              
+              // Inject environment data into twin engine
+              if (data && impact) {
+                twinEngine.addInput({
+                  type: 'environment',
+                  timestamp: new Date().toISOString(),
+                  data: {
+                    temperature: data.weather?.temperature,
+                    humidity: data.weather?.humidity,
+                    pressure: data.weather?.pressure,
+                    aqi: data.airQuality?.aqi,
+                    pm25: data.airQuality?.pm25,
+                    uvIndex: data.weather?.uvIndex,
+                    environmentRiskScore: impact.riskScore,
+                    environmentRiskLevel: impact.overallRisk
+                  }
+                });
+              }
+            }}
+          />
+
           <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
             {/* Twin Engine Status - Main Panel */}
             <div className="xl:col-span-2">
