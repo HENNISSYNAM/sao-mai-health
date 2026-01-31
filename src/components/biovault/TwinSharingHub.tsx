@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  Share2, QrCode, Bluetooth, MapPin, Users, 
+  Share2, QrCode, MapPin, Users, 
   Shield, Heart, AlertTriangle, 
   Link2, Unlink, Scan, Copy, Check, 
   Navigation, RefreshCw, Wifi, Clock, Eye
@@ -35,13 +35,9 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
     sharingCode,
     connectedTwins,
     myLocation,
-    bluetoothDevice,
-    isBluetoothSupported,
     startSharing,
     stopSharing,
-    joinSession,
-    connectBluetooth,
-    disconnectBluetooth
+    joinSession
   } = useTwinSharing(profile);
 
   const {
@@ -275,13 +271,6 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
                       <QrCode className="h-4 w-4" />
                       {isAccessLoading ? 'Đang tạo...' : 'Tạo mã QR chia sẻ'}
                     </Button>
-                    
-                    {isBluetoothSupported && (
-                      <Button variant="outline" onClick={connectBluetooth} className="w-full gap-2">
-                        <Bluetooth className="h-4 w-4" />
-                        Kết nối qua Bluetooth
-                      </Button>
-                    )}
                   </div>
 
                   {/* Security note */}
@@ -439,11 +428,7 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
                               </span>
                             </div>
                             <div className="absolute -bottom-1 -right-1 p-1 rounded-full bg-background">
-                              {twin.connectionType === 'bluetooth' ? (
-                                <Bluetooth className="h-3 w-3 text-info" />
-                              ) : (
-                                <QrCode className="h-3 w-3 text-primary" />
-                              )}
+                              <QrCode className="h-3 w-3 text-primary" />
                             </div>
                           </div>
 
@@ -534,27 +519,6 @@ export const TwinSharingHub: React.FC<TwinSharingHubProps> = ({ profile }) => {
           </div>
         )}
 
-        {/* Bluetooth Device Info */}
-        {bluetoothDevice && (
-          <Card className="bg-info/5 border-info/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-info/20">
-                  <Bluetooth className="h-5 w-5 text-info" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">Bluetooth đã kết nối</p>
-                  <p className="text-xs text-muted-foreground">
-                    {bluetoothDevice.name || 'Thiết bị không tên'}
-                  </p>
-                </div>
-                <Button variant="ghost" size="sm" onClick={disconnectBluetooth}>
-                  <Unlink className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
       </CardContent>
 
       {/* QR Scanner Modal */}

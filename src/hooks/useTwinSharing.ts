@@ -3,16 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { UserHealthProfile } from '@/pages/BioVault';
 
-// Web Bluetooth API type definitions
-interface BluetoothDeviceInfo {
-  id: string;
-  name: string | null;
-  gatt?: {
-    connected: boolean;
-    disconnect: () => void;
-  };
-}
-
 export interface SharedTwin {
   id: string;
   name: string;
@@ -31,7 +21,7 @@ export interface SharedTwin {
     riskLevel: 'low' | 'medium' | 'high';
   };
   connectedAt: string;
-  connectionType: 'bluetooth' | 'qr';
+  connectionType: 'qr';
 }
 
 interface TwinSharingState {
@@ -39,26 +29,17 @@ interface TwinSharingState {
   sharingCode: string | null;
   connectedTwins: SharedTwin[];
   myLocation: { lat: number; lng: number } | null;
-  bluetoothDevice: BluetoothDeviceInfo | null;
-  isBluetoothSupported: boolean;
 }
 
 const SHARING_CHANNEL_PREFIX = 'twin-sharing:';
 const LOCATION_UPDATE_INTERVAL = 10000; // 10 seconds
-
-// Check if Web Bluetooth API is available
-const isBluetoothAvailable = (): boolean => {
-  return typeof navigator !== 'undefined' && 'bluetooth' in navigator;
-};
 
 export const useTwinSharing = (profile: UserHealthProfile | null) => {
   const [state, setState] = useState<TwinSharingState>({
     isSharing: false,
     sharingCode: null,
     connectedTwins: [],
-    myLocation: null,
-    bluetoothDevice: null,
-    isBluetoothSupported: isBluetoothAvailable()
+    myLocation: null
   });
 
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -333,56 +314,6 @@ export const useTwinSharing = (profile: UserHealthProfile | null) => {
     }
   }, [profile, getCurrentLocation, startLocationWatch]);
 
-  // Connect via Bluetooth
-  const connectBluetooth = useCallback(async () => {
-    if (!state.isBluetoothSupported) {
-      toast.error('Thiết bị không hỗ trợ Bluetooth');
-      return false;
-    }
-
-    try {
-      // Request Bluetooth device using Web Bluetooth API
-      const nav = navigator as any;
-      if (!nav.bluetooth) {
-        toast.error('Bluetooth API không khả dụng');
-        return false;
-      }
-
-      const device = await nav.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: ['battery_service', 'generic_access']
-      });
-
-      const deviceInfo: BluetoothDeviceInfo = {
-        id: device.id,
-        name: device.name,
-        gatt: device.gatt
-      };
-
-      setState(prev => ({ ...prev, bluetoothDevice: deviceInfo }));
-      
-      // Create sharing session
-      await startSharing();
-
-      toast.success(`Đã kết nối Bluetooth với ${device.name || 'thiết bị'}`);
-      return true;
-    } catch (error) {
-      console.error('Bluetooth error:', error);
-      if ((error as Error).name !== 'NotFoundError') {
-        toast.error('Không thể kết nối Bluetooth');
-      }
-      return false;
-    }
-  }, [state.isBluetoothSupported, startSharing]);
-
-  // Disconnect Bluetooth
-  const disconnectBluetooth = useCallback(() => {
-    if (state.bluetoothDevice?.gatt?.connected) {
-      state.bluetoothDevice.gatt.disconnect();
-    }
-    setState(prev => ({ ...prev, bluetoothDevice: null }));
-  }, [state.bluetoothDevice]);
-
   // Stop sharing session
   const stopSharing = useCallback(async () => {
     if (channelRef.current) {
@@ -391,7 +322,6 @@ export const useTwinSharing = (profile: UserHealthProfile | null) => {
     }
 
     stopLocationWatch();
-    disconnectBluetooth();
 
     setState(prev => ({
       ...prev,
@@ -401,7 +331,7 @@ export const useTwinSharing = (profile: UserHealthProfile | null) => {
     }));
 
     toast.info('Đã ngắt kết nối chia sẻ');
-  }, [stopLocationWatch, disconnectBluetooth]);
+  }, [stopLocationWatch]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -437,7 +367,7 @@ export const useTwinSharing = (profile: UserHealthProfile | null) => {
             riskLevel: profile.bioShieldScore >= 80 ? 'low' : profile.bioShieldScore >= 50 ? 'medium' : 'high'
           },
           connectedAt: new Date().toISOString(),
-          connectionType: state.bluetoothDevice ? 'bluetooth' : 'qr'
+          connectionType: 'qr'
         });
       } catch (error) {
         console.error('Location update error:', error);
@@ -445,14 +375,12 @@ export const useTwinSharing = (profile: UserHealthProfile | null) => {
     }, LOCATION_UPDATE_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [state.isSharing, state.bluetoothDevice, profile, getCurrentLocation]);
+  }, [state.isSharing, profile, getCurrentLocation]);
 
   return {
     ...state,
     startSharing,
     stopSharing,
-    joinSession,
-    connectBluetooth,
-    disconnectBluetooth
+    joinSession
   };
 };

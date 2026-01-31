@@ -5,7 +5,7 @@ import type { UserHealthProfile } from '@/pages/BioVault';
 
 // ============= TYPES =============
 interface TwinInput {
-  type: 'manual' | 'sensor' | 'gps' | 'bluetooth' | 'qr' | 'environment';
+  type: 'manual' | 'sensor' | 'gps' | 'qr' | 'environment';
   timestamp: string;
   data: Record<string, any>;
   source?: string;
@@ -113,18 +113,6 @@ const collectEnvironmentInput = async (location?: { lat: number; lng: number }):
   };
 };
 
-const collectBluetoothInput = async (): Promise<TwinInput | null> => {
-  // Check for nearby Bluetooth devices (simulated)
-  return {
-    type: 'bluetooth',
-    timestamp: new Date().toISOString(),
-    data: {
-      devices: [],
-      nearbyTwins: []
-    },
-    source: 'web_bluetooth'
-  };
-};
 
 // ============= MAIN HOOK =============
 export const usePersonalTwinEngine = (profile: UserHealthProfile | null) => {
@@ -212,10 +200,6 @@ export const usePersonalTwinEngine = (profile: UserHealthProfile | null) => {
       const envInput = await collectEnvironmentInput(gpsInput.data as { lat: number; lng: number });
       if (envInput) inputs.push(envInput);
     }
-
-    // Bluetooth
-    const btInput = await collectBluetoothInput();
-    if (btInput) inputs.push(btInput);
 
     return inputs;
   }, []);
