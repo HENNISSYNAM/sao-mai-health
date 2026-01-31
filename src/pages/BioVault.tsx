@@ -83,6 +83,8 @@ const BioVault: React.FC = () => {
   const [showFaceScanner, setShowFaceScanner] = useState(false);
   const [facialHealthData, setFacialHealthData] = useState<FacialHealthData | null>(null);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [onboardingStep, setOnboardingStep] = useState<'info' | 'faceScan' | 'complete'>('info');
+  const [retinaScanCompleted, setRetinaScanCompleted] = useState(false);
   const [profileForm, setProfileForm] = useState({
     dateOfBirth: '',
     gender: 'male' as 'male' | 'female' | 'other',
@@ -327,6 +329,7 @@ const BioVault: React.FC = () => {
   // Retina scan unlock handler - now loads real user data
   const handleRetinaUnlock = async () => {
     setIsAuthenticated(true);
+    setRetinaScanCompleted(true);
     toast.success('Xác thực võng mạc thành công!');
     
     // Load real profile
@@ -334,105 +337,230 @@ const BioVault: React.FC = () => {
     if (profile) {
       setHealthProfile(profile);
     } else {
-      // No profile yet - show setup form
+      // No profile yet - show onboarding
       setShowProfileSetup(true);
+      setOnboardingStep('info');
     }
   };
 
-  // Profile Setup UI
+  // Handle onboarding face scan completion
+  const handleOnboardingFaceScan = (data: FacialHealthData) => {
+    setFacialHealthData(data);
+    
+    // Create profile with face scan data
+    const facialMetrics: ExtractedMetric[] = [
+      {
+        id: `face-hr-${Date.now()}`,
+        name: 'Nhịp tim (Face Scan)',
+        value: data.inferredHealth.estimatedHeartRate,
+        unit: 'BPM',
+        category: 'vital',
+        riskLevel: data.inferredHealth.estimatedHeartRate > 90 ? 'warning' : 'normal',
+        extractedFrom: 'Face 3D Scan',
+        date: data.timestamp.split('T')[0]
+      },
+      {
+        id: `face-spo2-${Date.now()}`,
+        name: 'SpO2 (Face Scan)',
+        value: data.inferredHealth.estimatedOxygenLevel,
+        unit: '%',
+        category: 'vital',
+        riskLevel: data.inferredHealth.estimatedOxygenLevel < 95 ? 'warning' : 'normal',
+        extractedFrom: 'Face 3D Scan',
+        date: data.timestamp.split('T')[0]
+      },
+      {
+        id: `face-stress-${Date.now()}`,
+        name: 'Mức độ Stress',
+        value: data.facialMetrics.stressIndicators,
+        unit: '%',
+        category: 'metabolic',
+        riskLevel: data.facialMetrics.stressIndicators > 60 ? 'warning' : 'normal',
+        extractedFrom: 'Face 3D Scan',
+        date: data.timestamp.split('T')[0]
+      }
+    ];
+
+    const newProfile: UserHealthProfile = {
+      id: user?.id || 'guest',
+      phone: profileForm.phone,
+      dateOfBirth: profileForm.dateOfBirth,
+      gender: profileForm.gender,
+      bloodType: profileForm.bloodType,
+      allergies: [],
+      chronicConditions: [],
+      medications: [],
+      lastUpdated: new Date().toISOString(),
+      documents: [],
+      extractedMetrics: facialMetrics,
+      bioShieldScore: 40 // Retina (15) + Face scan (25)
+    };
+
+    saveHealthProfile(newProfile);
+    setOnboardingStep('complete');
+    
+    // Auto-complete onboarding after short delay
+    setTimeout(() => {
+      setShowProfileSetup(false);
+      toast.success('Bản sao số đã được tạo thành công!');
+    }, 2000);
+  };
+
+  // Onboarding UI with multi-step flow
   if (isAuthenticated && showProfileSetup) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-6">
-        <Card className="w-full max-w-md border-2 border-primary/20 bg-card/95 backdrop-blur-xl shadow-2xl">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-10 w-10 text-primary" />
-            </div>
-            <CardTitle className="text-xl font-bold">Thiết lập Hồ sơ Sức khỏe</CardTitle>
-            <CardDescription>
-              Nhập thông tin cơ bản để bắt đầu Digital Twin của bạn
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="dob" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Ngày sinh *
-              </Label>
-              <Input
-                id="dob"
-                type="date"
-                value={profileForm.dateOfBirth}
-                onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
-                className="w-full"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Giới tính
-              </Label>
-              <div className="flex gap-2">
-                {(['male', 'female', 'other'] as const).map((g) => (
-                  <Button
-                    key={g}
-                    type="button"
-                    variant={profileForm.gender === g ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setProfileForm({ ...profileForm, gender: g })}
-                  >
-                    {g === 'male' ? 'Nam' : g === 'female' ? 'Nữ' : 'Khác'}
-                  </Button>
-                ))}
+        {/* Step 1: Basic Info */}
+        {onboardingStep === 'info' && (
+          <Card className="w-full max-w-md border-2 border-primary/20 bg-card/95 backdrop-blur-xl shadow-2xl">
+            <CardHeader className="text-center pb-2">
+              {/* Progress indicator */}
+              <div className="flex justify-center gap-2 mb-4">
+                <div className="w-3 h-3 rounded-full bg-primary" />
+                <div className="w-3 h-3 rounded-full bg-muted" />
+                <div className="w-3 h-3 rounded-full bg-muted" />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                Số điện thoại
-              </Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="0901234567"
-                value={profileForm.phone}
-                onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bloodType" className="flex items-center gap-2">
-                <Droplets className="h-4 w-4" />
-                Nhóm máu
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bt) => (
-                  <Button
-                    key={bt}
-                    type="button"
-                    variant={profileForm.bloodType === bt ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setProfileForm({ ...profileForm, bloodType: bt })}
-                  >
-                    {bt}
-                  </Button>
-                ))}
+              <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="h-10 w-10 text-primary" />
               </div>
+              <CardTitle className="text-xl font-bold">Bước 1: Thông tin cơ bản</CardTitle>
+              <CardDescription>
+                Nhập thông tin để bắt đầu Bản sao số của bạn
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="dob" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Ngày sinh *
+                </Label>
+                <Input
+                  id="dob"
+                  type="date"
+                  value={profileForm.dateOfBirth}
+                  onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Giới tính
+                </Label>
+                <div className="flex gap-2">
+                  {(['male', 'female', 'other'] as const).map((g) => (
+                    <Button
+                      key={g}
+                      type="button"
+                      variant={profileForm.gender === g ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setProfileForm({ ...profileForm, gender: g })}
+                    >
+                      {g === 'male' ? 'Nam' : g === 'female' ? 'Nữ' : 'Khác'}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Số điện thoại
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="0901234567"
+                  value={profileForm.phone}
+                  onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Droplets className="h-4 w-4" />
+                  Nhóm máu
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bt) => (
+                    <Button
+                      key={bt}
+                      type="button"
+                      variant={profileForm.bloodType === bt ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => setProfileForm({ ...profileForm, bloodType: bt })}
+                    >
+                      {bt}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => {
+                  if (!profileForm.dateOfBirth) {
+                    toast.error('Vui lòng nhập ngày sinh');
+                    return;
+                  }
+                  setOnboardingStep('faceScan');
+                }} 
+                className="w-full mt-4"
+              >
+                Tiếp tục quét 3D khuôn mặt
+                <Scan className="h-4 w-4 ml-2" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 2: Face Scan */}
+        {onboardingStep === 'faceScan' && (
+          <div className="space-y-4">
+            {/* Progress indicator */}
+            <div className="flex justify-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-success" />
+              <div className="w-3 h-3 rounded-full bg-primary" />
+              <div className="w-3 h-3 rounded-full bg-muted" />
             </div>
+            <Face3DHealthScanner
+              onScanComplete={handleOnboardingFaceScan}
+              onCancel={() => setOnboardingStep('info')}
+            />
+          </div>
+        )}
 
-            <Button onClick={handleProfileSetup} className="w-full mt-4">
-              <CheckCircle2 className="h-4 w-4 mr-2" />
-              Tạo Hồ sơ & Tiếp tục
-            </Button>
-
-            <p className="text-xs text-center text-muted-foreground">
-              Bạn có thể quét khuôn mặt sau để cập nhật thêm chỉ số sức khỏe
-            </p>
-          </CardContent>
-        </Card>
+        {/* Step 3: Complete */}
+        {onboardingStep === 'complete' && (
+          <Card className="w-full max-w-md border-2 border-success/30 bg-card/95 backdrop-blur-xl shadow-2xl">
+            <CardContent className="p-8 text-center">
+              {/* Progress indicator */}
+              <div className="flex justify-center gap-2 mb-6">
+                <div className="w-3 h-3 rounded-full bg-success" />
+                <div className="w-3 h-3 rounded-full bg-success" />
+                <div className="w-3 h-3 rounded-full bg-success" />
+              </div>
+              <div className="mx-auto mb-4 w-24 h-24 rounded-full bg-success/20 flex items-center justify-center animate-pulse">
+                <CheckCircle2 className="h-12 w-12 text-success" />
+              </div>
+              <h2 className="text-2xl font-bold text-success mb-2">Hoàn tất!</h2>
+              <p className="text-muted-foreground">
+                Bản sao số của bạn đã được tạo với dữ liệu từ quét võng mạc và 3D khuôn mặt
+              </p>
+              <div className="mt-6 flex justify-center gap-4">
+                <Badge variant="outline" className="bg-success/10 text-success border-success/30 py-2">
+                  <Eye className="h-3 w-3 mr-1" />
+                  Võng mạc đã xác thực
+                </Badge>
+                <Badge variant="outline" className="bg-success/10 text-success border-success/30 py-2">
+                  <Scan className="h-3 w-3 mr-1" />
+                  3D Face đã lưu
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   }
@@ -572,6 +700,8 @@ const BioVault: React.FC = () => {
       <BioShieldIndex 
         score={healthProfile?.bioShieldScore || 0} 
         profile={healthProfile}
+        retinaScanCompleted={retinaScanCompleted}
+        faceScanCompleted={!!facialHealthData}
       />
 
       {/* Quick Action Buttons */}
