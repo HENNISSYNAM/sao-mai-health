@@ -565,103 +565,11 @@ const BioVault: React.FC = () => {
     );
   }
 
-  // Security Gate UI - Retina Scan
+  // Security Gate UI - Retina Scan Only (immediate on entry)
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-6">
-        <div className="space-y-6">
-          {/* Auth Method Toggle */}
-          <div className="flex justify-center gap-2">
-            <Button
-              variant={authMethod === 'retina' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setAuthMethod('retina')}
-              className="gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              Quét võng mạc
-            </Button>
-            <Button
-              variant={authMethod === 'fingerprint' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setAuthMethod('fingerprint')}
-              className="gap-2"
-            >
-              <Fingerprint className="h-4 w-4" />
-              Vân tay
-            </Button>
-          </div>
-
-          {authMethod === 'retina' ? (
-            <RetinaScanUnlock onUnlockSuccess={handleRetinaUnlock} />
-          ) : (
-            <Card className="w-full max-w-lg border-2 border-primary/20 bg-card/95 backdrop-blur-xl shadow-2xl">
-              <CardHeader className="text-center pb-2">
-                <div className="mx-auto mb-4 relative">
-                  <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Shield className="h-12 w-12 text-primary" />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-8 h-8 rounded-full bg-success flex items-center justify-center">
-                    <Lock className="h-4 w-4 text-success-foreground" />
-                  </div>
-                </div>
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-info bg-clip-text text-transparent">
-                  {t('biovault.title', 'Personal Bio-Vault')}
-                </CardTitle>
-                <CardDescription className="text-base mt-2">
-                  {t('biovault.subtitle', 'Kho lưu trữ sinh học cá nhân được mã hóa')}
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-6 pt-4">
-                {/* Security Features */}
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { icon: Lock, label: t('biovault.encrypted', 'Mã hóa AES-256') },
-                    { icon: Shield, label: t('biovault.hipaa', 'HIPAA Compliant') },
-                    { icon: Fingerprint, label: t('biovault.biometric', 'Sinh trắc học') }
-                  ].map((item, i) => (
-                    <div key={i} className="flex flex-col items-center gap-2 p-3 rounded-xl bg-muted/50">
-                      <item.icon className="h-5 w-5 text-primary" />
-                      <span className="text-xs text-center text-muted-foreground">{item.label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Fingerprint Scanner */}
-                <div className="relative">
-                  <Button
-                    onClick={handleAuthentication}
-                    disabled={isScanning}
-                    className="w-full h-32 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border-2 border-dashed border-primary/40 hover:border-primary hover:bg-primary/10 transition-all duration-300"
-                  >
-                    <div className="flex flex-col items-center gap-3">
-                      <div className={`relative ${isScanning ? 'animate-pulse' : ''}`}>
-                        <Fingerprint className={`h-16 w-16 ${isScanning ? 'text-success' : 'text-primary'}`} />
-                        {isScanning && (
-                          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-success/30 to-transparent animate-scan-line" />
-                        )}
-                      </div>
-                      <span className="text-sm font-medium text-foreground">
-                        {isScanning 
-                          ? t('biovault.scanning', 'Đang quét sinh trắc học...') 
-                          : t('biovault.scanToAccess', 'Chạm để xác thực')}
-                      </span>
-                    </div>
-                  </Button>
-                  
-                  {isScanning && (
-                    <Progress value={60} className="mt-4 h-2" />
-                  )}
-                </div>
-
-                <p className="text-xs text-center text-muted-foreground">
-                  {t('biovault.disclaimer', 'Dữ liệu của bạn được bảo vệ bởi mã hóa đầu cuối và tuân thủ các tiêu chuẩn bảo mật y tế quốc tế.')}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        <RetinaScanUnlock onUnlockSuccess={handleRetinaUnlock} />
       </div>
     );
   }
