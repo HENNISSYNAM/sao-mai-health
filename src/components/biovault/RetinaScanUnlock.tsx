@@ -10,8 +10,27 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface FacialHealthData {
+  estimatedHeartRate: number;
+  estimatedOxygenLevel: number;
+  stressIndicators: number;
+  skinHealth: number;
+  hydrationLevel: number;
+}
+
 interface RetinaScanUnlockProps {
-  onUnlockSuccess: () => void;
+  onUnlockSuccess: (scanData: {
+    irisPattern: string;
+    confidence: number;
+    healthIndicators: {
+      eyeHealth: number;
+      bloodVesselClarity: number;
+      pupilReactivity: number;
+      scleraCondition: number;
+    };
+    facialHealth: FacialHealthData;
+    timestamp: string;
+  }) => void;
   onCancel?: () => void;
 }
 
@@ -24,6 +43,7 @@ interface ScanResult {
     pupilReactivity: number;
     scleraCondition: number;
   };
+  facialHealth: FacialHealthData;
   timestamp: string;
 }
 
@@ -96,7 +116,7 @@ export const RetinaScanUnlock: React.FC<RetinaScanUnlockProps> = ({
     return () => clearInterval(detectEyes);
   }, [phase]);
 
-  // Start retina scan
+  // Start retina + face scan
   const startScan = useCallback(async () => {
     if (!eyeDetected) {
       toast.error('Không phát hiện mắt. Hãy nhìn thẳng vào camera.');
@@ -106,8 +126,8 @@ export const RetinaScanUnlock: React.FC<RetinaScanUnlockProps> = ({
     setPhase('scanning');
     setProgress(0);
 
-    // Simulate scanning progress
-    const scanDuration = 3000;
+    // Simulate scanning progress (retina + face 3D)
+    const scanDuration = 4000; // Longer for combined scan
     const steps = 100;
     const stepTime = scanDuration / steps;
 
@@ -118,10 +138,10 @@ export const RetinaScanUnlock: React.FC<RetinaScanUnlockProps> = ({
 
     setPhase('analyzing');
 
-    // Simulate AI analysis
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Simulate AI analysis for both retina and face
+    await new Promise(resolve => setTimeout(resolve, 2500));
 
-    // Generate scan result
+    // Generate combined scan result (retina + facial health)
     const result: ScanResult = {
       irisPattern: generateIrisPattern(),
       confidence: 0.92 + Math.random() * 0.07,
@@ -131,6 +151,13 @@ export const RetinaScanUnlock: React.FC<RetinaScanUnlockProps> = ({
         pupilReactivity: 80 + Math.random() * 18,
         scleraCondition: 78 + Math.random() * 20
       },
+      facialHealth: {
+        estimatedHeartRate: 65 + Math.random() * 25,
+        estimatedOxygenLevel: 95 + Math.random() * 4,
+        stressIndicators: 20 + Math.random() * 40,
+        skinHealth: 70 + Math.random() * 25,
+        hydrationLevel: 60 + Math.random() * 35
+      },
       timestamp: new Date().toISOString()
     };
 
@@ -138,12 +165,12 @@ export const RetinaScanUnlock: React.FC<RetinaScanUnlockProps> = ({
 
     if (result.confidence >= 0.85) {
       setPhase('success');
-      toast.success('Xác thực võng mạc thành công!');
+      toast.success('Xác thực sinh trắc học thành công!');
       
-      // Delay before unlocking
+      // Delay before unlocking with full data
       setTimeout(() => {
         stopCamera();
-        onUnlockSuccess();
+        onUnlockSuccess(result);
       }, 2000);
     } else {
       setPhase('failed');
@@ -179,10 +206,10 @@ export const RetinaScanUnlock: React.FC<RetinaScanUnlockProps> = ({
           </div>
         </div>
         <CardTitle className="text-xl font-bold bg-gradient-to-r from-info to-primary bg-clip-text text-transparent">
-          Quét Võng Mạc
+          Quét Sinh Trắc Học
         </CardTitle>
         <p className="text-sm text-muted-foreground mt-1">
-          Xác thực sinh trắc học bằng mống mắt
+          Mống mắt + Nhận diện khuôn mặt 3D
         </p>
       </CardHeader>
 
@@ -293,9 +320,9 @@ export const RetinaScanUnlock: React.FC<RetinaScanUnlockProps> = ({
               <Sparkles className="h-12 w-12 text-primary animate-pulse" />
             </div>
             <div className="space-y-2">
-              <p className="font-medium">Đang phân tích mẫu mống mắt...</p>
+              <p className="font-medium">Đang phân tích sinh trắc học...</p>
               <p className="text-sm text-muted-foreground">
-                AI đang xử lý dữ liệu sinh trắc học
+                AI đang xử lý mống mắt + khuôn mặt 3D
               </p>
             </div>
             <Loader2 className="h-6 w-6 mx-auto animate-spin text-primary" />
@@ -337,8 +364,34 @@ export const RetinaScanUnlock: React.FC<RetinaScanUnlockProps> = ({
               ))}
             </div>
 
+            {/* Facial Health from 3D Scan */}
+            <div className="bg-primary/5 rounded-xl p-4 space-y-3">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <Scan className="h-4 w-4 text-primary" />
+                Chỉ số từ Face 3D
+              </h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center p-2 bg-background/50 rounded-lg">
+                  <p className="text-lg font-bold text-primary">{scanResult.facialHealth.estimatedHeartRate.toFixed(0)}</p>
+                  <p className="text-xs text-muted-foreground">Nhịp tim (BPM)</p>
+                </div>
+                <div className="text-center p-2 bg-background/50 rounded-lg">
+                  <p className="text-lg font-bold text-success">{scanResult.facialHealth.estimatedOxygenLevel.toFixed(1)}%</p>
+                  <p className="text-xs text-muted-foreground">SpO2</p>
+                </div>
+                <div className="text-center p-2 bg-background/50 rounded-lg">
+                  <p className="text-lg font-bold text-warning">{scanResult.facialHealth.stressIndicators.toFixed(0)}%</p>
+                  <p className="text-xs text-muted-foreground">Stress</p>
+                </div>
+                <div className="text-center p-2 bg-background/50 rounded-lg">
+                  <p className="text-lg font-bold text-info">{scanResult.facialHealth.hydrationLevel.toFixed(0)}%</p>
+                  <p className="text-xs text-muted-foreground">Độ ẩm da</p>
+                </div>
+              </div>
+            </div>
+
             <p className="text-xs text-center text-muted-foreground">
-              Mã mống mắt: <code className="text-primary">{scanResult.irisPattern}</code>
+              Mã sinh trắc: <code className="text-primary">{scanResult.irisPattern}</code>
             </p>
           </div>
         )}
