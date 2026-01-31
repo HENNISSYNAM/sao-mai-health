@@ -326,60 +326,143 @@ const BioVault: React.FC = () => {
     toast.success('Dữ liệu từ quét 3D đã được cập nhật vào Bản đồ số!');
   };
 
-  // Retina scan unlock handler - now loads real user data
-  const handleRetinaUnlock = async () => {
+  // Combined scan data from RetinaScanUnlock
+  const [scanData, setScanData] = useState<{
+    irisPattern: string;
+    confidence: number;
+    healthIndicators: {
+      eyeHealth: number;
+      bloodVesselClarity: number;
+      pupilReactivity: number;
+      scleraCondition: number;
+    };
+    facialHealth: {
+      estimatedHeartRate: number;
+      estimatedOxygenLevel: number;
+      stressIndicators: number;
+      skinHealth: number;
+      hydrationLevel: number;
+    };
+    timestamp: string;
+  } | null>(null);
+
+  // Retina + Face scan unlock handler - receives combined biometric data
+  const handleRetinaUnlock = async (data: typeof scanData) => {
+    setScanData(data);
     setIsAuthenticated(true);
     setRetinaScanCompleted(true);
-    toast.success('Xác thực võng mạc thành công!');
     
-    // Load real profile
+    // Load existing profile or show onboarding
     const profile = await loadUserProfile();
     if (profile) {
-      setHealthProfile(profile);
+      // Update existing profile with new scan data
+      if (data) {
+        const updatedMetrics: ExtractedMetric[] = [
+          ...profile.extractedMetrics.filter(m => m.extractedFrom !== 'Biometric Scan'),
+          {
+            id: `bio-hr-${Date.now()}`,
+            name: 'Nhịp tim (Biometric)',
+            value: data.facialHealth.estimatedHeartRate,
+            unit: 'BPM',
+            category: 'vital',
+            riskLevel: data.facialHealth.estimatedHeartRate > 90 ? 'warning' : 'normal',
+            extractedFrom: 'Biometric Scan',
+            date: data.timestamp.split('T')[0]
+          },
+          {
+            id: `bio-spo2-${Date.now()}`,
+            name: 'SpO2 (Biometric)',
+            value: data.facialHealth.estimatedOxygenLevel,
+            unit: '%',
+            category: 'vital',
+            riskLevel: data.facialHealth.estimatedOxygenLevel < 95 ? 'warning' : 'normal',
+            extractedFrom: 'Biometric Scan',
+            date: data.timestamp.split('T')[0]
+          },
+          {
+            id: `bio-stress-${Date.now()}`,
+            name: 'Mức độ Stress',
+            value: data.facialHealth.stressIndicators,
+            unit: '%',
+            category: 'metabolic',
+            riskLevel: data.facialHealth.stressIndicators > 60 ? 'warning' : 'normal',
+            extractedFrom: 'Biometric Scan',
+            date: data.timestamp.split('T')[0]
+          }
+        ];
+        const updatedProfile = { ...profile, extractedMetrics: updatedMetrics, lastUpdated: new Date().toISOString() };
+        saveHealthProfile(updatedProfile);
+        setHealthProfile(updatedProfile);
+      } else {
+        setHealthProfile(profile);
+      }
     } else {
-      // No profile yet - show onboarding
+      // No profile yet - show onboarding for basic info
       setShowProfileSetup(true);
       setOnboardingStep('info');
     }
   };
 
-  // Handle onboarding face scan completion
-  const handleOnboardingFaceScan = (data: FacialHealthData) => {
-    setFacialHealthData(data);
-    
-    // Create profile with face scan data
-    const facialMetrics: ExtractedMetric[] = [
+  // Complete profile setup with biometric data already captured
+  const handleProfileSetupComplete = () => {
+    if (!profileForm.dateOfBirth) {
+      toast.error('Vui lòng nhập ngày sinh');
+      return;
+    }
+
+    // Create profile with scan data from retina+face scan
+    const biometricMetrics: ExtractedMetric[] = scanData ? [
       {
-        id: `face-hr-${Date.now()}`,
-        name: 'Nhịp tim (Face Scan)',
-        value: data.inferredHealth.estimatedHeartRate,
+        id: `bio-hr-${Date.now()}`,
+        name: 'Nhịp tim (Biometric)',
+        value: scanData.facialHealth.estimatedHeartRate,
         unit: 'BPM',
         category: 'vital',
-        riskLevel: data.inferredHealth.estimatedHeartRate > 90 ? 'warning' : 'normal',
-        extractedFrom: 'Face 3D Scan',
-        date: data.timestamp.split('T')[0]
+        riskLevel: scanData.facialHealth.estimatedHeartRate > 90 ? 'warning' : 'normal',
+        extractedFrom: 'Biometric Scan',
+        date: scanData.timestamp.split('T')[0]
       },
       {
-        id: `face-spo2-${Date.now()}`,
-        name: 'SpO2 (Face Scan)',
-        value: data.inferredHealth.estimatedOxygenLevel,
+        id: `bio-spo2-${Date.now()}`,
+        name: 'SpO2 (Biometric)',
+        value: scanData.facialHealth.estimatedOxygenLevel,
         unit: '%',
         category: 'vital',
-        riskLevel: data.inferredHealth.estimatedOxygenLevel < 95 ? 'warning' : 'normal',
-        extractedFrom: 'Face 3D Scan',
-        date: data.timestamp.split('T')[0]
+        riskLevel: scanData.facialHealth.estimatedOxygenLevel < 95 ? 'warning' : 'normal',
+        extractedFrom: 'Biometric Scan',
+        date: scanData.timestamp.split('T')[0]
       },
       {
-        id: `face-stress-${Date.now()}`,
+        id: `bio-stress-${Date.now()}`,
         name: 'Mức độ Stress',
-        value: data.facialMetrics.stressIndicators,
+        value: scanData.facialHealth.stressIndicators,
         unit: '%',
         category: 'metabolic',
-        riskLevel: data.facialMetrics.stressIndicators > 60 ? 'warning' : 'normal',
-        extractedFrom: 'Face 3D Scan',
-        date: data.timestamp.split('T')[0]
+        riskLevel: scanData.facialHealth.stressIndicators > 60 ? 'warning' : 'normal',
+        extractedFrom: 'Biometric Scan',
+        date: scanData.timestamp.split('T')[0]
+      },
+      {
+        id: `bio-skin-${Date.now()}`,
+        name: 'Sức khỏe da',
+        value: scanData.facialHealth.skinHealth,
+        unit: '%',
+        category: 'metabolic',
+        riskLevel: scanData.facialHealth.skinHealth < 60 ? 'warning' : 'normal',
+        extractedFrom: 'Biometric Scan',
+        date: scanData.timestamp.split('T')[0]
+      },
+      {
+        id: `bio-hydration-${Date.now()}`,
+        name: 'Độ ẩm da',
+        value: scanData.facialHealth.hydrationLevel,
+        unit: '%',
+        category: 'metabolic',
+        riskLevel: scanData.facialHealth.hydrationLevel < 50 ? 'warning' : 'normal',
+        extractedFrom: 'Biometric Scan',
+        date: scanData.timestamp.split('T')[0]
       }
-    ];
+    ] : [];
 
     const newProfile: UserHealthProfile = {
       id: user?.id || 'guest',
@@ -392,11 +475,12 @@ const BioVault: React.FC = () => {
       medications: [],
       lastUpdated: new Date().toISOString(),
       documents: [],
-      extractedMetrics: facialMetrics,
-      bioShieldScore: 40 // Retina (15) + Face scan (25)
+      extractedMetrics: biometricMetrics,
+      bioShieldScore: 40 // Biometric scan complete (40pts)
     };
 
     saveHealthProfile(newProfile);
+    setHealthProfile(newProfile);
     setOnboardingStep('complete');
     
     // Auto-complete onboarding after short delay
@@ -406,26 +490,26 @@ const BioVault: React.FC = () => {
     }, 2000);
   };
 
-  // Onboarding UI with multi-step flow
+  // Onboarding UI - simplified 2-step flow (scan already done)
   if (isAuthenticated && showProfileSetup) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-6">
-        {/* Step 1: Basic Info */}
+        {/* Step: Basic Info (after scan) */}
         {onboardingStep === 'info' && (
           <Card className="w-full max-w-md border-2 border-primary/20 bg-card/95 backdrop-blur-xl shadow-2xl">
             <CardHeader className="text-center pb-2">
-              {/* Progress indicator */}
+              {/* Progress indicator - 2 steps only */}
               <div className="flex justify-center gap-2 mb-4">
+                <div className="w-3 h-3 rounded-full bg-success" />
                 <div className="w-3 h-3 rounded-full bg-primary" />
-                <div className="w-3 h-3 rounded-full bg-muted" />
-                <div className="w-3 h-3 rounded-full bg-muted" />
               </div>
-              <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-10 w-10 text-primary" />
-              </div>
-              <CardTitle className="text-xl font-bold">Bước 1: Thông tin cơ bản</CardTitle>
+              <Badge className="mx-auto mb-4 bg-success/20 text-success border-success/30">
+                <CheckCircle2 className="h-3 w-3 mr-1" />
+                Sinh trắc học đã xác thực
+              </Badge>
+              <CardTitle className="text-xl font-bold">Hoàn tất thông tin</CardTitle>
               <CardDescription>
-                Nhập thông tin để bắt đầu Bản sao số của bạn
+                Nhập thêm thông tin để tối ưu Bản sao số
               </CardDescription>
             </CardHeader>
             
@@ -499,45 +583,22 @@ const BioVault: React.FC = () => {
               </div>
 
               <Button 
-                onClick={() => {
-                  if (!profileForm.dateOfBirth) {
-                    toast.error('Vui lòng nhập ngày sinh');
-                    return;
-                  }
-                  setOnboardingStep('faceScan');
-                }} 
+                onClick={handleProfileSetupComplete} 
                 className="w-full mt-4"
               >
-                Tiếp tục quét 3D khuôn mặt
-                <Scan className="h-4 w-4 ml-2" />
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Hoàn tất thiết lập
               </Button>
             </CardContent>
           </Card>
         )}
 
-        {/* Step 2: Face Scan */}
-        {onboardingStep === 'faceScan' && (
-          <div className="space-y-4">
-            {/* Progress indicator */}
-            <div className="flex justify-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-success" />
-              <div className="w-3 h-3 rounded-full bg-primary" />
-              <div className="w-3 h-3 rounded-full bg-muted" />
-            </div>
-            <Face3DHealthScanner
-              onScanComplete={handleOnboardingFaceScan}
-              onCancel={() => setOnboardingStep('info')}
-            />
-          </div>
-        )}
-
-        {/* Step 3: Complete */}
+        {/* Step: Complete */}
         {onboardingStep === 'complete' && (
           <Card className="w-full max-w-md border-2 border-success/30 bg-card/95 backdrop-blur-xl shadow-2xl">
             <CardContent className="p-8 text-center">
               {/* Progress indicator */}
               <div className="flex justify-center gap-2 mb-6">
-                <div className="w-3 h-3 rounded-full bg-success" />
                 <div className="w-3 h-3 rounded-full bg-success" />
                 <div className="w-3 h-3 rounded-full bg-success" />
               </div>
@@ -546,16 +607,16 @@ const BioVault: React.FC = () => {
               </div>
               <h2 className="text-2xl font-bold text-success mb-2">Hoàn tất!</h2>
               <p className="text-muted-foreground">
-                Bản sao số của bạn đã được tạo với dữ liệu từ quét võng mạc và 3D khuôn mặt
+                Bản sao số đã được tạo với sinh trắc học mống mắt + 3D khuôn mặt
               </p>
-              <div className="mt-6 flex justify-center gap-4">
+              <div className="mt-6 flex justify-center gap-4 flex-wrap">
                 <Badge variant="outline" className="bg-success/10 text-success border-success/30 py-2">
                   <Eye className="h-3 w-3 mr-1" />
-                  Võng mạc đã xác thực
+                  Mống mắt đã lưu
                 </Badge>
                 <Badge variant="outline" className="bg-success/10 text-success border-success/30 py-2">
                   <Scan className="h-3 w-3 mr-1" />
-                  3D Face đã lưu
+                  Face 3D đã lưu
                 </Badge>
               </div>
             </CardContent>
