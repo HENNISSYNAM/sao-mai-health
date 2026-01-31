@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Shield, Lock, Fingerprint, FileText, Upload, 
   Heart, Brain, Droplets, Activity, AlertTriangle,
@@ -28,6 +30,8 @@ import { Face3DHealthScanner, FacialHealthData } from '@/components/biovault/Fac
 import { ExternalHealthConnector } from '@/components/biovault/ExternalHealthConnector';
 import { useTwinSharing } from '@/hooks/useTwinSharing';
 import { usePersonalTwinEngine } from '@/hooks/usePersonalTwinEngine';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export interface UserHealthProfile {
@@ -69,6 +73,7 @@ export interface ExtractedMetric {
 
 const BioVault: React.FC = () => {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [activeTab, setActiveTab] = useState('engine');
@@ -77,6 +82,13 @@ const BioVault: React.FC = () => {
   const [authMethod, setAuthMethod] = useState<'fingerprint' | 'retina'>('retina');
   const [showFaceScanner, setShowFaceScanner] = useState(false);
   const [facialHealthData, setFacialHealthData] = useState<FacialHealthData | null>(null);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    dateOfBirth: '',
+    gender: 'male' as 'male' | 'female' | 'other',
+    bloodType: '',
+    phone: ''
+  });
   
   // Twin sharing hook
   const twinSharing = useTwinSharing(healthProfile);
@@ -84,85 +96,124 @@ const BioVault: React.FC = () => {
   // Personal Twin Engine hook
   const twinEngine = usePersonalTwinEngine(healthProfile);
 
-  // Simulate fingerprint scan authentication
-  const handleAuthentication = () => {
+  // Load user profile from database
+  const loadUserProfile = async () => {
+    if (!user?.id) return null;
+    
+    try {
+      // Get user profile from profiles table
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      // Get health data from localStorage (since we don't have a health_profiles table yet)
+      const storedHealthData = localStorage.getItem(`biovault_${user.id}`);
+      const healthData = storedHealthData ? JSON.parse(storedHealthData) : null;
+
+      if (healthData) {
+        return {
+          id: user.id,
+          phone: healthData.phone || profileData?.email || '',
+          dateOfBirth: healthData.dateOfBirth || '',
+          gender: healthData.gender || 'other',
+          bloodType: healthData.bloodType || '',
+          allergies: healthData.allergies || [],
+          chronicConditions: healthData.chronicConditions || [],
+          medications: healthData.medications || [],
+          lastUpdated: new Date().toISOString(),
+          documents: healthData.documents || [],
+          extractedMetrics: healthData.extractedMetrics || [],
+          bioShieldScore: healthData.bioShieldScore || 0
+        } as UserHealthProfile;
+      }
+
+      // No health data yet - show setup form
+      return null;
+    } catch (err) {
+      console.error('Error loading profile:', err);
+      return null;
+    }
+  };
+
+  // Save health profile to localStorage
+  const saveHealthProfile = (profile: UserHealthProfile) => {
+    if (!user?.id) return;
+    localStorage.setItem(`biovault_${user.id}`, JSON.stringify(profile));
+    setHealthProfile(profile);
+  };
+
+  // Handle authentication and load real user data
+  const handleAuthentication = async () => {
     setIsScanning(true);
-    setTimeout(() => {
-      setIsScanning(false);
-      setIsAuthenticated(true);
-      toast.success(t('biovault.authSuccess', 'Xác thực thành công'));
-      
-      // Load mock profile
-      setHealthProfile({
-        id: 'user-001',
-        phone: '0901234567',
-        dateOfBirth: '1985-03-15',
-        gender: 'male',
-        bloodType: 'O+',
-        allergies: ['Penicillin', 'Pollen'],
-        chronicConditions: ['Hypertension', 'Sinusitis'],
-        medications: ['Lisinopril 10mg'],
-        lastUpdated: new Date().toISOString(),
-        documents: [],
-        extractedMetrics: [
-          {
-            id: '1',
-            name: 'Blood Glucose',
-            value: 105,
-            unit: 'mg/dL',
-            category: 'metabolic',
-            icd11Code: '5A10',
-            riskLevel: 'warning',
-            extractedFrom: 'lab_result_2024.pdf',
-            date: '2024-12-15'
-          },
-          {
-            id: '2',
-            name: 'Blood Pressure',
-            value: '135/85',
-            unit: 'mmHg',
-            category: 'vital',
-            icd11Code: 'BA00',
-            riskLevel: 'warning',
-            extractedFrom: 'checkup_2024.pdf',
-            date: '2024-12-10'
-          },
-          {
-            id: '3',
-            name: 'Cholesterol',
-            value: 210,
-            unit: 'mg/dL',
-            category: 'blood',
-            riskLevel: 'warning',
-            extractedFrom: 'lab_result_2024.pdf',
-            date: '2024-12-15'
-          }
-        ],
-        bioShieldScore: 72
-      });
-    }, 2500);
+    
+    // Simulate biometric scan delay
+    await new Promise(resolve => setTimeout(resolve, 2500));
+    
+    setIsScanning(false);
+    setIsAuthenticated(true);
+    toast.success(t('biovault.authSuccess', 'Xác thực thành công'));
+    
+    // Load real profile
+    const profile = await loadUserProfile();
+    if (profile) {
+      setHealthProfile(profile);
+    } else {
+      // No profile yet - show setup form
+      setShowProfileSetup(true);
+    }
+  };
+
+  // Handle profile setup form submission
+  const handleProfileSetup = () => {
+    if (!profileForm.dateOfBirth) {
+      toast.error('Vui lòng nhập ngày sinh');
+      return;
+    }
+
+    const newProfile: UserHealthProfile = {
+      id: user?.id || 'guest',
+      phone: profileForm.phone,
+      dateOfBirth: profileForm.dateOfBirth,
+      gender: profileForm.gender,
+      bloodType: profileForm.bloodType,
+      allergies: [],
+      chronicConditions: [],
+      medications: [],
+      lastUpdated: new Date().toISOString(),
+      documents: [],
+      extractedMetrics: [],
+      bioShieldScore: 10 // Start with base score
+    };
+
+    saveHealthProfile(newProfile);
+    setShowProfileSetup(false);
+    toast.success('Hồ sơ sức khỏe đã được tạo! Quét khuôn mặt để cập nhật chỉ số.');
   };
 
   const handleDocumentUploaded = (doc: HealthDocument) => {
     if (healthProfile) {
-      setHealthProfile({
+      const updatedProfile = {
         ...healthProfile,
         documents: [...healthProfile.documents, doc],
         bioShieldScore: Math.min(100, healthProfile.bioShieldScore + 5)
-      });
+      };
+      saveHealthProfile(updatedProfile);
     }
   };
 
   const handleMetricExtracted = (metric: ExtractedMetric) => {
     if (healthProfile) {
-      setHealthProfile({
+      const updatedProfile = {
         ...healthProfile,
         extractedMetrics: [...healthProfile.extractedMetrics, metric]
-      });
+      };
+      saveHealthProfile(updatedProfile);
     }
   };
 
-  // Handle external health data import
+  // Handle external health data import - now persists data
   const handleExternalDataImport = (source: string, data: any) => {
     if (healthProfile) {
       // Convert imported metrics to ExtractedMetric format
@@ -179,15 +230,17 @@ const BioVault: React.FC = () => {
         date: m.timestamp.split('T')[0]
       }));
 
-      setHealthProfile({
+      const updatedProfile = {
         ...healthProfile,
         extractedMetrics: [...healthProfile.extractedMetrics, ...newMetrics],
         bioShieldScore: Math.min(100, healthProfile.bioShieldScore + 3)
-      });
+      };
+      saveHealthProfile(updatedProfile);
+      toast.success(`Đã nhập ${newMetrics.length} chỉ số từ ${source}`);
     }
   };
 
-  // Handle facial health scan completion
+  // Handle facial health scan completion - now updates and saves real data
   const handleFacialScanComplete = (data: FacialHealthData) => {
     setFacialHealthData(data);
     setShowFaceScanner(false);
@@ -224,14 +277,37 @@ const BioVault: React.FC = () => {
           riskLevel: data.facialMetrics.stressIndicators > 60 ? 'warning' : 'normal',
           extractedFrom: 'Face 3D Scan',
           date: data.timestamp.split('T')[0]
+        },
+        {
+          id: `face-skin-${Date.now()}`,
+          name: 'Sức khỏe da',
+          value: data.facialMetrics.skinHealth,
+          unit: '%',
+          category: 'organ',
+          riskLevel: data.facialMetrics.skinHealth < 60 ? 'warning' : 'normal',
+          extractedFrom: 'Face 3D Scan',
+          date: data.timestamp.split('T')[0]
+        },
+        {
+          id: `face-hydration-${Date.now()}`,
+          name: 'Độ ẩm cơ thể',
+          value: data.facialMetrics.hydrationLevel,
+          unit: '%',
+          category: 'metabolic',
+          riskLevel: data.facialMetrics.hydrationLevel < 50 ? 'warning' : 'normal',
+          extractedFrom: 'Face 3D Scan',
+          date: data.timestamp.split('T')[0]
         }
       ];
 
-      setHealthProfile({
+      const updatedProfile = {
         ...healthProfile,
         extractedMetrics: [...healthProfile.extractedMetrics, ...facialMetrics],
-        bioShieldScore: Math.min(100, healthProfile.bioShieldScore + 8)
-      });
+        bioShieldScore: Math.min(100, healthProfile.bioShieldScore + 15)
+      };
+
+      // Save to localStorage for persistence
+      saveHealthProfile(updatedProfile);
       
       // Inject into twin engine
       twinEngine.addManualInput({
@@ -248,60 +324,118 @@ const BioVault: React.FC = () => {
     toast.success('Dữ liệu từ quét 3D đã được cập nhật vào Bản đồ số!');
   };
 
-  // Retina scan unlock handler
-  const handleRetinaUnlock = () => {
+  // Retina scan unlock handler - now loads real user data
+  const handleRetinaUnlock = async () => {
     setIsAuthenticated(true);
     toast.success('Xác thực võng mạc thành công!');
     
-    // Load profile after retina unlock
-    setHealthProfile({
-      id: 'user-001',
-      phone: '0901234567',
-      dateOfBirth: '1985-03-15',
-      gender: 'male',
-      bloodType: 'O+',
-      allergies: ['Penicillin', 'Pollen'],
-      chronicConditions: ['Hypertension', 'Sinusitis'],
-      medications: ['Lisinopril 10mg'],
-      lastUpdated: new Date().toISOString(),
-      documents: [],
-      extractedMetrics: [
-        {
-          id: '1',
-          name: 'Blood Glucose',
-          value: 105,
-          unit: 'mg/dL',
-          category: 'metabolic',
-          icd11Code: '5A10',
-          riskLevel: 'warning',
-          extractedFrom: 'lab_result_2024.pdf',
-          date: '2024-12-15'
-        },
-        {
-          id: '2',
-          name: 'Blood Pressure',
-          value: '135/85',
-          unit: 'mmHg',
-          category: 'vital',
-          icd11Code: 'BA00',
-          riskLevel: 'warning',
-          extractedFrom: 'checkup_2024.pdf',
-          date: '2024-12-10'
-        },
-        {
-          id: '3',
-          name: 'Cholesterol',
-          value: 210,
-          unit: 'mg/dL',
-          category: 'blood',
-          riskLevel: 'warning',
-          extractedFrom: 'lab_result_2024.pdf',
-          date: '2024-12-15'
-        }
-      ],
-      bioShieldScore: 72
-    });
+    // Load real profile
+    const profile = await loadUserProfile();
+    if (profile) {
+      setHealthProfile(profile);
+    } else {
+      // No profile yet - show setup form
+      setShowProfileSetup(true);
+    }
   };
+
+  // Profile Setup UI
+  if (isAuthenticated && showProfileSetup) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-6">
+        <Card className="w-full max-w-md border-2 border-primary/20 bg-card/95 backdrop-blur-xl shadow-2xl">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto mb-4 w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+              <User className="h-10 w-10 text-primary" />
+            </div>
+            <CardTitle className="text-xl font-bold">Thiết lập Hồ sơ Sức khỏe</CardTitle>
+            <CardDescription>
+              Nhập thông tin cơ bản để bắt đầu Digital Twin của bạn
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <Label htmlFor="dob" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Ngày sinh *
+              </Label>
+              <Input
+                id="dob"
+                type="date"
+                value={profileForm.dateOfBirth}
+                onChange={(e) => setProfileForm({ ...profileForm, dateOfBirth: e.target.value })}
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Giới tính
+              </Label>
+              <div className="flex gap-2">
+                {(['male', 'female', 'other'] as const).map((g) => (
+                  <Button
+                    key={g}
+                    type="button"
+                    variant={profileForm.gender === g ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setProfileForm({ ...profileForm, gender: g })}
+                  >
+                    {g === 'male' ? 'Nam' : g === 'female' ? 'Nữ' : 'Khác'}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
+                Số điện thoại
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="0901234567"
+                value={profileForm.phone}
+                onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bloodType" className="flex items-center gap-2">
+                <Droplets className="h-4 w-4" />
+                Nhóm máu
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bt) => (
+                  <Button
+                    key={bt}
+                    type="button"
+                    variant={profileForm.bloodType === bt ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setProfileForm({ ...profileForm, bloodType: bt })}
+                  >
+                    {bt}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <Button onClick={handleProfileSetup} className="w-full mt-4">
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Tạo Hồ sơ & Tiếp tục
+            </Button>
+
+            <p className="text-xs text-center text-muted-foreground">
+              Bạn có thể quét khuôn mặt sau để cập nhật thêm chỉ số sức khỏe
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Security Gate UI - Retina Scan
   if (!isAuthenticated) {
