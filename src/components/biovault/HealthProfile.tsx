@@ -26,7 +26,9 @@ export const HealthProfile: React.FC<HealthProfileProps> = ({ profile }) => {
   }
 
   const calculateAge = (dob: string) => {
+    if (!dob) return null;
     const birth = new Date(dob);
+    if (isNaN(birth.getTime())) return null;
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
     const m = today.getMonth() - birth.getMonth();
@@ -39,13 +41,16 @@ export const HealthProfile: React.FC<HealthProfileProps> = ({ profile }) => {
   const getRiskBadge = (level: ExtractedMetric['riskLevel']) => {
     switch (level) {
       case 'critical':
-        return <Badge className="bg-danger text-danger-foreground">{t('biovault.risk.critical', 'Nguy hiểm')}</Badge>;
+        return <Badge className="bg-destructive text-destructive-foreground">{t('biovault.risk.critical', 'Nguy hiểm')}</Badge>;
       case 'warning':
         return <Badge className="bg-warning text-warning-foreground">{t('biovault.risk.warning', 'Cảnh báo')}</Badge>;
       default:
         return <Badge className="bg-success text-success-foreground">{t('biovault.risk.normal', 'Bình thường')}</Badge>;
     }
   };
+
+  const age = calculateAge(profile.dateOfBirth);
+  const hasMetrics = profile.extractedMetrics.length > 0;
 
   return (
     <Card className="border-2 border-primary/20 bg-card/95 backdrop-blur">
@@ -64,7 +69,14 @@ export const HealthProfile: React.FC<HealthProfileProps> = ({ profile }) => {
               <Calendar className="h-3 w-3" />
               {t('biovault.profile.age', 'Tuổi')}
             </div>
-            <p className="font-semibold text-lg">{calculateAge(profile.dateOfBirth)} {t('biovault.profile.years', 'tuổi')}</p>
+            <p className="font-semibold text-lg">
+              {age !== null ? `${age} ${t('biovault.profile.years', 'tuổi')}` : 'Chưa cập nhật'}
+            </p>
+            {profile.dateOfBirth && (
+              <p className="text-xs text-muted-foreground">
+                ({new Date(profile.dateOfBirth).toLocaleDateString(i18n.language)})
+              </p>
+            )}
           </div>
           <div className="p-3 rounded-xl bg-muted/50">
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
@@ -145,7 +157,7 @@ export const HealthProfile: React.FC<HealthProfileProps> = ({ profile }) => {
         )}
 
         {/* Extracted Metrics */}
-        {profile.extractedMetrics.length > 0 && (
+        {hasMetrics ? (
           <div className="space-y-3">
             <h4 className="text-sm font-medium flex items-center gap-2">
               <Activity className="h-4 w-4 text-info" />
@@ -177,6 +189,16 @@ export const HealthProfile: React.FC<HealthProfileProps> = ({ profile }) => {
                 </div>
               ))}
             </div>
+          </div>
+        ) : (
+          <div className="p-6 rounded-xl bg-muted/30 border border-dashed border-border text-center">
+            <Activity className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+            <p className="text-sm font-medium text-muted-foreground">
+              Chưa có chỉ số sức khỏe
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Quét khuôn mặt hoặc tải hồ sơ y tế để cập nhật
+            </p>
           </div>
         )}
 
