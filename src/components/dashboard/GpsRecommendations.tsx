@@ -409,7 +409,8 @@ export function GpsRecommendations({ userGPS, diseaseData, className, onAlertCre
       vi: { CRITICAL: 'Rất cao', HIGH: 'Cao', MEDIUM: 'Trung bình', LOW: 'Thấp' },
       en: { CRITICAL: 'Critical', HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' }
     };
-    return labels[language][risk as keyof typeof labels.vi] || risk;
+    const langLabels = labels[language as keyof typeof labels] || labels.vi;
+    return langLabels[risk as keyof typeof langLabels] || risk;
   };
 
   const getTrendIcon = (trend: string) => {
@@ -519,7 +520,7 @@ export function GpsRecommendations({ userGPS, diseaseData, className, onAlertCre
               </span>
             </div>
             <div className="grid grid-cols-2 gap-1.5">
-              {riskData.diseases.map((disease) => (
+              {(riskData.diseases || []).map((disease) => (
                 <div 
                   key={disease.code}
                   className="flex flex-col px-2 py-1.5 rounded-md bg-muted/30 text-xs"
@@ -599,7 +600,7 @@ export function GpsRecommendations({ userGPS, diseaseData, className, onAlertCre
               </span>
             </div>
             <ul className="space-y-1">
-              {riskData.recommendations[language].map((rec, idx) => (
+              {(riskData.recommendations?.[language] || riskData.recommendations?.vi || []).map((rec, idx) => (
                 <li key={idx} className="flex items-start gap-1.5 text-xs">
                   <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0 mt-0.5" />
                   <span>{rec}</span>
@@ -635,7 +636,7 @@ export function GpsRecommendations({ userGPS, diseaseData, className, onAlertCre
               </span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {riskData.sources.slice(0, 4).map((source, idx) => (
+              {(riskData.sources || []).slice(0, 4).map((source, idx) => (
                 <a
                   key={idx}
                   href={source.url}
