@@ -31,6 +31,8 @@ import { ExternalHealthConnector } from '@/components/biovault/ExternalHealthCon
 import { useTwinSharing } from '@/hooks/useTwinSharing';
 import { usePersonalTwinEngine } from '@/hooks/usePersonalTwinEngine';
 import { useAuth } from '@/hooks/useAuth';
+import { useBiometricScans } from '@/hooks/useBiometricScans';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -97,6 +99,12 @@ const BioVault: React.FC = () => {
   
   // Personal Twin Engine hook
   const twinEngine = usePersonalTwinEngine(healthProfile);
+  
+  // Biometric scans hook for database persistence
+  const { saveBiometricScan, getLatestScan, loading: biometricLoading } = useBiometricScans();
+  
+  // User profile hook for database persistence  
+  const { profile: dbProfile, updateProfile: updateDbProfile } = useUserProfile();
 
   // Load user profile from database
   const loadUserProfile = async () => {
@@ -346,11 +354,19 @@ const BioVault: React.FC = () => {
     timestamp: string;
   } | null>(null);
 
-  // Retina + Face scan unlock handler - receives combined biometric data
+  // Retina + Face scan unlock handler - receives combined biometric data and saves to DB
   const handleRetinaUnlock = async (data: typeof scanData) => {
     setScanData(data);
     setIsAuthenticated(true);
     setRetinaScanCompleted(true);
+    
+    // Save biometric scan to database
+    if (data && user?.id) {
+      const saveResult = await saveBiometricScan(data);
+      if (saveResult.success) {
+        toast.success('Dữ liệu sinh trắc học đã được lưu');
+      }
+    }
     
     // Load existing profile or show onboarding
     const profile = await loadUserProfile();
@@ -403,11 +419,21 @@ const BioVault: React.FC = () => {
     }
   };
 
-  // Complete profile setup with biometric data already captured
-  const handleProfileSetupComplete = () => {
+  // Complete profile setup with biometric data already captured - saves to DB
+  const handleProfileSetupComplete = async () => {
     if (!profileForm.dateOfBirth) {
       toast.error('Vui lòng nhập ngày sinh');
       return;
+    }
+
+    // Save health info to user_profiles in database
+    if (user?.id) {
+      await updateDbProfile({
+        date_of_birth: profileForm.dateOfBirth,
+        gender: profileForm.gender,
+        blood_type: profileForm.bloodType,
+        phone: profileForm.phone,
+      } as any);
     }
 
     // Create profile with scan data from retina+face scan

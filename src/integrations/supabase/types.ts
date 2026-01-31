@@ -3867,6 +3867,60 @@ export type Database = {
         }
         Relationships: []
       }
+      user_biometric_scans: {
+        Row: {
+          blood_vessel_clarity: number | null
+          confidence: number
+          created_at: string
+          estimated_heart_rate: number | null
+          estimated_oxygen_level: number | null
+          eye_health: number | null
+          hydration_level: number | null
+          id: string
+          iris_pattern: string
+          pupil_reactivity: number | null
+          scan_timestamp: string
+          sclera_condition: number | null
+          skin_health: number | null
+          stress_indicators: number | null
+          user_id: string
+        }
+        Insert: {
+          blood_vessel_clarity?: number | null
+          confidence: number
+          created_at?: string
+          estimated_heart_rate?: number | null
+          estimated_oxygen_level?: number | null
+          eye_health?: number | null
+          hydration_level?: number | null
+          id?: string
+          iris_pattern: string
+          pupil_reactivity?: number | null
+          scan_timestamp?: string
+          sclera_condition?: number | null
+          skin_health?: number | null
+          stress_indicators?: number | null
+          user_id: string
+        }
+        Update: {
+          blood_vessel_clarity?: number | null
+          confidence?: number
+          created_at?: string
+          estimated_heart_rate?: number | null
+          estimated_oxygen_level?: number | null
+          eye_health?: number | null
+          hydration_level?: number | null
+          id?: string
+          iris_pattern?: string
+          pupil_reactivity?: number | null
+          scan_timestamp?: string
+          sclera_condition?: number | null
+          skin_health?: number | null
+          stress_indicators?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_health_data: {
         Row: {
           created_at: string | null
@@ -3932,28 +3986,61 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          allergies: string[] | null
+          biometric_verified: boolean | null
+          blood_type: string | null
           created_at: string
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          gender: string | null
+          height_cm: number | null
+          last_biometric_scan: string | null
+          medical_conditions: string[] | null
+          medications: string[] | null
           phone_hash: string | null
           reputation: number | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           user_id: string
+          weight_kg: number | null
         }
         Insert: {
+          allergies?: string[] | null
+          biometric_verified?: boolean | null
+          blood_type?: string | null
           created_at?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          gender?: string | null
+          height_cm?: number | null
+          last_biometric_scan?: string | null
+          medical_conditions?: string[] | null
+          medications?: string[] | null
           phone_hash?: string | null
           reputation?: number | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id: string
+          weight_kg?: number | null
         }
         Update: {
+          allergies?: string[] | null
+          biometric_verified?: boolean | null
+          blood_type?: string | null
           created_at?: string
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          gender?: string | null
+          height_cm?: number | null
+          last_biometric_scan?: string | null
+          medical_conditions?: string[] | null
+          medications?: string[] | null
           phone_hash?: string | null
           reputation?: number | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id?: string
+          weight_kg?: number | null
         }
         Relationships: []
       }
