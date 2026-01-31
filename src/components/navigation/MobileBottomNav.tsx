@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, Brain, Shield, MapPin, AlertTriangle, Menu, Settings, HelpCircle, Activity, User, LogOut } from 'lucide-react';
+import { BarChart3, Brain, Dna, MapPin, AlertTriangle, Menu, Settings, HelpCircle, Activity, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,7 +23,7 @@ export const MobileBottomNav: React.FC = () => {
   const menuItems = [
     { titleKey: 'nav.dashboard', title: t('nav.dashboard'), url: '/', icon: BarChart3 },
     { titleKey: 'nav.strokeRisk', title: t('nav.strokeRisk'), url: '/stroke-risk', icon: Brain },
-    { titleKey: 'nav.bioVault', title: t('nav.bioVault', 'Bio-Vault'), url: '/bio-vault', icon: Shield },
+    { titleKey: 'nav.digitalTwin', title: t('nav.digitalTwin', 'Song sinh số'), url: '/bio-vault', icon: Dna },
     { titleKey: 'nav.maps', title: t('nav.maps'), url: '/maps', icon: MapPin },
   ];
 
@@ -98,8 +98,8 @@ export const MobileBottomNav: React.FC = () => {
               </div>
               <DropdownMenuItem asChild>
                 <NavLink to="/bio-vault" className="flex items-center gap-3 cursor-pointer">
-                  <Shield className="h-5 w-5" />
-                  <span>{t('nav.bioVault', 'Bio-Vault')}</span>
+                  <Dna className="h-5 w-5" />
+                  <span>{t('nav.digitalTwin', 'Song sinh số')}</span>
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

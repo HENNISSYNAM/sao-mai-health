@@ -96,7 +96,8 @@
     "appointments": "Appointments",
     "labImport": "Lab Import",
     "strokeRisk": "Stroke Risk",
-    "settings": "Settings"
+    "settings": "Settings",
+    "digitalTwin": "Digital Twin"
   },
   "dashboard": {
     "title": "System Overview",
