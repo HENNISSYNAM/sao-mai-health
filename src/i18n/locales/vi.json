@@ -96,7 +96,8 @@
     "appointments": "Lịch hẹn",
     "labImport": "Nhập XN",
     "strokeRisk": "Nguy cơ đột quỵ",
-    "settings": "Cài đặt"
+    "settings": "Cài đặt",
+    "digitalTwin": "Song sinh số"
   },
   "dashboard": {
     "title": "Tổng quan hệ thống",

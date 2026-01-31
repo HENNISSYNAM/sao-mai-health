@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Activity, Brain, MapPin, Shield, AlertTriangle, BarChart3, Settings, HelpCircle, Menu } from "lucide-react";
+import { Activity, Brain, MapPin, Dna, AlertTriangle, BarChart3, Settings, HelpCircle, Menu } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink, useLocation } from "react-router-dom";
 import { usePrefetch } from "@/hooks/usePrefetch";
@@ -48,10 +48,10 @@ export function AppSidebar() {
     url: "/stroke-risk",
     icon: Brain
   }, {
-    titleKey: "nav.bioVault",
-    title: t('nav.bioVault', 'Bio-Vault'),
+  titleKey: "nav.digitalTwin",
+    title: t('nav.digitalTwin', 'Song sinh số'),
     url: "/bio-vault",
-    icon: Shield
+    icon: Dna
   }, {
     titleKey: "nav.maps",
     title: t('nav.maps'),
