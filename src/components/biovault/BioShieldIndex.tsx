@@ -6,16 +6,24 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { 
   Shield, CheckCircle2, AlertTriangle, FileText, 
-  Activity, Heart, Brain, Crown, ArrowRight, Sparkles
+  Activity, Heart, Brain, Crown, ArrowRight, Sparkles,
+  Eye, Scan, UserCheck
 } from 'lucide-react';
 import type { UserHealthProfile } from '@/pages/BioVault';
 
 interface BioShieldIndexProps {
   score: number;
   profile: UserHealthProfile | null;
+  faceScanCompleted?: boolean;
+  retinaScanCompleted?: boolean;
 }
 
-export const BioShieldIndex: React.FC<BioShieldIndexProps> = ({ score, profile }) => {
+export const BioShieldIndex: React.FC<BioShieldIndexProps> = ({ 
+  score, 
+  profile,
+  faceScanCompleted = false,
+  retinaScanCompleted = false
+}) => {
   const { t } = useTranslation();
   const [animatedScore, setAnimatedScore] = useState(0);
 
@@ -39,41 +47,56 @@ export const BioShieldIndex: React.FC<BioShieldIndexProps> = ({ score, profile }
     if (s >= 90) return { label: t('biovault.bioShield.excellent', 'Xuất sắc'), color: 'text-success', bg: 'bg-success' };
     if (s >= 70) return { label: t('biovault.bioShield.good', 'Tốt'), color: 'text-info', bg: 'bg-info' };
     if (s >= 50) return { label: t('biovault.bioShield.fair', 'Trung bình'), color: 'text-warning', bg: 'bg-warning' };
-    return { label: t('biovault.bioShield.needsWork', 'Cần cải thiện'), color: 'text-danger', bg: 'bg-danger' };
+    return { label: t('biovault.bioShield.needsWork', 'Cần cải thiện'), color: 'text-destructive', bg: 'bg-destructive' };
   };
 
   const level = getScoreLevel(score);
 
+  // Check if face scan metrics exist in profile
+  const hasFaceScanMetrics = profile?.extractedMetrics.some(m => m.extractedFrom === 'Face 3D Scan') || faceScanCompleted;
+
   const completionTasks = [
+    { 
+      id: 'retina', 
+      label: t('biovault.bioShield.retinaScan', 'Xác thực võng mạc'),
+      completed: retinaScanCompleted,
+      points: 15,
+      icon: Eye
+    },
+    { 
+      id: 'faceScan', 
+      label: t('biovault.bioShield.faceScan', 'Quét 3D khuôn mặt'),
+      completed: hasFaceScanMetrics,
+      points: 25,
+      icon: Scan
+    },
     { 
       id: 'documents', 
       label: t('biovault.bioShield.uploadDocs', 'Tải lên hồ sơ y tế'),
-      completed: (profile?.documents.length || 0) >= 2,
-      points: 20
+      completed: (profile?.documents.length || 0) >= 1,
+      points: 20,
+      icon: FileText
     },
     { 
       id: 'allergies', 
       label: t('biovault.bioShield.addAllergies', 'Cập nhật thông tin dị ứng'),
       completed: (profile?.allergies.length || 0) > 0,
-      points: 15
+      points: 15,
+      icon: AlertTriangle
     },
     { 
       id: 'conditions', 
       label: t('biovault.bioShield.addConditions', 'Khai báo bệnh nền'),
       completed: (profile?.chronicConditions.length || 0) > 0,
-      points: 20
+      points: 20,
+      icon: Heart
     },
     { 
       id: 'metrics', 
       label: t('biovault.bioShield.extractMetrics', 'Trích xuất chỉ số sức khỏe'),
       completed: (profile?.extractedMetrics.length || 0) >= 3,
-      points: 25
-    },
-    { 
-      id: 'recommendations', 
-      label: t('biovault.bioShield.followRecs', 'Tuân thủ khuyến nghị AI'),
-      completed: false,
-      points: 20
+      points: 25,
+      icon: Activity
     }
   ];
 
@@ -154,7 +177,7 @@ export const BioShieldIndex: React.FC<BioShieldIndexProps> = ({ score, profile }
                     {task.completed ? (
                       <CheckCircle2 className="h-5 w-5 text-success" />
                     ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-muted-foreground" />
+                      <task.icon className="h-5 w-5 text-muted-foreground" />
                     )}
                     <span className={`text-sm ${task.completed ? 'text-success line-through' : 'text-foreground'}`}>
                       {task.label}
