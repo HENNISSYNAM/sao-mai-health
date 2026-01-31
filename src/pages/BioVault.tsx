@@ -762,10 +762,6 @@ const BioVault: React.FC = () => {
             <TrendingUp className="h-4 w-4" />
             {t('biovault.tabs.predictions', 'Dự báo')}
           </TabsTrigger>
-          <TabsTrigger value="consultant" className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            {t('biovault.tabs.consultant', 'AI')}
-          </TabsTrigger>
         </TabsList>
 
         {/* Engine Tab with Proximity Radar and AI Insights */}
