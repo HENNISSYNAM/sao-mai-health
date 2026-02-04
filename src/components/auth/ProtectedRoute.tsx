@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '@/components/auth/AuthProvider';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { Loader2 } from 'lucide-react';
@@ -11,16 +11,18 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuthContext();
   const location = useLocation();
+  const navigate = useNavigate();
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Show auth modal when not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       // Save the intended destination
-      sessionStorage.setItem('auth_redirect_to', location.pathname);
+      const fullPath = `${location.pathname}${location.search}${location.hash}`;
+      sessionStorage.setItem('auth_redirect_to', fullPath);
       setShowAuthModal(true);
     }
-  }, [isLoading, isAuthenticated, location.pathname]);
+  }, [isLoading, isAuthenticated, location.pathname, location.search, location.hash]);
 
   // Show loading while checking auth
   if (isLoading) {
@@ -46,7 +48,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         {/* Auth modal on top */}
         <AuthModal 
           open={showAuthModal} 
-          onClose={() => setShowAuthModal(false)} 
+          onClose={() => {
+            setShowAuthModal(false);
+            navigate('/');
+          }} 
         />
       </>
     );
