@@ -79,18 +79,18 @@ const About = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-xl">
             <Target className="h-6 w-6 text-primary" />
-            {isVi ? 'Sứ mệnh của chúng tôi' : 'Our Mission'}
+            {isVi ? 'Sứ mệnh của chúng tớ' : 'Our Mission'}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-lg leading-relaxed">
             {isVi 
-              ? 'Tại Sao Mai Health, chúng tôi tin rằng mỗi người đều xứng đáng có một "bản sao số" (Digital Twin) của chính mình — một hệ thống AI hiểu rõ cơ thể bạn, môi trường xung quanh, và dự báo rủi ro sức khỏe trước khi chúng xảy ra.'
+              ? 'Tại Sao Mai Health, chúng tớ tin rằng mỗi người đều xứng đáng có một "bản sao số" (Digital Twin) của chính mình — một hệ thống AI hiểu rõ cơ thể bạn, môi trường xung quanh, và dự báo rủi ro sức khỏe trước khi chúng xảy ra.'
               : 'At Sao Mai Health, we believe everyone deserves their own "Digital Twin" — an AI system that deeply understands your body, your environment, and predicts health risks before they occur.'}
           </p>
           <p className="text-muted-foreground">
             {isVi 
-              ? 'Chúng tôi kết hợp dữ liệu từ nhiều nguồn: hồ sơ y tế cá nhân, dữ liệu môi trường thời gian thực (thời tiết, chất lượng không khí, áp suất), vị trí GPS, và tín hiệu cảm biến — để tạo ra một "bản sao số" phản ánh chính xác tình trạng sinh lý của bạn tại từng thời điểm.'
+              ? 'Chúng tớ kết hợp dữ liệu từ nhiều nguồn: hồ sơ y tế cá nhân, dữ liệu môi trường thời gian thực (thời tiết, chất lượng không khí, áp suất), vị trí GPS, và tín hiệu cảm biến — để tạo ra một "bản sao số" phản ánh chính xác tình trạng sinh lý của bạn tại từng thời điểm.'
               : 'We combine data from multiple sources: personal medical records, real-time environmental data (weather, air quality, pressure), GPS location, and sensor signals — to create a "digital twin" that accurately reflects your physiological state at any moment.'}
           </p>
         </CardContent>
