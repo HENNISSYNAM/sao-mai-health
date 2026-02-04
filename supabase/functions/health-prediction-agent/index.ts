@@ -177,12 +177,81 @@ function generatePrediction(
   return Math.max(0, Math.round(prediction));
 }
 
+// Quick evolution prediction mode for Living AI
+async function handleEvolutionPrediction(body: any) {
+  const { lat, lng, region, currentMonth } = body;
+  const month = currentMonth || new Date().getMonth() + 1;
+  
+  // Regional modifier based on location
+  const regionModifiers: Record<string, number> = {
+    'hcmc_metro': 1.3,
+    'hanoi_metro': 1.25,
+    'mekong_delta': 1.4,
+    'southeast': 1.2,
+    'south_central': 1.15,
+    'central_highlands': 0.9
+  };
+  const modifier = regionModifiers[region || 'hcmc_metro'] || 1.0;
+
+  // Disease configurations with seasonal peaks
+  const diseases = {
+    dengue: { peakMonths: [5,6,7,8,9,10,11], baseline: 80 },
+    hfmd: { peakMonths: [3,4,5,9,10,11], baseline: 50 },
+    measles: { peakMonths: [1,2,3,4], baseline: 5 },
+    rabies: { peakMonths: [], baseline: 2 },
+    influenza: { peakMonths: [11,12,1,2,3], baseline: 100 },
+    covid19: { peakMonths: [], baseline: 50 }
+  };
+
+  const predictions: Record<string, any> = {};
+  
+  for (const [disease, config] of Object.entries(diseases)) {
+    const inPeak = config.peakMonths.includes(month);
+    const variance = 0.85 + Math.random() * 0.3;
+    
+    const currentCases = Math.round(config.baseline * modifier * variance * (inPeak ? 1.3 : 0.7));
+    const growth = inPeak ? 1.15 : 0.98;
+    
+    predictions[disease] = {
+      currentCases,
+      predicted7d: Math.round(currentCases * growth),
+      predicted14d: Math.round(currentCases * growth * growth),
+      confidence: inPeak ? 0.8 : 0.65,
+      spreadAreas: getSpreadAreas(region || 'hcmc_metro'),
+      insight: `${disease} is ${inPeak ? 'in peak season' : 'at baseline'}`,
+      insightVi: `${disease} ${inPeak ? 'đang vào mùa cao điểm' : 'ở mức nền'}`,
+      trend: growth > 1.1 ? 'accelerating' : growth > 1.02 ? 'emerging' : growth < 0.9 ? 'declining' : 'stable'
+    };
+  }
+  
+  return predictions;
+}
+
+function getSpreadAreas(region: string): string[] {
+  const areaMap: Record<string, string[]> = {
+    'hcmc_metro': ['Bình Thạnh', 'Thủ Đức', 'Quận 7', 'Gò Vấp'],
+    'hanoi_metro': ['Hoàng Mai', 'Thanh Xuân', 'Cầu Giấy', 'Đống Đa'],
+    'mekong_delta': ['Cần Thơ', 'Long An', 'Tiền Giang']
+  };
+  return areaMap[region] || ['Khu vực lân cận'];
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Check for evolution prediction mode (fast path for Living AI)
+    const body = await req.json();
+    
+    if (body.mode === 'evolution_prediction') {
+      const predictions = await handleEvolutionPrediction(body);
+      return new Response(JSON.stringify(predictions), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
