@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
-
 export function AppSidebar() {
   const {
     t
@@ -64,12 +63,10 @@ export function AppSidebar() {
     url: "/alerts",
     icon: AlertTriangle
   }];
-  
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
     return currentPath.startsWith(path);
   };
-  
   const handlePrefetch = (url: string) => {
     prefetchByRoute(url);
   };
@@ -82,37 +79,19 @@ export function AppSidebar() {
             {/* Pulse ring */}
             <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping opacity-20" />
           </div>
-          {!collapsed && <span className="ml-3 text-xl font-bold tracking-tight whitespace-nowrap overflow-hidden">NOVAHUB</span>}
+          {!collapsed && <span className="ml-3 text-xl font-bold tracking-tight whitespace-nowrap overflow-hidden">SAO MAI HEALTH
+        </span>}
         </NavLink>
 
         {/* Main Navigation - Evenly spaced */}
         <SidebarMenu className="flex-1 flex flex-col justify-start gap-2 px-3">
           {menuItems.map(item => <SidebarMenuItem key={item.titleKey}>
               <SidebarMenuButton asChild>
-                <NavLink 
-                  to={item.url} 
-                  end={item.url === '/'} 
-                  className={cn(
-                    "flex items-center gap-4 px-3 py-3.5 rounded-xl text-base transition-all duration-200",
-                    collapsed ? "justify-center" : "justify-start",
-                    isActive(item.url) 
-                      ? "bg-primary text-primary-foreground font-semibold shadow-md" 
-                      : "font-normal hover:bg-accent"
-                  )} 
-                  onMouseEnter={() => handlePrefetch(item.url)}
-                >
-                  <item.icon 
-                    className={cn(
-                      "h-6 w-6 flex-shrink-0 transition-transform duration-200", 
-                      isActive(item.url) && "scale-110"
-                    )} 
-                    strokeWidth={isActive(item.url) ? 2.5 : 1.5} 
-                  />
-                  {!collapsed && (
-                    <span className="whitespace-nowrap overflow-hidden">
+                <NavLink to={item.url} end={item.url === '/'} className={cn("flex items-center gap-4 px-3 py-3.5 rounded-xl text-base transition-all duration-200", collapsed ? "justify-center" : "justify-start", isActive(item.url) ? "bg-primary text-primary-foreground font-semibold shadow-md" : "font-normal hover:bg-accent")} onMouseEnter={() => handlePrefetch(item.url)}>
+                  <item.icon className={cn("h-6 w-6 flex-shrink-0 transition-transform duration-200", isActive(item.url) && "scale-110")} strokeWidth={isActive(item.url) ? 2.5 : 1.5} />
+                  {!collapsed && <span className="whitespace-nowrap overflow-hidden">
                       {item.title}
-                    </span>
-                  )}
+                    </span>}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>)}
