@@ -1,18 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Heart, Brain, Shield, Users, Zap,
-  Target, Rocket, Activity, Fingerprint
+  Target, Rocket, Activity, Fingerprint,
+  MessageSquareHeart, Coffee, CreditCard, Send, Star, Sparkles
 } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 const About = () => {
   const { t, i18n } = useTranslation();
+  const { isAuthenticated, user, getDisplayName } = useAuth();
+  const { toast } = useToast();
   const isVi = i18n.language === 'vi';
+  const [feedback, setFeedback] = useState('');
+  const [rating, setRating] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const stats = [
     { value: '50K+', label: isVi ? 'Người dùng' : 'Users', icon: Users },
@@ -20,6 +29,25 @@ const About = () => {
     { value: '24/7', label: isVi ? 'Giám sát' : 'Monitoring', icon: Shield },
     { value: '99.9%', label: isVi ? 'Uptime' : 'Uptime', icon: Zap }
   ];
+
+  const handleSubmitFeedback = async () => {
+    if (!feedback.trim()) return;
+    setIsSubmitting(true);
+    
+    // Simulate sending feedback
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast({
+      title: isVi ? '💚 Cảm ơn bạn!' : '💚 Thank you!',
+      description: isVi 
+        ? 'Góp ý của bạn là động lực để chúng tôi phát triển tốt hơn.'
+        : 'Your feedback motivates us to improve.',
+    });
+    
+    setFeedback('');
+    setRating(0);
+    setIsSubmitting(false);
+  };
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
@@ -199,6 +227,148 @@ const About = () => {
         </CardContent>
       </Card>
 
+      {/* Feedback & Donation Section - Only for authenticated users */}
+      {isAuthenticated && (
+        <Card className="border-2 border-dashed border-primary/30 bg-gradient-to-br from-primary/5 via-background to-warning/5 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/10 to-warning/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-danger/10 to-primary/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+          
+          <CardHeader className="relative z-10">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <MessageSquareHeart className="h-6 w-6 text-primary animate-pulse" />
+              {isVi ? 'Góp ý & Ủng hộ' : 'Feedback & Support'}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-2">
+              {isVi 
+                ? `Xin chào ${getDisplayName()}, cảm ơn bạn đã đồng hành cùng Sao Mai Health!`
+                : `Hello ${getDisplayName()}, thank you for being with Sao Mai Health!`}
+            </p>
+          </CardHeader>
+          
+          <CardContent className="relative z-10 space-y-6">
+            {/* Feedback Form */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">{isVi ? 'Đánh giá:' : 'Rating:'}</span>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      className="focus:outline-none transition-transform hover:scale-110"
+                    >
+                      <Star 
+                        className={`h-6 w-6 transition-colors ${
+                          star <= rating 
+                            ? 'fill-warning text-warning' 
+                            : 'text-muted-foreground/30 hover:text-warning/50'
+                        }`} 
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <Textarea
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                placeholder={isVi 
+                  ? 'Chia sẻ góp ý của bạn để chúng tôi cải thiện ứng dụng tốt hơn...'
+                  : 'Share your feedback to help us improve...'}
+                className="min-h-[100px] resize-none"
+              />
+              
+              <Button 
+                onClick={handleSubmitFeedback}
+                disabled={!feedback.trim() || isSubmitting}
+                className="w-full sm:w-auto"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                {isSubmitting 
+                  ? (isVi ? 'Đang gửi...' : 'Sending...') 
+                  : (isVi ? 'Gửi góp ý' : 'Send Feedback')}
+              </Button>
+            </div>
+
+            <Separator className="my-6" />
+
+            {/* Donation Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Coffee className="h-5 w-5 text-warning" />
+                <h4 className="font-semibold text-lg">
+                  {isVi ? 'Ủng hộ dự án' : 'Support the Project'}
+                </h4>
+                <Sparkles className="h-4 w-4 text-warning animate-pulse" />
+              </div>
+              
+              {/* Emotional Message */}
+              <div className="bg-gradient-to-r from-primary/10 via-background to-danger/10 rounded-xl p-5 border border-primary/20">
+                <p className="text-sm leading-relaxed text-foreground/90 italic">
+                  {isVi ? (
+                    <>
+                      "Sao Mai Health được xây dựng bởi một nhà phát triển độc lập với ước mơ mang công nghệ AI y tế đến gần hơn với mọi người dân Việt Nam. Mỗi dòng code được viết ra đều mang theo hy vọng — rằng một ngày nào đó, không ai phải lo lắng về sức khỏe vì đã có AI dự báo và bảo vệ họ.
+                      <br /><br />
+                      Nếu ứng dụng này đã từng giúp ích cho bạn, một ly cà phê nhỏ sẽ là nguồn động viên lớn lao để tôi tiếp tục hành trình này. Cảm ơn bạn đã đọc đến đây — điều đó với tôi đã là một món quà."
+                    </>
+                  ) : (
+                    <>
+                      "Sao Mai Health is built by an independent developer with a dream to bring AI healthcare technology closer to every Vietnamese citizen. Every line of code is written with hope — that one day, no one will have to worry about their health because AI will predict and protect them.
+                      <br /><br />
+                      If this app has ever helped you, a small coffee would be a great encouragement for me to continue this journey. Thank you for reading this far — that alone is a gift to me."
+                    </>
+                  )}
+                </p>
+                <p className="text-right mt-3 text-sm font-medium text-primary">
+                  — Nam, {isVi ? 'Nhà sáng lập' : 'Founder'} 💚
+                </p>
+              </div>
+
+              {/* Bank Info */}
+              <div className="bg-card border-2 border-primary/20 rounded-xl p-6 space-y-4">
+                <div className="flex items-center justify-center gap-3 text-center">
+                  <CreditCard className="h-6 w-6 text-primary" />
+                  <span className="font-bold text-lg">{isVi ? 'Thông tin chuyển khoản' : 'Bank Transfer Info'}</span>
+                </div>
+                
+                <div className="bg-muted/50 rounded-lg p-4 space-y-3 text-center">
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                      {isVi ? 'Chủ tài khoản' : 'Account Holder'}
+                    </p>
+                    <p className="font-bold text-lg">ĐINH VĂN NAM</p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                      {isVi ? 'Số tài khoản' : 'Account Number'}
+                    </p>
+                    <p className="font-mono font-bold text-2xl text-primary tracking-wider">
+                      2800205302805
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                      {isVi ? 'Ngân hàng' : 'Bank'}
+                    </p>
+                    <p className="font-semibold">
+                      Agribank — Chi nhánh Tỉnh Vĩnh Phúc
+                    </p>
+                  </div>
+                </div>
+                
+                <p className="text-center text-sm text-muted-foreground">
+                  {isVi 
+                    ? '💚 Mọi đóng góp dù nhỏ đều được trân trọng và sử dụng để phát triển ứng dụng.'
+                    : '💚 Every contribution, no matter how small, is appreciated and used to develop the app.'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Version */}
       <div className="text-center text-sm text-muted-foreground">
