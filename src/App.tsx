@@ -83,6 +83,7 @@ const MainLayout = () => (
           <Route path="/stocks" element={<Inventory />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/settings" element={<Settings />} />
+           <Route path="/about" element={<About />} />
           <Route path="/help" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
