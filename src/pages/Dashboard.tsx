@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHealth";
+import { Heart, Coffee } from "lucide-react";
+import { Link } from "react-router-dom";
 
 // Dashboard Sections
 import { VerifiedKpiSection } from "@/components/dashboard/VerifiedKpiSection";
@@ -157,8 +159,49 @@ export default function Dashboard() {
     );
   }
 
+  const isVi = i18n.language === 'vi';
+
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+      {/* ===== DONATION BANNER ===== */}
+      <Link 
+        to="/about"
+        className="block animate-fade-up"
+      >
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 via-warning/5 to-danger/10 border border-primary/20 p-3 sm:p-4 hover:border-primary/40 transition-all group cursor-pointer">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 group-hover:scale-110 transition-transform">
+                <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              </div>
+              <div className="text-xs sm:text-sm">
+                <span className="text-muted-foreground">
+                  {isVi 
+                    ? 'Ủng hộ dự án: ' 
+                    : 'Support the project: '}
+                </span>
+                <span className="font-mono font-bold text-primary">
+                  2800205302805
+                </span>
+                <span className="text-muted-foreground">
+                  {' — Agribank (ĐINH VĂN NAM)'}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground group-hover:text-primary transition-colors">
+              <Coffee className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">
+                {isVi ? 'Mua cho tôi một ly cà phê' : 'Buy me a coffee'}
+              </span>
+              <span className="sm:hidden">
+                {isVi ? 'Ủng hộ' : 'Donate'}
+              </span>
+            </div>
+          </div>
+        </div>
+      </Link>
+
       {/* ===== PHASE 1: VERIFIED DATA OVERVIEW ===== */}
       {/* KPI cards showing ONLY verified real-time data */}
       <div className="animate-fade-up">
