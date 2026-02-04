@@ -13,6 +13,7 @@ import { GlobalAIAssistant } from "@/components/GlobalAIAssistant";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { AuthRedirectHandler } from "@/components/auth/AuthRedirectHandler";
 import { useAuth } from "@/hooks/useAuth";
 import Dashboard from "./pages/Dashboard";
 import Surveillance from "./pages/Surveillance";
@@ -140,6 +141,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <AuthRedirectHandler />
             <Routes>
               {/* Stroke Risk - Full screen without sidebar, requires auth */}
               <Route path="/stroke-risk/*" element={

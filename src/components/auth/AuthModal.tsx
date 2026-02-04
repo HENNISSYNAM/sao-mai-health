@@ -29,35 +29,31 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Listen for successful authentication
+  // Listen for successful authentication (close modal promptly)
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        // Get the saved redirect URL
-        const redirectTo = sessionStorage.getItem('auth_redirect_to');
-        sessionStorage.removeItem('auth_redirect_to');
         sessionStorage.removeItem('auth_modal_dismissed');
-        
+
         onClose();
-        
-        // Redirect to saved URL or stay on current page
-        if (redirectTo && redirectTo !== '/') {
-          navigate(redirectTo);
-        }
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, onClose]);
+  }, [onClose]);
 
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      // Get current URL to redirect back after login
-      const currentPath = sessionStorage.getItem('auth_redirect_to') || window.location.pathname;
-      const redirectUrl = `${window.location.origin}${currentPath}`;
+
+      // Ensure we have an intended destination stored (ProtectedRoute usually sets this).
+      if (!sessionStorage.getItem('auth_redirect_to')) {
+        sessionStorage.setItem('auth_redirect_to', window.location.pathname);
+      }
+
+      // Always redirect back to site root to avoid Supabase allow-list issues on deep links.
+      const redirectUrl = window.location.origin;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
