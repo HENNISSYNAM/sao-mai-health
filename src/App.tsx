@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalAIAssistant } from "@/components/GlobalAIAssistant";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Surveillance from "./pages/Surveillance";
 import CaseIntake from "./pages/CaseIntake";
@@ -55,8 +56,25 @@ const MainLayout = () => (
           <Route path="/surveillance" element={<Surveillance />} />
           <Route path="/case-intake" element={<CaseIntake />} />
           <Route path="/lab-import" element={<LabImport />} />
-          <Route path="/alerts" element={<AlertsNew />} />
-          <Route path="/maps" element={<MapView />} />
+          
+          {/* Protected Routes - Require Authentication */}
+          <Route path="/alerts" element={
+            <ProtectedRoute>
+              <AlertsNew />
+            </ProtectedRoute>
+          } />
+          <Route path="/bio-vault" element={
+            <ProtectedRoute>
+              <BioVault />
+            </ProtectedRoute>
+          } />
+          <Route path="/maps" element={
+            <ProtectedRoute>
+              <MapView />
+            </ProtectedRoute>
+          } />
+          
+          {/* Other routes */}
           <Route path="/map" element={<MapView />} />
           <Route path="/patients" element={<PatientsNew />} />
           <Route path="/appointments" element={<Appointments />} />
@@ -64,7 +82,6 @@ const MainLayout = () => (
           <Route path="/facilities" element={<Facilities />} />
           <Route path="/stocks" element={<Inventory />} />
           <Route path="/inventory" element={<Inventory />} />
-          <Route path="/bio-vault" element={<BioVault />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/help" element={<About />} />
           <Route path="*" element={<NotFound />} />
@@ -87,8 +104,12 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <Routes>
-              {/* Stroke Risk - Full screen without sidebar */}
-              <Route path="/stroke-risk/*" element={<StrokeRisk />} />
+              {/* Stroke Risk - Full screen without sidebar, requires auth */}
+              <Route path="/stroke-risk/*" element={
+                <ProtectedRoute>
+                  <StrokeRisk />
+                </ProtectedRoute>
+              } />
               {/* Auth - Full screen without sidebar */}
               <Route path="/auth" element={<Auth />} />
               {/* All other routes with sidebar layout */}

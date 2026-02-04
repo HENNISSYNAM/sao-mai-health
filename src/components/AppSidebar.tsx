@@ -1,12 +1,13 @@
 import { useTranslation } from "react-i18next";
-import { Activity, Brain, MapPin, Dna, AlertTriangle, BarChart3, Settings, HelpCircle, Menu } from "lucide-react";
+import { Activity, Brain, MapPin, Dna, AlertTriangle, BarChart3, Settings, HelpCircle, Menu, Lock } from "lucide-react";
 import logoImg from "@/assets/logo.png";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { usePrefetch } from "@/hooks/usePrefetch";
 import { cn } from "@/lib/utils";
 import { Sidebar, SidebarContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@/components/ui/sidebar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 export function AppSidebar() {
   const {
     t
@@ -18,6 +19,8 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const {
     prefetchByRoute
   } = usePrefetch();
@@ -41,34 +44,48 @@ export function AppSidebar() {
     titleKey: "nav.dashboard",
     title: t('nav.dashboard'),
     url: "/",
-    icon: BarChart3
+    icon: BarChart3,
+    requiresAuth: false
   }, {
     titleKey: "nav.strokeRisk",
     title: t('nav.strokeRisk'),
     url: "/stroke-risk",
-    icon: Brain
+    icon: Brain,
+    requiresAuth: true
   }, {
-  titleKey: "nav.digitalTwin",
+    titleKey: "nav.digitalTwin",
     title: t('nav.digitalTwin', 'Song sinh số'),
     url: "/bio-vault",
-    icon: Dna
+    icon: Dna,
+    requiresAuth: true
   }, {
     titleKey: "nav.maps",
     title: t('nav.maps'),
     url: "/maps",
-    icon: MapPin
+    icon: MapPin,
+    requiresAuth: true
   }, {
     titleKey: "nav.alerts",
     title: t('nav.alerts'),
     url: "/alerts",
-    icon: AlertTriangle
+    icon: AlertTriangle,
+    requiresAuth: true
   }];
+  
   const isActive = (path: string) => {
     if (path === '/') return currentPath === '/';
     return currentPath.startsWith(path);
   };
+  
   const handlePrefetch = (url: string) => {
     prefetchByRoute(url);
+  };
+
+  const handleNavClick = (item: typeof menuItems[0], e: React.MouseEvent) => {
+    if (item.requiresAuth && !isAuthenticated) {
+      e.preventDefault();
+      navigate('/auth', { state: { from: { pathname: item.url } } });
+    }
   };
   return <Sidebar className="border-r border-border bg-background transition-all duration-300" collapsible="icon" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
       <SidebarContent className="flex flex-col h-full py-6">
@@ -86,9 +103,40 @@ export function AppSidebar() {
         <SidebarMenu className="flex-1 flex flex-col justify-start gap-2 px-3">
           {menuItems.map(item => <SidebarMenuItem key={item.titleKey}>
               <SidebarMenuButton asChild>
-                <NavLink to={item.url} end={item.url === '/'} className={cn("flex items-center gap-4 px-3 py-3.5 rounded-xl text-base transition-all duration-200", collapsed ? "justify-center" : "justify-start", isActive(item.url) ? "bg-primary text-primary-foreground font-semibold shadow-md" : "font-normal hover:bg-accent")} onMouseEnter={() => handlePrefetch(item.url)}>
-                  <item.icon className={cn("h-6 w-6 flex-shrink-0 transition-transform duration-200", isActive(item.url) && "scale-110")} strokeWidth={isActive(item.url) ? 2.5 : 1.5} />
-                  {!collapsed && <span className="whitespace-nowrap overflow-hidden">{item.title}</span>}
+                <NavLink 
+                  to={item.url} 
+                  end={item.url === '/'} 
+                  onClick={(e) => handleNavClick(item, e)}
+                  className={cn(
+                    "flex items-center gap-4 px-3 py-3.5 rounded-xl text-base transition-all duration-200",
+                    collapsed ? "justify-center" : "justify-start",
+                    isActive(item.url) 
+                      ? "bg-primary text-primary-foreground font-semibold shadow-md" 
+                      : "font-normal hover:bg-accent",
+                    item.requiresAuth && !isAuthenticated && "opacity-70"
+                  )} 
+                  onMouseEnter={() => handlePrefetch(item.url)}
+                >
+                  <div className="relative">
+                    <item.icon 
+                      className={cn(
+                        "h-6 w-6 flex-shrink-0 transition-transform duration-200", 
+                        isActive(item.url) && "scale-110"
+                      )} 
+                      strokeWidth={isActive(item.url) ? 2.5 : 1.5} 
+                    />
+                    {item.requiresAuth && !isAuthenticated && (
+                      <Lock className="absolute -bottom-1 -right-1 h-3 w-3 text-muted-foreground" />
+                    )}
+                  </div>
+                  {!collapsed && (
+                    <span className="whitespace-nowrap overflow-hidden flex items-center gap-2">
+                      {item.title}
+                      {item.requiresAuth && !isAuthenticated && (
+                        <Lock className="h-3 w-3 text-muted-foreground" />
+                      )}
+                    </span>
+                  )}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>)}
