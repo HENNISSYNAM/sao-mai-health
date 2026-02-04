@@ -55,6 +55,16 @@ interface SearchResult {
   };
 }
 
+// Cache for both modes to enable instant switching
+interface CacheEntry {
+  articles: WebSearchArticle[];
+  lastUpdated: string;
+  metadata: SearchResult['metadata'];
+  fetchedAt: number;
+}
+
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+
 export function HealthNewsFeed() {
   const { i18n, t } = useTranslation();
   const [articles, setArticles] = useState<WebSearchArticle[]>([]);
@@ -63,14 +73,44 @@ export function HealthNewsFeed() {
   const [expertMode, setExpertMode] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<SearchResult['metadata'] | null>(null);
+  
+  // Cache for both modes - persists across mode switches
+  const [cache, setCache] = useState<{
+    general: CacheEntry | null;
+    expert: CacheEntry | null;
+  }>({ general: null, expert: null });
 
   const locale = i18n.language === 'vi' ? vi : enUS;
 
-  // Auto-fetch on mount and when expert mode changes
-  const fetchNews = useCallback(async () => {
+  // Check if cache is valid
+  const isCacheValid = useCallback((entry: CacheEntry | null): boolean => {
+    if (!entry) return false;
+    return Date.now() - entry.fetchedAt < CACHE_TTL;
+  }, []);
+
+  // Get cache key based on mode
+  const getCacheKey = useCallback((mode: boolean): 'general' | 'expert' => {
+    return mode ? 'expert' : 'general';
+  }, []);
+
+  // Fetch news with caching
+  const fetchNews = useCallback(async (forceRefresh = false) => {
+    const cacheKey = getCacheKey(expertMode);
+    const cachedData = cache[cacheKey];
+
+    // Use cache if valid and not forcing refresh
+    if (!forceRefresh && isCacheValid(cachedData)) {
+      console.log(`⚡ Using cached ${cacheKey} data`);
+      setArticles(cachedData!.articles);
+      setLastUpdated(cachedData!.lastUpdated);
+      setMetadata(cachedData!.metadata);
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      console.log(`🔍 Fetching news - Expert mode: ${expertMode}`);
+      console.log(`🔍 Fetching fresh ${cacheKey} news...`);
       
       const { data, error } = await supabase.functions.invoke('health-news-intelligence', {
         body: { 
@@ -85,22 +125,52 @@ export function HealthNewsFeed() {
       }
 
       if (data?.success && data.articles) {
+        // Update cache
+        const newCacheEntry: CacheEntry = {
+          articles: data.articles,
+          lastUpdated: data.lastUpdated,
+          metadata: data.metadata,
+          fetchedAt: Date.now()
+        };
+        
+        setCache(prev => ({
+          ...prev,
+          [cacheKey]: newCacheEntry
+        }));
+
         setArticles(data.articles);
         setLastUpdated(data.lastUpdated);
         setMetadata(data.metadata);
-        console.log(`✅ Loaded ${data.articles.length} articles`);
+        console.log(`✅ Cached ${data.articles.length} ${cacheKey} articles`);
       }
     } catch (error) {
       console.error('Failed to fetch news:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [expertMode, i18n.language]);
+  }, [expertMode, i18n.language, cache, getCacheKey, isCacheValid]);
 
-  // Auto-fetch on mount and mode change
+  // Handle mode switch - instant if cached
+  useEffect(() => {
+    const cacheKey = getCacheKey(expertMode);
+    const cachedData = cache[cacheKey];
+
+    if (isCacheValid(cachedData)) {
+      // Instant switch using cache
+      setArticles(cachedData!.articles);
+      setLastUpdated(cachedData!.lastUpdated);
+      setMetadata(cachedData!.metadata);
+      setIsLoading(false);
+    } else {
+      // Fetch new data
+      fetchNews();
+    }
+  }, [expertMode]);
+
+  // Initial fetch on mount
   useEffect(() => {
     fetchNews();
-  }, [fetchNews]);
+  }, []);
 
   const severityColors: Record<string, string> = {
     critical: 'bg-destructive/20 text-destructive border-destructive/30',
@@ -205,7 +275,7 @@ export function HealthNewsFeed() {
             <Button 
               size="sm" 
               variant="ghost"
-              onClick={fetchNews}
+              onClick={() => fetchNews(true)}
               disabled={isLoading}
               className="gap-1 rounded-lg h-7 sm:h-8 px-2 sm:px-3"
             >
