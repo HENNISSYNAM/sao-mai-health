@@ -31,15 +31,14 @@ serve(async (req) => {
     const expertMode = body.expertMode === true;
     const language = body.language || 'vi';
     
-    console.log(`🔍 Health News Intelligence - Expert Mode: ${expertMode}, Language: ${language}`);
+    console.log(`🔍 Health News AI Agent - Expert Mode: ${expertMode}, Language: ${language}`);
     
-    const PERPLEXITY_API_KEY = Deno.env.get('PERPLEXITY_API_KEY');
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
-    if (!PERPLEXITY_API_KEY) {
-      console.log('⚠️ PERPLEXITY_API_KEY not found');
+    if (!LOVABLE_API_KEY) {
+      console.error('❌ LOVABLE_API_KEY not found');
       return new Response(
-        JSON.stringify({ success: false, error: 'Perplexity API key not configured', articles: [] }),
+        JSON.stringify({ success: false, error: 'AI API key not configured', articles: [] }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -49,209 +48,196 @@ serve(async (req) => {
     
     console.log(`📅 Date: ${today}, Time: ${currentTime}`);
 
-    let rawArticles: any[] = [];
-    let citations: string[] = [];
-
-    // Different search queries for expert vs general mode
-    const searchQuery = expertMode 
-      ? `Latest peer-reviewed research papers and academic studies on public health in Vietnam 2024-2025: epidemiology, disease surveillance, dengue fever research, COVID-19 studies, infectious disease control, medical journals, WHO reports, CDC publications, PubMed articles. Focus on scholarly sources only.`
-      : `Breaking health news Vietnam today ${today}: dengue fever, COVID-19, hand foot mouth disease HFMD, influenza, disease outbreaks, Ministry of Health announcements. News from VnExpress, Tuổi Trẻ, Thanh Niên, Bộ Y tế. Last 24-48 hours only.`;
-
+    // AI Agent System Prompt for Web Search
     const systemPrompt = expertMode
-      ? `You are an academic health research analyst. Today is ${today}. Search for the LATEST peer-reviewed research, academic papers, WHO/CDC reports, and scholarly articles about public health in Vietnam and Southeast Asia.
+      ? `You are an AI health research agent with web search capabilities. Today is ${today}.
 
-Return ONLY a valid JSON array with this exact format:
+Your task: Search the web for the LATEST peer-reviewed research, academic papers, and official health reports about public health in Vietnam and Southeast Asia.
+
+Search sources: PubMed, WHO, CDC, The Lancet, Nature Medicine, BMJ, PLOS ONE, academic databases.
+
+Return a valid JSON array with 4-6 research articles in this format:
 [
   {
     "title": "Full research paper/report title",
-    "source": "Journal name or organization (e.g., The Lancet, PLOS ONE, WHO, CDC, BMJ, Nature Medicine)",
-    "url": "Direct URL to the paper or report",
-    "publishedAt": "Publication date YYYY-MM-DD",
-    "disease": "dengue/covid19/hfmd/influenza/infectious/epidemiology/other",
-    "location": "Study location or Global",
-    "severity": "low/medium/high/critical based on public health impact",
-    "content": "Key findings and conclusions from the research",
-    "keywords": ["keyword1", "keyword2", "keyword3"]
+    "source": "Journal or organization name",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/... or DOI link",
+    "publishedAt": "${today}",
+    "disease": "dengue/covid19/hfmd/influenza/epidemiology/other",
+    "location": "Vietnam/Southeast Asia/Global",
+    "severity": "low/medium/high/critical",
+    "content": "Key findings and methodology summary (2-3 sentences)",
+    "keywords": ["epidemiology", "surveillance", "vaccine", "transmission"]
   }
 ]
 
-Only return verified academic/scholarly sources. Include DOI links when available. Maximum 6 items.`
-      : `You are a real-time public health news analyst for Vietnam. Today is ${today}. Search for the LATEST health news from Vietnam published TODAY or in the last 24-48 hours ONLY.
+Focus on: epidemiology studies, disease surveillance, vaccine efficacy, outbreak analysis, public health interventions.
+Only return verified academic sources. Return ONLY the JSON array, no additional text.`
+      : `You are an AI health news agent with real-time web search capabilities. Today is ${today}.
 
-Return ONLY a valid JSON array with this exact format:
+Your task: Search the web for BREAKING health news from Vietnam published in the last 24-48 hours.
+
+Search sources: VnExpress, Tuổi Trẻ, Thanh Niên, Bộ Y tế Việt Nam, WHO Vietnam, CDC.
+
+Return a valid JSON array with 4-6 news articles in this format:
 [
   {
-    "title": "Exact news headline",
-    "source": "Source name (VnExpress, Tuổi Trẻ, Ministry of Health, WHO, etc)",
-    "url": "Direct URL to the article",
+    "title": "Exact news headline in Vietnamese or English",
+    "source": "VnExpress/Tuổi Trẻ/Bộ Y tế/WHO/etc",
+    "url": "https://vnexpress.net/... or direct article URL",
     "publishedAt": "${today}",
-    "disease": "dengue/covid19/hfmd/influenza/other",
-    "location": "Specific location in Vietnam",
+    "disease": "dengue/covid19/hfmd/influenza/respiratory/other",
+    "location": "TP.HCM/Hà Nội/Đà Nẵng/specific province",
     "severity": "low/medium/high/critical",
-    "content": "Brief factual summary of what happened",
-    "keywords": ["keyword1", "keyword2", "keyword3"]
+    "content": "What happened, where, and impact (2-3 sentences)",
+    "keywords": ["sốt xuất huyết", "ca nhiễm", "bệnh viện", "vaccine"]
   }
 ]
 
-Only return verified, real news from the last 24-48 hours. Maximum 6 items.`;
+Focus on: Disease outbreaks, case numbers, hospital capacity, vaccination campaigns, Ministry of Health announcements.
+Only include real, verifiable news from the last 48 hours. Return ONLY the JSON array, no additional text.`;
 
-    console.log(`🚀 Perplexity search - Mode: ${expertMode ? 'Academic' : 'General'}`);
+    const searchPrompt = expertMode
+      ? `Search for the latest academic research and peer-reviewed studies on public health in Vietnam published in 2024-2025. Include:
+- Dengue fever epidemiology studies
+- COVID-19 surveillance and variant research  
+- Respiratory infection studies
+- Vaccine effectiveness research
+- Disease outbreak analysis
+- WHO and CDC regional reports
+
+Return the JSON array of 4-6 research articles with full details.`
+      : `Search for breaking health news from Vietnam today (${today}) and yesterday. Include:
+- Dengue fever outbreak updates (especially TP.HCM, Hà Nội)
+- COVID-19 and respiratory illness cases
+- Hand-foot-mouth disease (HFMD) in children
+- Influenza season updates
+- Ministry of Health (Bộ Y tế) announcements
+- Hospital and healthcare updates
+
+Return the JSON array of 4-6 news articles with full details.`;
+
+    console.log(`🚀 Calling Lovable AI (Gemini) - Mode: ${expertMode ? 'Academic' : 'General'}`);
     
-    const perplexityResponse = await fetch('https://api.perplexity.ai/chat/completions', {
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${PERPLEXITY_API_KEY}`,
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: expertMode ? 'sonar-pro' : 'sonar',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: searchQuery }
+          { role: 'user', content: searchPrompt }
         ],
-        search_recency_filter: expertMode ? 'month' : 'day',
-        search_mode: expertMode ? 'academic' : undefined,
-        temperature: 0.1,
+        temperature: 0.3,
       }),
     });
 
-    if (perplexityResponse.ok) {
-      const perplexityData = await perplexityResponse.json();
-      const content = perplexityData.choices?.[0]?.message?.content;
-      citations = perplexityData.citations || [];
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error(`❌ AI API error: ${aiResponse.status}`, errorText);
       
-      console.log('📰 Perplexity response with', citations.length, 'citations');
-      
-      try {
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          rawArticles = JSON.parse(jsonMatch[0]);
-          
-          // Enhance with citation URLs
-          rawArticles = rawArticles.map((article: any, idx: number) => ({
-            ...article,
-            url: article.url || citations[idx] || `https://scholar.google.com/scholar?q=${encodeURIComponent(article.title)}`,
-            isAcademic: expertMode
-          }));
-        }
-      } catch (e) {
-        console.error('Failed to parse Perplexity response:', e);
+      if (aiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Rate limit exceeded, please try again later', articles: [] }),
+          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-    } else {
-      console.error('Perplexity API error:', perplexityResponse.status);
+      if (aiResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Payment required, please add funds to workspace', articles: [] }),
+          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      return new Response(
+        JSON.stringify({ success: false, error: `AI error: ${aiResponse.status}`, articles: [] }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log(`📊 Found ${rawArticles.length} raw articles`);
+    const aiData = await aiResponse.json();
+    const content = aiData.choices?.[0]?.message?.content || '';
+    
+    console.log('📰 AI response received, parsing...');
 
-    // Process and enhance articles
-    const processedArticles: NewsArticle[] = [];
+    let rawArticles: any[] = [];
+    
+    try {
+      // Extract JSON array from response
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        rawArticles = JSON.parse(jsonMatch[0]);
+        console.log(`✅ Parsed ${rawArticles.length} articles from AI`);
+      } else {
+        console.error('❌ No JSON array found in response');
+        console.log('Response content:', content.substring(0, 500));
+      }
+    } catch (e) {
+      console.error('❌ Failed to parse AI response:', e);
+      console.log('Response content:', content.substring(0, 500));
+    }
 
-    for (const article of rawArticles.slice(0, 6)) {
+    // Process articles
+    const processedArticles: NewsArticle[] = rawArticles.slice(0, 6).map((article: any, idx: number) => {
       // Determine classification
       let classification: 'confirmed' | 'emerging' | 'predictive' = 'confirmed';
       const contentLower = (article.content || article.title || '').toLowerCase();
       
       if (contentLower.includes('cảnh báo') || contentLower.includes('nguy cơ') || 
-          contentLower.includes('warning') || contentLower.includes('risk') ||
-          contentLower.includes('outbreak') || contentLower.includes('bùng phát') ||
-          contentLower.includes('emerging')) {
+          contentLower.includes('warning') || contentLower.includes('outbreak') ||
+          contentLower.includes('bùng phát') || contentLower.includes('emerging')) {
         classification = 'emerging';
       } else if (contentLower.includes('dự báo') || contentLower.includes('có thể') ||
-                 contentLower.includes('forecast') || contentLower.includes('potential') ||
-                 contentLower.includes('model') || contentLower.includes('prediction')) {
+                 contentLower.includes('forecast') || contentLower.includes('prediction') ||
+                 contentLower.includes('model')) {
         classification = 'predictive';
       }
 
-      // Extract or generate keywords
+      // Extract keywords if not provided
       let keywords = article.keywords || [];
-      if (keywords.length === 0) {
-        // Auto-extract keywords from content
+      if (!Array.isArray(keywords) || keywords.length === 0) {
         const keywordPatterns = [
           'dengue', 'sốt xuất huyết', 'covid', 'cúm', 'flu', 'influenza',
-          'dịch bệnh', 'outbreak', 'vaccine', 'vắc-xin', 'tiêm chủng',
-          'bệnh viện', 'hospital', 'WHO', 'CDC', 'Bộ Y tế', 'ca nhiễm',
-          'tử vong', 'death', 'epidemiology', 'surveillance', 'transmission'
+          'outbreak', 'vaccine', 'vắc-xin', 'tiêm chủng', 'hospital', 'bệnh viện',
+          'WHO', 'CDC', 'Bộ Y tế', 'ca nhiễm', 'tử vong', 'epidemiology'
         ];
         
         keywordPatterns.forEach(kw => {
-          if (contentLower.includes(kw.toLowerCase()) && !keywords.includes(kw)) {
+          if (contentLower.includes(kw.toLowerCase()) && keywords.length < 5) {
             keywords.push(kw);
           }
         });
-        
-        // Extract numbers with context
-        const numberPatterns = (article.content || '').match(/\d+\s*(ca|cases|người|deaths|tử vong|%)/gi);
-        if (numberPatterns) {
-          keywords.push(...numberPatterns.slice(0, 2));
-        }
-        
-        keywords = keywords.slice(0, 5);
       }
 
-      // Generate AI summary if Lovable API available
-      let aiSummary = article.content || `${article.disease || 'Health'} update from ${article.location || 'Vietnam'}.`;
-      
-      if (LOVABLE_API_KEY && article.content && article.content.length > 50) {
-        try {
-          const summaryPrompt = expertMode
-            ? `Summarize this academic research in 2 sentences for health professionals. Focus on: methodology, key findings, and clinical implications.`
-            : `Summarize this health news in 2 sentences. Focus on: what happened, where, and public health impact.`;
-            
-          const summaryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: 'google/gemini-2.5-flash-lite',
-              messages: [
-                { role: 'system', content: summaryPrompt },
-                { role: 'user', content: `Title: ${article.title}\nSource: ${article.source}\nContent: ${article.content}` }
-              ],
-              temperature: 0.2,
-            }),
-          });
-
-          if (summaryResponse.ok) {
-            const summaryData = await summaryResponse.json();
-            aiSummary = summaryData.choices?.[0]?.message?.content || aiSummary;
-          }
-        } catch (e) {
-          console.error('Summary generation failed:', e);
-        }
-      }
-
-      processedArticles.push({
-        id: `news-${Date.now()}-${processedArticles.length}`,
+      return {
+        id: `news-${Date.now()}-${idx}`,
         title: article.title || 'Health Update',
         source: article.source || (expertMode ? 'Academic Journal' : 'Health Authority'),
         url: article.url || '#',
         publishedAt: article.publishedAt || today,
-        aiSummary: aiSummary.slice(0, 400),
-        keywords,
+        aiSummary: article.content || `Health update from ${article.location || 'Vietnam'}.`,
+        keywords: Array.isArray(keywords) ? keywords.slice(0, 5) : [],
         classification,
         disease: article.disease,
         location: article.location,
-        severity: article.severity || 'low',
+        severity: article.severity || 'medium',
         isAcademic: expertMode
-      });
-    }
+      };
+    });
 
     // Calculate overall risk
     let overallRisk: 'low' | 'medium' | 'high' | 'critical' = 'low';
     const hasCritical = processedArticles.some(a => a.severity === 'critical');
-    const hasHighSeverity = processedArticles.some(a => a.severity === 'high');
-    const hasMediumSeverity = processedArticles.some(a => a.severity === 'medium');
+    const hasHigh = processedArticles.some(a => a.severity === 'high');
+    const hasMedium = processedArticles.some(a => a.severity === 'medium');
     const hasEmerging = processedArticles.some(a => a.classification === 'emerging');
     
-    if (hasCritical) {
-      overallRisk = 'critical';
-    } else if (hasHighSeverity || (hasEmerging && hasMediumSeverity)) {
-      overallRisk = 'high';
-    } else if (hasMediumSeverity || hasEmerging) {
-      overallRisk = 'medium';
-    }
+    if (hasCritical) overallRisk = 'critical';
+    else if (hasHigh || (hasEmerging && hasMedium)) overallRisk = 'high';
+    else if (hasMedium || hasEmerging) overallRisk = 'medium';
 
     console.log(`✅ Processed ${processedArticles.length} articles. Risk: ${overallRisk}`);
 
@@ -262,23 +248,22 @@ Only return verified, real news from the last 24-48 hours. Maximum 6 items.`;
         overallRisk,
         lastUpdated: new Date().toISOString(),
         expertMode,
-        citations,
         metadata: {
           sourcesChecked: expertMode 
-            ? ['PubMed', 'WHO', 'CDC', 'The Lancet', 'PLOS ONE', 'BMJ', 'Nature Medicine']
-            : ['Bộ Y tế Việt Nam', 'WHO', 'CDC', 'VnExpress', 'Tuổi Trẻ', 'Thanh Niên'],
+            ? ['PubMed', 'WHO', 'CDC', 'The Lancet', 'Nature Medicine', 'BMJ']
+            : ['Bộ Y tế Việt Nam', 'WHO Vietnam', 'VnExpress', 'Tuổi Trẻ', 'Thanh Niên'],
           searchDate: today,
           searchTime: currentTime,
           articlesProcessed: processedArticles.length,
-          searchEngine: 'Perplexity Real-time',
-          mode: expertMode ? 'Academic/Research' : 'General News'
+          searchEngine: 'Lovable AI (Gemini)',
+          mode: expertMode ? 'Academic Research' : 'General News'
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('❌ Health News Intelligence error:', error);
+    console.error('❌ Health News AI Agent error:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
