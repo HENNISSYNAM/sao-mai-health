@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { Heart, AlertCircle, Loader2, X } from 'lucide-react';
+import { Heart, AlertCircle, Loader2, Home } from 'lucide-react';
 import healthLogo from '@/assets/health-logo.png';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 
@@ -120,6 +120,19 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
             >
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <GoogleIcon />}
               {t('auth.continueWithGoogle', 'Tiếp tục với Google')}
+            </Button>
+
+            {/* Home button - visible when on protected routes */}
+            <Button
+              variant="ghost"
+              className="w-full gap-2 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                onClose();
+                navigate('/');
+              }}
+            >
+              <Home className="h-4 w-4" />
+              {t('auth.goHome', 'Về trang chủ')}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
