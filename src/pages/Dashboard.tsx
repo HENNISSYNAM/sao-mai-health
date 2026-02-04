@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +7,7 @@ import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHe
 // Dashboard Sections
 import { VerifiedKpiSection } from "@/components/dashboard/VerifiedKpiSection";
 import { HealthNewsFeed } from "@/components/dashboard/HealthNewsFeed";
-import { PredictiveHealthChart } from "@/components/dashboard/PredictiveHealthChart";
+import { LivingAIChart } from "@/components/dashboard/LivingAIChart";
 import { EarlyWarningAlerts } from "@/components/dashboard/EarlyWarningAlerts";
 
 interface DailyCount {
@@ -35,13 +35,6 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const [userGPS, setUserGPS] = useState<{ lat: number; lng: number } | null>(null);
-
-  // Predictive data state
-  const [predictiveData, setPredictiveData] = useState<{
-    bestCase: any[];
-    mostLikely: any[];
-    worstCase: any[];
-  } | null>(null);
 
   // Realtime subscriptions
   const { isConnected: countsConnected } = useRealtimeDailyCounts(() => {
@@ -93,9 +86,6 @@ export default function Dashboard() {
           created_at: new Date().toISOString()
         }));
         setDailyCounts(formattedData);
-        
-        // Generate predictive data based on observed data
-        generatePredictiveData(formattedData);
       }
     } catch (error) {
       console.error('Error fetching daily counts:', error);
@@ -141,71 +131,6 @@ export default function Dashboard() {
     return 'unknown';
   };
 
-  // Generate AI predictive data (7-14 days forecast)
-  const generatePredictiveData = useCallback((observedData: DailyCount[]) => {
-    if (!observedData || observedData.length === 0) return;
-
-    const diseases = [...new Set(observedData.map(d => d.disease_code))];
-    const today = new Date();
-    
-    const scenarios = {
-      bestCase: [] as any[],
-      mostLikely: [] as any[],
-      worstCase: [] as any[]
-    };
-
-    // Calculate average cases per disease from last 7 days
-    const avgByDisease: Record<string, number> = {};
-    const last7Days = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    
-    diseases.forEach(disease => {
-      const recentCases = observedData
-        .filter(d => d.disease_code === disease && d.day >= last7Days);
-      avgByDisease[disease] = recentCases.length > 0
-        ? recentCases.reduce((sum, d) => sum + d.cases, 0) / recentCases.length
-        : 50; // Default baseline
-    });
-
-    // Generate 14-day forecast for each disease
-    for (let i = 1; i <= 14; i++) {
-      const forecastDate = new Date(today.getTime() + i * 24 * 60 * 60 * 1000);
-      const dateStr = forecastDate.toISOString().split('T')[0];
-      
-      diseases.forEach(disease => {
-        const base = avgByDisease[disease];
-        const dayOfWeek = forecastDate.getDay();
-        const weekendFactor = (dayOfWeek === 0 || dayOfWeek === 6) ? 0.85 : 1;
-        const decayFactor = 1 - (i * 0.02); // Confidence decay
-        
-        // Best case: -15% trend
-        scenarios.bestCase.push({
-          date: dateStr,
-          disease,
-          cases: Math.max(0, Math.round(base * 0.85 * weekendFactor * decayFactor)),
-          confidence: i <= 7 ? 'high' : 'medium'
-        });
-        
-        // Most likely: slight increase +2%
-        scenarios.mostLikely.push({
-          date: dateStr,
-          disease,
-          cases: Math.round(base * 1.02 * weekendFactor),
-          confidence: i <= 7 ? 'high' : i <= 10 ? 'medium' : 'low'
-        });
-        
-        // Worst case: +25% trend
-        scenarios.worstCase.push({
-          date: dateStr,
-          disease,
-          cases: Math.round(base * 1.25 * weekendFactor * (1 + i * 0.01)),
-          confidence: i <= 7 ? 'medium' : 'low'
-        });
-      });
-    }
-
-    setPredictiveData(scenarios);
-  }, []);
-
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -249,16 +174,11 @@ export default function Dashboard() {
         <HealthNewsFeed />
       </div>
 
-      {/* ===== PHASE 2 & 3: PREDICTIVE DATA & EARLY WARNINGS ===== */}
+      {/* ===== PHASE 2 & 3: AI LIVING CHART & EARLY WARNINGS ===== */}
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* Predictive Chart - 2/3 width */}
+        {/* Living AI Chart - 2/3 width */}
         <div className="lg:col-span-2 animate-fade-up" style={{ animationDelay: '150ms' }}>
-          <PredictiveHealthChart 
-            observedData={dailyCounts}
-            predictedData={predictiveData || undefined}
-            isLoading={loading}
-            userGPS={userGPS}
-          />
+          <LivingAIChart />
         </div>
 
         {/* Early Warning Alerts - 1/3 width */}
