@@ -38,6 +38,7 @@ export interface RegionalRiskData {
     alertCount: number;
     criticalCount: number;
     highCount: number;
+    fromAI?: boolean;
   };
 }
 
