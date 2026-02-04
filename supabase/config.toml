@@ -152,3 +152,9 @@ verify_jwt = false
 
 [functions.health-kpi-intelligence]
 verify_jwt = false
+
+[functions.twin-data-synthesis]
+verify_jwt = false
+
+[functions.disease-hotspot-detector]
+verify_jwt = false

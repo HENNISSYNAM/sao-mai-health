@@ -29,8 +29,10 @@ import { RetinaScanUnlock } from '@/components/biovault/RetinaScanUnlock';
 import { Face3DHealthScanner, FacialHealthData } from '@/components/biovault/Face3DHealthScanner';
 import { ExternalHealthConnector } from '@/components/biovault/ExternalHealthConnector';
 import { EnvironmentHealthPanel } from '@/components/biovault/EnvironmentHealthPanel';
+import { TwinPrivacyToggle } from '@/components/biovault/TwinPrivacyToggle';
 import { useTwinSharing } from '@/hooks/useTwinSharing';
 import { usePersonalTwinEngine } from '@/hooks/usePersonalTwinEngine';
+import { useTwinDataSync } from '@/hooks/useTwinDataSync';
 import { useAuth } from '@/hooks/useAuth';
 import { useBiometricScans } from '@/hooks/useBiometricScans';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -103,6 +105,9 @@ const BioVault: React.FC = () => {
   
   // Personal Twin Engine hook
   const twinEngine = usePersonalTwinEngine(healthProfile);
+  
+  // Twin Data Sync hook for unified data flow
+  const twinDataSync = useTwinDataSync();
   
   // Biometric scans hook for database persistence
   const { saveBiometricScan, getLatestScan, loading: biometricLoading } = useBiometricScans();
@@ -860,6 +865,9 @@ const BioVault: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="sharing" className="space-y-6">
+          {/* Privacy Toggle - Instagram-style sharing control */}
+          <TwinPrivacyToggle />
+          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <TwinSharingHub profile={healthProfile} />
             <TwinLocationMap 
