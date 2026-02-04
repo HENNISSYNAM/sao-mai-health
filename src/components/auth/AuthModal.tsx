@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Heart, AlertCircle, Loader2, X } from 'lucide-react';
@@ -30,15 +29,40 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Listen for successful authentication
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Get the saved redirect URL
+        const redirectTo = sessionStorage.getItem('auth_redirect_to');
+        sessionStorage.removeItem('auth_redirect_to');
+        sessionStorage.removeItem('auth_modal_dismissed');
+        
+        onClose();
+        
+        // Redirect to saved URL or stay on current page
+        if (redirectTo && redirectTo !== '/') {
+          navigate(redirectTo);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate, onClose]);
+
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
       setError(null);
       
+      // Get current URL to redirect back after login
+      const currentPath = sessionStorage.getItem('auth_redirect_to') || window.location.pathname;
+      const redirectUrl = `${window.location.origin}${currentPath}`;
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: redirectUrl,
         }
       });
 
