@@ -12,16 +12,26 @@ import {
   ChevronDown, 
   ChevronUp,
   Shield,
-  Eye
+  Eye,
+  TrendingUp,
+  TrendingDown,
+  Minus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
 import { getDiseaseName } from '@/lib/diseaseI18n';
+import { useRegionalRisk, RiskAlert } from '@/hooks/useRegionalRisk';
 
-interface EarlyWarning {
+interface EarlyWarningAlertsProps {
+  verifiedAlerts: any[];
+  userGPS?: { lat: number; lng: number } | null;
+}
+
+// Extended alert for display
+interface DisplayAlert {
   id: string;
-  type: 'ai_prediction' | 'verified';
+  type: 'verified' | 'ai_prediction';
   severity: 'low' | 'medium' | 'high' | 'critical';
   title: string;
   description: string;
@@ -29,15 +39,11 @@ interface EarlyWarning {
   confidence: 'low' | 'medium' | 'high';
   createdAt: string;
   diseaseType?: string;
+  cases?: number;
+  trend?: 'increasing' | 'stable' | 'decreasing';
 }
 
-interface EarlyWarningAlertsProps {
-  verifiedAlerts: any[];
-  aiWarnings?: EarlyWarning[];
-  userGPS?: { lat: number; lng: number } | null;
-}
-
-export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }: EarlyWarningAlertsProps) {
+export function EarlyWarningAlerts({ verifiedAlerts, userGPS }: EarlyWarningAlertsProps) {
   const { t, i18n } = useTranslation();
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -45,76 +51,47 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
   const language = i18n.language as 'vi' | 'en';
   const locale = language === 'vi' ? vi : enUS;
 
-  // Generate AI early warnings based on data patterns
-  const generateAIWarnings = (): EarlyWarning[] => {
-    const warnings: EarlyWarning[] = [];
-    
-    // Example: Detect unusual patterns (this would come from the AI agent in production)
-    if (verifiedAlerts.length > 3) {
-      warnings.push({
-        id: 'ai-1',
-        type: 'ai_prediction',
-        severity: 'medium',
-        title: language === 'vi' 
-          ? 'Tín hiệu sớm: Gia tăng ca bệnh' 
-          : 'Early Signal: Increasing Cases',
-        description: language === 'vi'
-          ? 'Phát hiện xu hướng tăng không theo mùa. Cần theo dõi thêm trong 48h tới.'
-          : 'Detected off-season increase trend. Monitor closely for next 48h.',
-        location: 'Quận 1, TP.HCM',
-        confidence: 'medium',
-        createdAt: new Date().toISOString(),
-        diseaseType: 'dengue'
-      });
-    }
+  // Get AI predictions from regional risk hook
+  const { data: riskData } = useRegionalRisk({ autoFetch: true });
 
-    // Add GPS-based warning if user location available
-    if (userGPS) {
-      warnings.push({
-        id: 'ai-gps-1',
-        type: 'ai_prediction',
-        severity: 'low',
-        title: language === 'vi'
-          ? 'Khu vực của bạn: Nguy cơ thấp'
-          : 'Your Area: Low Risk',
-        description: language === 'vi'
-          ? 'Không phát hiện tín hiệu bất thường tại khu vực hiện tại.'
-          : 'No unusual signals detected in your current area.',
-        location: language === 'vi' ? 'Vị trí hiện tại' : 'Current location',
-        confidence: 'high',
-        createdAt: new Date().toISOString()
-      });
-    }
-
-    return [...aiWarnings, ...warnings];
-  };
-
-  const allWarnings = generateAIWarnings();
-  
-  // Separate verified and AI warnings - use localized disease names
-  const verified = verifiedAlerts.map(alert => {
+  // Convert verified alerts (from props) to display format
+  const verified: DisplayAlert[] = verifiedAlerts.map(alert => {
     const diseaseName = getDiseaseName(alert.disease_code, language);
     return {
       id: alert.id,
-      type: 'verified' as const,
-      severity: alert.status === 'critical' ? 'critical' : 'high' as const,
+      type: 'verified',
+      severity: alert.status === 'critical' ? 'critical' : 'high',
       title: `${diseaseName}: ${alert.cases} ${t('common.cases')}`,
       description: language === 'vi' 
         ? 'Ngưỡng cảnh báo vượt mức cho phép'
         : 'Alert threshold exceeded',
       location: alert.district_id,
-      confidence: 'high' as const,
+      confidence: 'high',
       createdAt: alert.created_at,
-      diseaseType: alert.disease_code
+      diseaseType: alert.disease_code,
+      cases: alert.cases
     };
   });
 
-  const aiPredictions = allWarnings.filter(w => w.type === 'ai_prediction');
+  // Convert AI predictions from regional risk data
+  const aiPredictions: DisplayAlert[] = riskData?.alerts?.map((alert: RiskAlert & { cases?: number; trend?: string }, idx: number) => ({
+    id: `ai-${alert.disease}-${idx}`,
+    type: 'ai_prediction' as const,
+    severity: (alert.riskLevel?.toLowerCase() || 'low') as DisplayAlert['severity'],
+    title: `${language === 'vi' ? alert.diseaseVi : alert.disease}: ${alert.cases || Math.round(alert.confidence / 10)} ${language === 'vi' ? 'ca' : 'cases'}`,
+    description: language === 'vi' ? alert.explanationVi : alert.explanation,
+    location: riskData?.region?.nameVi || riskData?.region?.name,
+    confidence: alert.confidence > 70 ? 'high' : alert.confidence > 40 ? 'medium' : 'low',
+    createdAt: alert.timestamp,
+    diseaseType: alert.disease,
+    cases: alert.cases,
+    trend: alert.trend as DisplayAlert['trend']
+  })) || [];
 
   const getSeverityStyle = (severity: string) => {
     switch (severity) {
       case 'critical': return 'border-destructive/50 bg-destructive/10 text-destructive';
-      case 'high': return 'border-danger/50 bg-danger/10 text-danger';
+      case 'high': return 'border-orange-500/50 bg-orange-500/10 text-orange-500';
       case 'medium': return 'border-warning/50 bg-warning/10 text-warning';
       default: return 'border-success/50 bg-success/10 text-success';
     }
@@ -122,11 +99,17 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
 
   const getConfidenceLabel = (confidence: string) => {
     const labels = {
-      high: language === 'vi' ? 'Tin cậy cao' : 'High confidence',
-      medium: language === 'vi' ? 'Tin cậy TB' : 'Medium confidence',
-      low: language === 'vi' ? 'Tin cậy thấp' : 'Low confidence'
+      high: language === 'vi' ? 'Tin cậy cao' : 'High',
+      medium: language === 'vi' ? 'Tin cậy TB' : 'Medium',
+      low: language === 'vi' ? 'Tin cậy thấp' : 'Low'
     };
     return labels[confidence as keyof typeof labels] || confidence;
+  };
+
+  const getTrendIcon = (trend?: string) => {
+    if (trend === 'increasing') return <TrendingUp className="h-3 w-3 text-destructive" />;
+    if (trend === 'decreasing') return <TrendingDown className="h-3 w-3 text-success" />;
+    return <Minus className="h-3 w-3 text-muted-foreground" />;
   };
 
   const formatTime = (dateStr: string) => {
@@ -137,7 +120,9 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
     }
   };
 
-  const displayedAlerts = showAll ? [...verified, ...aiPredictions] : [...verified, ...aiPredictions].slice(0, 4);
+  const displayedAlerts = showAll 
+    ? [...verified, ...aiPredictions] 
+    : [...verified, ...aiPredictions].slice(0, 4);
 
   return (
     <Card className="rounded-xl sm:rounded-2xl border-border/50">
@@ -147,11 +132,9 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
             <div className="p-1.5 rounded-lg bg-warning/10">
               <AlertTriangle className="h-4 w-4 text-warning" />
             </div>
-            <div>
-              <CardTitle className="text-sm sm:text-base">
-                {language === 'vi' ? 'Cảnh báo & Tín hiệu sớm' : 'Alerts & Early Signals'}
-              </CardTitle>
-            </div>
+            <CardTitle className="text-sm sm:text-base">
+              {language === 'vi' ? 'Cảnh báo & Tín hiệu sớm' : 'Alerts & Early Signals'}
+            </CardTitle>
           </div>
           
           <div className="flex items-center gap-1.5">
@@ -228,10 +211,13 @@ export function EarlyWarningAlerts({ verifiedAlerts, aiWarnings = [], userGPS }:
                         )}
                       </div>
 
-                      {/* Title */}
-                      <h4 className="font-medium text-xs sm:text-sm line-clamp-1">
-                        {alert.title}
-                      </h4>
+                      {/* Title with trend */}
+                      <div className="flex items-center gap-1.5">
+                        <h4 className="font-medium text-xs sm:text-sm line-clamp-1">
+                          {alert.title}
+                        </h4>
+                        {alert.trend && getTrendIcon(alert.trend)}
+                      </div>
 
                       {/* Meta info */}
                       <div className="flex flex-wrap items-center gap-2 mt-1 text-[10px] text-muted-foreground">
