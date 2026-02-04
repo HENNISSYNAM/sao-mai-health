@@ -64,14 +64,15 @@ export function KpiCard({ title, value, change, icon: Icon, variant = 'default' 
             {change && (
               <div className={cn(
                 "flex items-center gap-1 text-[10px] sm:text-xs font-medium",
-                change.type === 'increase' ? 'text-success' : 'text-danger'
+                // Health context: increase = bad (red), decrease = good (green)
+                change.type === 'increase' ? 'text-destructive' : 'text-success'
               )}>
                 {change.type === 'increase' ? (
                   <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
                 ) : (
                   <TrendingDown className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
                 )}
-                <span className="truncate">{Math.abs(change.value)}%</span>
+                <span className="truncate">~{Math.abs(change.value)}%</span>
               </div>
             )}
           </div>
