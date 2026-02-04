@@ -15,7 +15,9 @@ import {
   Eye,
   TrendingUp,
   TrendingDown,
-  Minus
+  Minus,
+  Flame,
+  Baby
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -41,6 +43,45 @@ interface DisplayAlert {
   diseaseType?: string;
   cases?: number;
   trend?: 'increasing' | 'stable' | 'decreasing';
+  isOutbreak?: boolean;
+  priority?: number; // For sorting
+}
+
+// Disease priority config - matches backend logic
+// COVID-19 is deprioritized (endemic), focus on Dengue, HFMD, Measles
+const DISEASE_PRIORITY: Record<string, number> = {
+  dengue: 1,
+  hfmd: 2,
+  measles: 3,
+  rabies: 4,
+  influenza: 5,
+  cholera: 6,
+  ari: 7,
+  covid19: 10, // Low priority - endemic
+  covid: 10,
+};
+
+// Smart sorting for alerts
+function sortAlertsByPriority(alerts: DisplayAlert[]): DisplayAlert[] {
+  return alerts.sort((a, b) => {
+    // 1. Outbreak alerts first
+    if (a.isOutbreak && !b.isOutbreak) return -1;
+    if (!a.isOutbreak && b.isOutbreak) return 1;
+    
+    // 2. Critical/High before Medium/Low
+    const severityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    const severityDiff = (severityOrder[a.severity] || 3) - (severityOrder[b.severity] || 3);
+    if (severityDiff !== 0) return severityDiff;
+    
+    // 3. Increasing trends first
+    if (a.trend === 'increasing' && b.trend !== 'increasing') return -1;
+    if (a.trend !== 'increasing' && b.trend === 'increasing') return 1;
+    
+    // 4. Disease priority (Dengue > HFMD > ... > COVID)
+    const priorityA = DISEASE_PRIORITY[a.diseaseType?.toLowerCase() || ''] || 8;
+    const priorityB = DISEASE_PRIORITY[b.diseaseType?.toLowerCase() || ''] || 8;
+    return priorityA - priorityB;
+  });
 }
 
 export function EarlyWarningAlerts({ verifiedAlerts, userGPS }: EarlyWarningAlertsProps) {
@@ -74,7 +115,7 @@ export function EarlyWarningAlerts({ verifiedAlerts, userGPS }: EarlyWarningAler
   });
 
   // Convert AI predictions from regional risk data
-  const aiPredictions: DisplayAlert[] = riskData?.alerts?.map((alert: RiskAlert & { cases?: number; trend?: string }, idx: number) => ({
+  const aiPredictions: DisplayAlert[] = riskData?.alerts?.map((alert: RiskAlert & { cases?: number; trend?: string; isOutbreak?: boolean }, idx: number) => ({
     id: `ai-${alert.disease}-${idx}`,
     type: 'ai_prediction' as const,
     severity: (alert.riskLevel?.toLowerCase() || 'low') as DisplayAlert['severity'],
@@ -85,9 +126,12 @@ export function EarlyWarningAlerts({ verifiedAlerts, userGPS }: EarlyWarningAler
     createdAt: alert.timestamp,
     diseaseType: alert.disease,
     cases: alert.cases,
-    trend: alert.trend as DisplayAlert['trend']
+    trend: alert.trend as DisplayAlert['trend'],
+    isOutbreak: alert.isOutbreak
   })) || [];
 
+  // Apply smart priority sorting - Dengue, HFMD first; COVID last
+  const allAlerts = sortAlertsByPriority([...verified, ...aiPredictions]);
   const getSeverityStyle = (severity: string) => {
     switch (severity) {
       case 'critical': return 'border-destructive/50 bg-destructive/10 text-destructive';
@@ -120,9 +164,15 @@ export function EarlyWarningAlerts({ verifiedAlerts, userGPS }: EarlyWarningAler
     }
   };
 
+  // Check if disease affects children
+  const affectsChildren = (diseaseType?: string) => {
+    const childDiseases = ['hfmd', 'measles', 'ari'];
+    return childDiseases.includes(diseaseType?.toLowerCase() || '');
+  };
+
   const displayedAlerts = showAll 
-    ? [...verified, ...aiPredictions] 
-    : [...verified, ...aiPredictions].slice(0, 4);
+    ? allAlerts 
+    : allAlerts.slice(0, 4);
 
   return (
     <Card className="rounded-xl sm:rounded-2xl border-border/50">
@@ -209,6 +259,20 @@ export function EarlyWarningAlerts({ verifiedAlerts, userGPS }: EarlyWarningAler
                             {getConfidenceLabel(alert.confidence)}
                           </Badge>
                         )}
+                        {/* Outbreak indicator */}
+                        {alert.isOutbreak && (
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-destructive/50 bg-destructive/10 text-destructive animate-pulse">
+                            <Flame className="h-2 w-2 mr-0.5" />
+                            {language === 'vi' ? 'Bùng phát' : 'Outbreak'}
+                          </Badge>
+                        )}
+                        {/* Affects children indicator */}
+                        {affectsChildren(alert.diseaseType) && (
+                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-orange-400/50 bg-orange-400/10 text-orange-500">
+                            <Baby className="h-2 w-2 mr-0.5" />
+                            {language === 'vi' ? 'Trẻ em' : 'Children'}
+                          </Badge>
+                        )}
                       </div>
 
                       {/* Title with trend */}
@@ -267,7 +331,7 @@ export function EarlyWarningAlerts({ verifiedAlerts, userGPS }: EarlyWarningAler
         )}
 
         {/* Show more button */}
-        {(verified.length + aiPredictions.length) > 4 && (
+        {allAlerts.length > 4 && (
           <Button
             variant="ghost"
             size="sm"
@@ -276,7 +340,7 @@ export function EarlyWarningAlerts({ verifiedAlerts, userGPS }: EarlyWarningAler
           >
             {showAll 
               ? (language === 'vi' ? 'Thu gọn' : 'Show less')
-              : (language === 'vi' ? `Xem tất cả (${verified.length + aiPredictions.length})` : `View all (${verified.length + aiPredictions.length})`)
+              : (language === 'vi' ? `Xem tất cả (${allAlerts.length})` : `View all (${allAlerts.length})`)
             }
           </Button>
         )}

@@ -90,12 +90,31 @@ function classifyRegion(lat: number, lon: number): EpidemiologicalRegion {
   return REGIONS.red_river_delta;
 }
 
+// Disease priority configuration - reflects current Vietnam public health priorities
+// COVID-19 is now endemic and managed, not a priority concern
+const DISEASE_PRIORITIES: Record<string, {
+  priority: number; // Lower = higher priority
+  isEmergency: boolean;
+  affectsChildren: boolean;
+  seasonal: boolean;
+  peakMonths: number[];
+}> = {
+  dengue: { priority: 1, isEmergency: true, affectsChildren: false, seasonal: true, peakMonths: [5, 6, 7, 8, 9, 10, 11] },
+  hfmd: { priority: 2, isEmergency: true, affectsChildren: true, seasonal: true, peakMonths: [3, 4, 5, 9, 10, 11] },
+  measles: { priority: 3, isEmergency: true, affectsChildren: true, seasonal: false, peakMonths: [] },
+  rabies: { priority: 4, isEmergency: true, affectsChildren: false, seasonal: false, peakMonths: [] },
+  influenza: { priority: 5, isEmergency: false, affectsChildren: false, seasonal: true, peakMonths: [1, 2, 3, 11, 12] },
+  cholera: { priority: 6, isEmergency: true, affectsChildren: false, seasonal: true, peakMonths: [5, 6, 7, 8, 9] },
+  ari: { priority: 7, isEmergency: false, affectsChildren: true, seasonal: true, peakMonths: [1, 2, 3, 11, 12] },
+  covid19: { priority: 10, isEmergency: false, affectsChildren: false, seasonal: false, peakMonths: [] }, // Deprioritized - endemic
+};
+
 // Tool definitions for structured output
 const diseaseDataTool = {
   type: "function",
   function: {
     name: "report_disease_data",
-    description: "Report real-time disease statistics for a Vietnamese region",
+    description: "Report real-time disease statistics for a Vietnamese region. Focus on priority diseases: Dengue, HFMD, Measles, Rabies. COVID-19 is low priority as it is now endemic.",
     parameters: {
       type: "object",
       properties: {
@@ -104,11 +123,12 @@ const diseaseDataTool = {
           items: {
             type: "object",
             properties: {
-              disease: { type: "string", description: "Disease name in English (e.g., dengue, covid19, hfmd)" },
-              diseaseVi: { type: "string", description: "Disease name in Vietnamese" },
+              disease: { type: "string", description: "Disease code: dengue, hfmd, measles, rabies, influenza, cholera, ari. COVID-19 only if significant outbreak." },
+              diseaseVi: { type: "string", description: "Vietnamese name: Sốt xuất huyết, Tay chân miệng, Sởi, Dại, Cúm, Tả, Viêm hô hấp" },
               cases: { type: "number", description: "Number of cases in the region this week" },
               riskLevel: { type: "string", enum: ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
               trend: { type: "string", enum: ["increasing", "stable", "decreasing"] },
+              isOutbreak: { type: "boolean", description: "True if this is an active outbreak" },
               source: { type: "string", description: "Source URL or name" }
             },
             required: ["disease", "diseaseVi", "cases", "riskLevel", "trend", "source"]
@@ -127,12 +147,53 @@ const diseaseDataTool = {
   }
 };
 
+// Smart disease sorting based on urgency and current relevance
+function sortDiseasesByPriority(diseases: any[]): any[] {
+  const currentMonth = new Date().getMonth() + 1;
+  
+  return diseases.sort((a, b) => {
+    const priorityA = DISEASE_PRIORITIES[a.disease.toLowerCase()] || { priority: 8 };
+    const priorityB = DISEASE_PRIORITIES[b.disease.toLowerCase()] || { priority: 8 };
+    
+    // 1. Active outbreaks first
+    if (a.isOutbreak && !b.isOutbreak) return -1;
+    if (!a.isOutbreak && b.isOutbreak) return 1;
+    
+    // 2. Critical/High risk before Medium/Low
+    const riskOrder: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+    const riskDiff = (riskOrder[a.riskLevel] || 3) - (riskOrder[b.riskLevel] || 3);
+    if (riskDiff !== 0) return riskDiff;
+    
+    // 3. Increasing trends over stable/decreasing
+    if (a.trend === 'increasing' && b.trend !== 'increasing') return -1;
+    if (a.trend !== 'increasing' && b.trend === 'increasing') return 1;
+    
+    // 4. In-season diseases
+    const isInSeasonA = priorityA.seasonal && priorityA.peakMonths?.includes(currentMonth);
+    const isInSeasonB = priorityB.seasonal && priorityB.peakMonths?.includes(currentMonth);
+    if (isInSeasonA && !isInSeasonB) return -1;
+    if (!isInSeasonA && isInSeasonB) return 1;
+    
+    // 5. Base priority (Dengue > HFMD > Measles > ... > COVID)
+    return (priorityA.priority || 8) - (priorityB.priority || 8);
+  });
+}
+
 async function fetchRealDiseaseData(
   apiKey: string,
   region: EpidemiologicalRegion,
   environmentalFactors?: LocationInput['environmentalFactors']
 ): Promise<any> {
   const today = new Date().toISOString().split('T')[0];
+  const currentMonth = new Date().getMonth() + 1;
+  
+  // Determine current season context
+  const isDengueSeason = [5, 6, 7, 8, 9, 10, 11].includes(currentMonth);
+  const isHFMDSeason = [3, 4, 5, 9, 10, 11].includes(currentMonth);
+  const isFluSeason = [1, 2, 3, 11, 12].includes(currentMonth);
+  
+  const seasonContext = `Current season context: ${isDengueSeason ? 'DENGUE SEASON (high priority)' : ''} ${isHFMDSeason ? 'HFMD SEASON (watch children)' : ''} ${isFluSeason ? 'FLU SEASON' : ''}`;
+  
   const envContext = environmentalFactors 
     ? `Current conditions: ${environmentalFactors.temperature || 30}°C, humidity ${environmentalFactors.humidity || 75}%, AQI ${environmentalFactors.aqi || 80}.`
     : '';
@@ -140,25 +201,38 @@ async function fetchRealDiseaseData(
   const systemPrompt = `You are a Vietnamese health data agent with web search capability. Today is ${today}.
 Search for REAL, CURRENT disease statistics for ${region.nameVi} (${region.name}), Vietnam.
 
-Focus on these diseases: Sốt xuất huyết (Dengue), COVID-19, Tay chân miệng (HFMD), Cúm (Influenza), Viêm hô hấp cấp.
+PRIORITY DISEASES (search in this order):
+1. Sốt xuất huyết (Dengue) - HIGHEST PRIORITY, especially during rainy season
+2. Tay chân miệng (HFMD) - HIGH PRIORITY, affects children
+3. Sởi (Measles) - CRITICAL if any outbreak
+4. Bệnh dại (Rabies) - EMERGENCY if reported
+5. Cúm (Influenza) - Seasonal monitoring
+6. Viêm hô hấp cấp (ARI) - Affects vulnerable groups
+
+LOW PRIORITY (only if significant outbreak):
+- COVID-19 - Now endemic in Vietnam, not a priority unless major outbreak
+
+${seasonContext}
+${envContext}
 
 Search sources: Bộ Y tế Việt Nam, Sở Y tế ${region.nameVi}, CDC Việt Nam, VnExpress, Tuổi Trẻ.
 
-${envContext}
-
 Rules:
 1. Use REAL numbers from recent news/reports (within last 7 days)
-2. If exact data unavailable, estimate based on seasonal patterns and population
+2. If exact data unavailable, estimate based on seasonal patterns
 3. Risk levels: LOW (<10 cases/day), MEDIUM (10-50), HIGH (50-200), CRITICAL (>200)
-4. Include actual source URLs when found
-5. Call the report_disease_data function with the data`;
+4. Mark isOutbreak=true if there's an active outbreak
+5. SKIP COVID-19 unless there's a significant new wave/outbreak
+6. Include actual source URLs when found
+7. Call the report_disease_data function with the data`;
 
   const userPrompt = `Search for current disease outbreak data in ${region.nameVi}, Vietnam as of ${today}. 
-Find: dengue fever cases, COVID-19 cases, hand-foot-mouth disease (HFMD), influenza, and respiratory infections.
+FOCUS ON: Dengue fever, HFMD (Tay chân miệng), Measles (Sởi), Rabies if any cases.
+SKIP COVID-19 unless there's major news about a new outbreak.
 Return real statistics with sources.`;
 
   try {
-    console.log(`🔍 [${region.id}] Fetching real disease data with AI...`);
+    console.log(`🔍 [${region.id}] Fetching priority disease data with AI...`);
     
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -188,7 +262,11 @@ Return real statistics with sources.`;
     
     if (toolCall?.function?.arguments) {
       const args = JSON.parse(toolCall.function.arguments);
-      console.log(`✅ [${region.id}] Got ${args.diseases?.length || 0} disease reports`);
+      // Sort by priority before returning
+      if (args.diseases) {
+        args.diseases = sortDiseasesByPriority(args.diseases);
+      }
+      console.log(`✅ [${region.id}] Got ${args.diseases?.length || 0} priority disease reports`);
       return args;
     }
     
@@ -202,47 +280,63 @@ Return real statistics with sources.`;
 function generateFallbackData(region: EpidemiologicalRegion) {
   const currentMonth = new Date().getMonth() + 1;
   const isDengueSeason = [5, 6, 7, 8, 9, 10, 11].includes(currentMonth);
+  const isHFMDSeason = [3, 4, 5, 9, 10, 11].includes(currentMonth);
   const isFluSeason = [1, 2, 3, 11, 12].includes(currentMonth);
   
   const baseMultiplier = region.populationDensity === 'very_high' ? 1.5 : 1;
   
+  // Priority-ordered diseases (NO COVID by default)
+  const diseases = [
+    {
+      disease: 'dengue',
+      diseaseVi: 'Sốt xuất huyết',
+      cases: Math.round((isDengueSeason ? 55 : 15) * baseMultiplier),
+      riskLevel: isDengueSeason ? 'HIGH' : 'LOW',
+      trend: isDengueSeason ? 'increasing' : 'stable',
+      isOutbreak: isDengueSeason && baseMultiplier > 1,
+      source: 'Ước tính theo mùa'
+    },
+    {
+      disease: 'hfmd',
+      diseaseVi: 'Tay chân miệng',
+      cases: Math.round((isHFMDSeason ? 35 : 12) * baseMultiplier),
+      riskLevel: isHFMDSeason ? 'MEDIUM' : 'LOW',
+      trend: isHFMDSeason ? 'increasing' : 'stable',
+      isOutbreak: false,
+      source: 'Ước tính theo mùa'
+    },
+    {
+      disease: 'influenza',
+      diseaseVi: 'Cúm',
+      cases: Math.round((isFluSeason ? 40 : 15) * baseMultiplier),
+      riskLevel: isFluSeason ? 'MEDIUM' : 'LOW',
+      trend: isFluSeason ? 'increasing' : 'stable',
+      isOutbreak: false,
+      source: 'Ước tính theo mùa'
+    },
+    {
+      disease: 'ari',
+      diseaseVi: 'Viêm hô hấp cấp',
+      cases: Math.round(20 * baseMultiplier),
+      riskLevel: 'LOW',
+      trend: 'stable',
+      isOutbreak: false,
+      source: 'Ước tính'
+    }
+  ];
+  
+  // Determine overall risk based on priority diseases
+  let overallRisk = 'LOW';
+  if (diseases.some(d => d.riskLevel === 'CRITICAL')) overallRisk = 'CRITICAL';
+  else if (diseases.some(d => d.riskLevel === 'HIGH')) overallRisk = 'HIGH';
+  else if (diseases.some(d => d.riskLevel === 'MEDIUM')) overallRisk = 'MEDIUM';
+
   return {
-    diseases: [
-      {
-        disease: 'dengue',
-        diseaseVi: 'Sốt xuất huyết',
-        cases: Math.round((isDengueSeason ? 45 : 15) * baseMultiplier),
-        riskLevel: isDengueSeason ? 'MEDIUM' : 'LOW',
-        trend: isDengueSeason ? 'increasing' : 'stable',
-        source: 'Ước tính theo mùa'
-      },
-      {
-        disease: 'covid19',
-        diseaseVi: 'COVID-19',
-        cases: Math.round(20 * baseMultiplier),
-        riskLevel: 'LOW',
-        trend: 'stable',
-        source: 'Ước tính'
-      },
-      {
-        disease: 'hfmd',
-        diseaseVi: 'Tay chân miệng',
-        cases: Math.round(25 * baseMultiplier),
-        riskLevel: 'LOW',
-        trend: 'stable',
-        source: 'Ước tính'
-      },
-      {
-        disease: 'influenza',
-        diseaseVi: 'Cúm',
-        cases: Math.round((isFluSeason ? 60 : 20) * baseMultiplier),
-        riskLevel: isFluSeason ? 'MEDIUM' : 'LOW',
-        trend: isFluSeason ? 'increasing' : 'stable',
-        source: 'Ước tính theo mùa'
-      }
-    ],
-    overallRisk: isDengueSeason || isFluSeason ? 'MEDIUM' : 'LOW',
-    environmentalWarnings: []
+    diseases: sortDiseasesByPriority(diseases),
+    overallRisk,
+    environmentalWarnings: isDengueSeason 
+      ? ['Mùa mưa - Diệt lăng quăng, bọ gậy phòng chống sốt xuất huyết'] 
+      : []
   };
 }
 
