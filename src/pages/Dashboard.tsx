@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHealth";
-import { Heart, Coffee } from "lucide-react";
+import { Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 
 // Dashboard Sections
@@ -200,7 +200,7 @@ export default function Dashboard() {
         className="block pt-2"
       >
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-primary transition-colors">
-          <Coffee className="h-3.5 w-3.5" />
+          <Heart className="h-3.5 w-3.5 text-danger/70" />
           <span>
             {isVi ? 'Ủng hộ dự án' : 'Support project'}
           </span>
@@ -208,7 +208,6 @@ export default function Dashboard() {
             2800205302805
           </span>
           <span>Agribank</span>
-          <Heart className="h-3 w-3 text-danger/60" />
         </div>
       </Link>
     </div>
