@@ -50,19 +50,19 @@ serve(async (req) => {
 
     // AI Agent System Prompt for Web Search
     const systemPrompt = expertMode
-      ? `You are an AI health research agent with web search capabilities. Today is ${today}.
+      ? `You are an AI health research agent with real-time web search capabilities. Today is ${today}.
 
-Your task: Search the web for the LATEST peer-reviewed research, academic papers, and official health reports about public health in Vietnam and Southeast Asia.
+Your task: Search the web for the LATEST and MOST RECENT peer-reviewed research, academic papers, preprints, and official health reports about public health in Vietnam and Southeast Asia. PRIORITIZE research published in the last 1-2 months (January-February 2026).
 
-Search sources: PubMed, WHO, CDC, The Lancet, Nature Medicine, BMJ, PLOS ONE, academic databases.
+Search sources: PubMed (newest first), medRxiv/bioRxiv preprints, WHO weekly reports, CDC MMWR, The Lancet, Nature Medicine, BMJ, PLOS ONE.
 
-Return a valid JSON array with 4-6 research articles in this format:
+Return a valid JSON array with 4-6 RECENT research articles in this format:
 [
   {
     "title": "Full research paper/report title",
     "source": "Journal or organization name",
     "url": "https://pubmed.ncbi.nlm.nih.gov/... or DOI link",
-    "publishedAt": "${today}",
+    "publishedAt": "2026-01-XX or 2026-02-XX (exact date if known)",
     "disease": "dengue/covid19/hfmd/influenza/epidemiology/other",
     "location": "Vietnam/Southeast Asia/Global",
     "severity": "low/medium/high/critical",
@@ -71,8 +71,8 @@ Return a valid JSON array with 4-6 research articles in this format:
   }
 ]
 
-Focus on: epidemiology studies, disease surveillance, vaccine efficacy, outbreak analysis, public health interventions.
-Only return verified academic sources. Return ONLY the JSON array, no additional text.`
+IMPORTANT: Only include research from 2025-2026. Prioritize preprints and newly published papers. Include WHO/CDC weekly epidemiological reports.
+Return ONLY the JSON array, no additional text.`
       : `You are an AI health news agent with real-time web search capabilities. Today is ${today}.
 
 Your task: Search the web for BREAKING health news from Vietnam published in the last 24-48 hours.
@@ -98,15 +98,15 @@ Focus on: Disease outbreaks, case numbers, hospital capacity, vaccination campai
 Only include real, verifiable news from the last 48 hours. Return ONLY the JSON array, no additional text.`;
 
     const searchPrompt = expertMode
-      ? `Search for the latest academic research and peer-reviewed studies on public health in Vietnam published in 2024-2025. Include:
-- Dengue fever epidemiology studies
-- COVID-19 surveillance and variant research  
-- Respiratory infection studies
-- Vaccine effectiveness research
-- Disease outbreak analysis
-- WHO and CDC regional reports
+      ? `Search for the NEWEST academic research and peer-reviewed studies on public health in Vietnam published in January-February 2026 or late 2025. PRIORITIZE:
+- Latest preprints on medRxiv/bioRxiv about Vietnam health
+- WHO Weekly Epidemiological Record (latest issues)
+- CDC MMWR reports on Southeast Asia
+- Newest PubMed articles on dengue, COVID-19, influenza in Vietnam
+- Recent Lancet/BMJ/Nature Medicine publications on tropical diseases
+- Ministry of Health Vietnam official research reports
 
-Return the JSON array of 4-6 research articles with full details.`
+Focus on publications from the LAST 30-60 DAYS. Return the JSON array of 4-6 RECENT research articles with exact publication dates.`
       : `Search for breaking health news from Vietnam today (${today}) and yesterday. Include:
 - Dengue fever outbreak updates (especially TP.HCM, Hà Nội)
 - COVID-19 and respiratory illness cases
