@@ -149,3 +149,6 @@ verify_jwt = false
 
 [functions.onboarding-agent]
 verify_jwt = false
+
+[functions.health-kpi-intelligence]
+verify_jwt = false
