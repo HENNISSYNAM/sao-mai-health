@@ -892,6 +892,60 @@ export type Database = {
         }
         Relationships: []
       }
+      disease_hotspots: {
+        Row: {
+          ai_source: Json | null
+          case_count: number | null
+          center_lat: number
+          center_lng: number
+          created_at: string
+          detected_at: string | null
+          disease_code: string | null
+          disease_name: string | null
+          expires_at: string | null
+          id: string
+          prediction_data: Json | null
+          radius_km: number | null
+          severity: string | null
+          updated_at: string
+          user_density: number | null
+        }
+        Insert: {
+          ai_source?: Json | null
+          case_count?: number | null
+          center_lat: number
+          center_lng: number
+          created_at?: string
+          detected_at?: string | null
+          disease_code?: string | null
+          disease_name?: string | null
+          expires_at?: string | null
+          id?: string
+          prediction_data?: Json | null
+          radius_km?: number | null
+          severity?: string | null
+          updated_at?: string
+          user_density?: number | null
+        }
+        Update: {
+          ai_source?: Json | null
+          case_count?: number | null
+          center_lat?: number
+          center_lng?: number
+          created_at?: string
+          detected_at?: string | null
+          disease_code?: string | null
+          disease_name?: string | null
+          expires_at?: string | null
+          id?: string
+          prediction_data?: Json | null
+          radius_km?: number | null
+          severity?: string | null
+          updated_at?: string
+          user_density?: number | null
+        }
+        Relationships: []
+      }
       dq_errors: {
         Row: {
           created_at: string | null
@@ -3954,6 +4008,51 @@ export type Database = {
         }
         Relationships: []
       }
+      user_map_presence: {
+        Row: {
+          accuracy: number | null
+          age_group: string | null
+          created_at: string
+          health_status: string | null
+          id: string
+          is_sharing: boolean | null
+          last_active_at: string | null
+          lat: number
+          lng: number
+          risk_level: string | null
+          share_with_family: boolean | null
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          age_group?: string | null
+          created_at?: string
+          health_status?: string | null
+          id?: string
+          is_sharing?: boolean | null
+          last_active_at?: string | null
+          lat: number
+          lng: number
+          risk_level?: string | null
+          share_with_family?: boolean | null
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          age_group?: string | null
+          created_at?: string
+          health_status?: string | null
+          id?: string
+          is_sharing?: boolean | null
+          last_active_at?: string | null
+          lat?: number
+          lng?: number
+          risk_level?: string | null
+          share_with_family?: boolean | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_plans: {
         Row: {
           created_at: string
@@ -3987,6 +4086,7 @@ export type Database = {
       user_profiles: {
         Row: {
           allergies: string[] | null
+          allowed_viewers: string[] | null
           biometric_verified: boolean | null
           blood_type: string | null
           created_at: string
@@ -4000,12 +4100,14 @@ export type Database = {
           phone_hash: string | null
           reputation: number | null
           role: Database["public"]["Enums"]["user_role"]
+          sharing_mode: string | null
           updated_at: string
           user_id: string
           weight_kg: number | null
         }
         Insert: {
           allergies?: string[] | null
+          allowed_viewers?: string[] | null
           biometric_verified?: boolean | null
           blood_type?: string | null
           created_at?: string
@@ -4019,12 +4121,14 @@ export type Database = {
           phone_hash?: string | null
           reputation?: number | null
           role?: Database["public"]["Enums"]["user_role"]
+          sharing_mode?: string | null
           updated_at?: string
           user_id: string
           weight_kg?: number | null
         }
         Update: {
           allergies?: string[] | null
+          allowed_viewers?: string[] | null
           biometric_verified?: boolean | null
           blood_type?: string | null
           created_at?: string
@@ -4038,9 +4142,70 @@ export type Database = {
           phone_hash?: string | null
           reputation?: number | null
           role?: Database["public"]["Enums"]["user_role"]
+          sharing_mode?: string | null
           updated_at?: string
           user_id?: string
           weight_kg?: number | null
+        }
+        Relationships: []
+      }
+      user_twin_data: {
+        Row: {
+          ai_generated_insights: Json | null
+          created_at: string
+          current_lat: number | null
+          current_lng: number | null
+          disease_risks: Json | null
+          environment_data: Json | null
+          environment_risks: Json | null
+          health_predictions: Json | null
+          id: string
+          last_sync_at: string | null
+          location_updated_at: string | null
+          outbreak_alerts: Json | null
+          personalized_actions: Json | null
+          region: string | null
+          stroke_risk_score: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_generated_insights?: Json | null
+          created_at?: string
+          current_lat?: number | null
+          current_lng?: number | null
+          disease_risks?: Json | null
+          environment_data?: Json | null
+          environment_risks?: Json | null
+          health_predictions?: Json | null
+          id?: string
+          last_sync_at?: string | null
+          location_updated_at?: string | null
+          outbreak_alerts?: Json | null
+          personalized_actions?: Json | null
+          region?: string | null
+          stroke_risk_score?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_generated_insights?: Json | null
+          created_at?: string
+          current_lat?: number | null
+          current_lng?: number | null
+          disease_risks?: Json | null
+          environment_data?: Json | null
+          environment_risks?: Json | null
+          health_predictions?: Json | null
+          id?: string
+          last_sync_at?: string | null
+          location_updated_at?: string | null
+          outbreak_alerts?: Json | null
+          personalized_actions?: Json | null
+          region?: string | null
+          stroke_risk_score?: number | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -4776,6 +4941,17 @@ export type Database = {
       get_my_balance:
         | { Args: never; Returns: number }
         | { Args: { user_id?: string }; Returns: number }
+      get_nearby_users: {
+        Args: { p_lat: number; p_lng: number; p_radius_km?: number }
+        Returns: {
+          age_group: string
+          distance_km: number
+          lat: number
+          lng: number
+          risk_level: string
+          user_id: string
+        }[]
+      }
       get_points_available: { Args: { p_user: string }; Returns: number }
       get_points_balance: { Args: { p_user: string }; Returns: number }
       gettransactionid: { Args: never; Returns: unknown }
