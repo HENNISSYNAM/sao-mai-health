@@ -87,19 +87,8 @@ export function AuthModal({ open, onClose }: AuthModalProps) {
         <VisuallyHidden>
           <DialogTitle>Đăng nhập</DialogTitle>
         </VisuallyHidden>
-        
-        {/* Custom close button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-3 top-3 z-10 h-8 w-8 rounded-full hover:bg-muted"
-          onClick={onClose}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Đóng</span>
-        </Button>
 
-        <div className="p-6 pt-8">
+        <div className="p-6 pt-4">
           <div className="text-center pb-6">
             <div className="flex justify-center mb-4">
               <div className="relative">
