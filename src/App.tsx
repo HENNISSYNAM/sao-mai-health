@@ -59,21 +59,9 @@ const queryClient = new QueryClient({
            <Route path="/lab-import" element={<LabImport />} />
            
            {/* Protected Routes - Require Authentication */}
-           <Route path="/alerts" element={
-             <ProtectedRoute>
-               <AlertsNew />
-             </ProtectedRoute>
-           } />
-           <Route path="/bio-vault" element={
-             <ProtectedRoute>
-               <BioVault />
-             </ProtectedRoute>
-           } />
-           <Route path="/maps" element={
-             <ProtectedRoute>
-               <MapView />
-             </ProtectedRoute>
-           } />
+           <Route path="/alerts" element={<AlertsNew />} />
+           <Route path="/bio-vault" element={<BioVault />} />
+           <Route path="/maps" element={<MapView />} />
            
            {/* Other routes */}
            <Route path="/map" element={<MapView />} />
@@ -109,12 +97,8 @@ const App = () => (
             <Routes>
                {/* Auth page - full screen without sidebar */}
                <Route path="/auth" element={<Auth />} />
-              {/* Stroke Risk - Full screen without sidebar, requires auth */}
-              <Route path="/stroke-risk/*" element={
-                <ProtectedRoute>
-                  <StrokeRisk />
-                </ProtectedRoute>
-              } />
+               {/* Stroke Risk - Full screen without sidebar */}
+               <Route path="/stroke-risk/*" element={<StrokeRisk />} />
               {/* All other routes with sidebar layout and auth modal */}
                <Route path="/*" element={<MainLayout />} />
             </Routes>
