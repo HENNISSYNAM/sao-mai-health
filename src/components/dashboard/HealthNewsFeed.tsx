@@ -314,7 +314,11 @@ export function HealthNewsFeed() {
                     article.isAcademic && "border-purple-500/20 bg-purple-500/5",
                     expanded === article.id && "ring-2 ring-primary/30"
                   )}
-                  onClick={() => setExpanded(expanded === article.id ? null : article.id)}
+                  onClick={() => {
+                    if (article.url && article.url !== '#') {
+                      window.open(article.url, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
