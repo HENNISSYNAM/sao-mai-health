@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+ import React, { useEffect } from 'react';
+ import { useLocation, Navigate } from 'react-router-dom';
 import { useAuthContext } from '@/components/auth/AuthProvider';
-import { AuthModal } from '@/components/auth/AuthModal';
 import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
@@ -11,16 +10,12 @@ interface ProtectedRouteProps {
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuthContext();
   const location = useLocation();
-  const navigate = useNavigate();
-  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Show auth modal when not authenticated
+   // Save intended destination when not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      // Save the intended destination
       const fullPath = `${location.pathname}${location.search}${location.hash}`;
       sessionStorage.setItem('auth_redirect_to', fullPath);
-      setShowAuthModal(true);
     }
   }, [isLoading, isAuthenticated, location.pathname, location.search, location.hash]);
 
@@ -36,25 +31,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  // Show auth modal overlay if not authenticated (like Instagram)
+   // Redirect to auth page if not authenticated
   if (!isAuthenticated) {
-    return (
-      <>
-        {/* Show blurred/disabled content behind */}
-        <div className="pointer-events-none opacity-50 blur-sm">
-          {children}
-        </div>
-        
-        {/* Auth modal on top */}
-        <AuthModal 
-          open={showAuthModal} 
-          onClose={() => {
-            setShowAuthModal(false);
-            navigate('/');
-          }} 
-        />
-      </>
-    );
+     return <Navigate to="/auth" replace />;
   }
 
   return <>{children}</>;
