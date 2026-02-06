@@ -27,6 +27,35 @@ const cache: { data: any; timestamp: number } = { data: null, timestamp: 0 };
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Fallback data when rate limited - based on real seasonal patterns
+// Verified source URLs - only use these real, verifiable homepages/sections
+const VERIFIED_SOURCES: Record<string, string> = {
+  // Vietnamese official sources
+  'Bộ Y tế Việt Nam': 'https://moh.gov.vn/tin-tuc',
+  'Cục Y tế dự phòng': 'https://vncdc.gov.vn',
+  'VnExpress Sức khỏe': 'https://vnexpress.net/suc-khoe',
+  'Tuổi Trẻ Sức khỏe': 'https://tuoitre.vn/suc-khoe.htm',
+  'Thanh Niên Y tế': 'https://thanhnien.vn/suc-khoe/',
+  'Dân Trí Sức khỏe': 'https://dantri.com.vn/suc-khoe.htm',
+  'Sức khỏe & Đời sống': 'https://suckhoedoisong.vn',
+  'Người Lao Động': 'https://nld.com.vn/suc-khoe.htm',
+  // International sources
+  'WHO': 'https://www.who.int/news',
+  'WHO Western Pacific': 'https://www.who.int/westernpacific/news',
+  'WHO Vietnam': 'https://www.who.int/vietnam/news',
+  'CDC': 'https://www.cdc.gov/media/releases/index.html',
+  'CDC Southeast Asia': 'https://www.cdc.gov/globalhealth/countries/south-east-asia/',
+  // Academic
+  'PubMed': 'https://pubmed.ncbi.nlm.nih.gov/?term=vietnam+public+health',
+  'The Lancet': 'https://www.thelancet.com/global-health',
+  'Nature Medicine': 'https://www.nature.com/nm/',
+  'NEJM': 'https://www.nejm.org',
+};
+
+function getVerifiedUrl(source: string): string {
+  // Return verified URL or default to source homepage
+  return VERIFIED_SOURCES[source] || VERIFIED_SOURCES['VnExpress Sức khỏe'];
+}
+
 function getFallbackData(expertMode: boolean): NewsArticle[] {
   const today = new Date().toISOString().split('T')[0];
   
@@ -36,7 +65,7 @@ function getFallbackData(expertMode: boolean): NewsArticle[] {
         id: `fallback-1-${Date.now()}`,
         title: "Dengue Fever Surveillance in Southern Vietnam: 2025-2026 Seasonal Analysis",
         source: "WHO Western Pacific",
-        url: "https://www.who.int/westernpacific/health-topics/dengue",
+        url: VERIFIED_SOURCES['WHO Western Pacific'],
         publishedAt: today,
         aiSummary: "Ongoing surveillance shows dengue cases follow seasonal patterns with peak during rainy season. Vector control remains the primary prevention strategy.",
         keywords: ["dengue", "surveillance", "Vietnam", "vector control"],
@@ -49,8 +78,8 @@ function getFallbackData(expertMode: boolean): NewsArticle[] {
       {
         id: `fallback-2-${Date.now()}`,
         title: "Respiratory Illness Trends in Southeast Asia: Winter 2025-2026",
-        source: "CDC Southeast Asia",
-        url: "https://www.cdc.gov/flu/weekly/index.htm",
+        source: "CDC",
+        url: VERIFIED_SOURCES['CDC'],
         publishedAt: today,
         aiSummary: "Influenza activity in the region shows typical seasonal elevation. Vaccination coverage improving in urban areas.",
         keywords: ["influenza", "respiratory", "vaccination", "epidemiology"],
@@ -68,7 +97,7 @@ function getFallbackData(expertMode: boolean): NewsArticle[] {
       id: `fallback-1-${Date.now()}`,
       title: "Bộ Y tế cập nhật tình hình dịch bệnh tuần qua",
       source: "Bộ Y tế Việt Nam",
-      url: "https://moh.gov.vn",
+      url: VERIFIED_SOURCES['Bộ Y tế Việt Nam'],
       publishedAt: today,
       aiSummary: "Theo báo cáo mới nhất, tình hình dịch bệnh tại Việt Nam đang được kiểm soát tốt. Các cơ sở y tế hoạt động bình thường.",
       keywords: ["Bộ Y tế", "dịch bệnh", "kiểm soát"],
@@ -82,7 +111,7 @@ function getFallbackData(expertMode: boolean): NewsArticle[] {
       id: `fallback-2-${Date.now()}`,
       title: "Tăng cường phòng chống sốt xuất huyết mùa mưa",
       source: "VnExpress Sức khỏe",
-      url: "https://vnexpress.net/suc-khoe",
+      url: VERIFIED_SOURCES['VnExpress Sức khỏe'],
       publishedAt: today,
       aiSummary: "Các địa phương đẩy mạnh chiến dịch diệt lăng quăng, bọ gậy để phòng chống sốt xuất huyết trong mùa mưa.",
       keywords: ["sốt xuất huyết", "phòng chống", "mùa mưa"],
@@ -95,8 +124,8 @@ function getFallbackData(expertMode: boolean): NewsArticle[] {
     {
       id: `fallback-3-${Date.now()}`,
       title: "Khuyến cáo tiêm phòng cúm mùa cho người già và trẻ em",
-      source: "Tuổi Trẻ",
-      url: "https://tuoitre.vn/suc-khoe.htm",
+      source: "Tuổi Trẻ Sức khỏe",
+      url: VERIFIED_SOURCES['Tuổi Trẻ Sức khỏe'],
       publishedAt: today,
       aiSummary: "Chuyên gia y tế khuyến cáo người dân, đặc biệt là người già và trẻ em nên tiêm phòng cúm để bảo vệ sức khỏe.",
       keywords: ["tiêm phòng", "cúm mùa", "vaccine"],
@@ -251,7 +280,7 @@ Return ONLY the JSON array.`;
       rawArticles = getFallbackData(expertMode);
     }
 
-    // Process articles
+    // Process articles - ALWAYS use verified URLs, never AI-generated links
     const processedArticles: NewsArticle[] = rawArticles.slice(0, 6).map((article: any, idx: number) => {
       let classification: 'confirmed' | 'emerging' | 'predictive' = 'confirmed';
       const contentLower = (article.content || article.title || '').toLowerCase();
@@ -267,11 +296,15 @@ Return ONLY the JSON array.`;
         keywords = ['health', 'Vietnam'];
       }
 
+      // CRITICAL: Always use verified source URL, never trust AI-generated URLs
+      const sourceName = article.source || 'VnExpress Sức khỏe';
+      const verifiedUrl = getVerifiedUrl(sourceName);
+
       return {
         id: `news-${Date.now()}-${idx}`,
         title: article.title || 'Health Update',
-        source: article.source || 'Health Authority',
-        url: article.url || '#',
+        source: sourceName,
+        url: verifiedUrl, // Always verified, never AI-generated
         publishedAt: article.publishedAt || today,
         aiSummary: article.content || article.aiSummary || 'Health update from Vietnam.',
         keywords: Array.isArray(keywords) ? keywords.slice(0, 5) : [],
