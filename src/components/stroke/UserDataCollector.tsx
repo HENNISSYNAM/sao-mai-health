@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Phone, MapPin, Gauge, Cloud, CheckCircle2, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { Phone, MapPin, Gauge, Cloud, CheckCircle2, AlertCircle, Loader2, RefreshCw, Save } from "lucide-react";
 import { useBarometer } from "@/hooks/useBarometer";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -42,13 +43,32 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [environment, setEnvironment] = useState<EnvironmentData | null>(null);
   const [envLoading, setEnvLoading] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
   const { currentPressure, isSupported: barometerSupported, error: barometerError } = useBarometer();
+  const { profile, updateProfile, isAuthenticated } = useUserProfile();
 
-  // Auto-fetch GPS on mount
+  // Load saved data from profile on mount
   useEffect(() => {
-    fetchGPS();
-  }, []);
+    if (profile) {
+      if (profile.phone && !phone) {
+        setPhone(profile.phone);
+      }
+      if (profile.last_gps_coords && !gps) {
+        const coords = profile.last_gps_coords as { lat: number; lon: number };
+        if (coords.lat && coords.lon) {
+          setGps(coords);
+        }
+      }
+    }
+  }, [profile]);
+
+  // Auto-fetch GPS on mount only if no saved GPS
+  useEffect(() => {
+    if (!profile?.last_gps_coords) {
+      fetchGPS();
+    }
+  }, [profile]);
 
   // Auto-fetch environment data when GPS is available
   useEffect(() => {
@@ -68,6 +88,33 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
       });
     }
   }, [phone, gps, currentPressure, environment, onDataCollected]);
+
+  // Track unsaved changes
+  const handlePhoneChange = (value: string) => {
+    setPhone(value);
+    if (isAuthenticated && value !== profile?.phone) {
+      setHasUnsavedChanges(true);
+    }
+  };
+
+  // Save profile data
+  const saveToProfile = useCallback(async () => {
+    if (!isAuthenticated) {
+      toast.error("Vui lòng đăng nhập để lưu thông tin");
+      return;
+    }
+
+    const updates: Record<string, any> = {};
+    if (phone) updates.phone = phone;
+    if (gps) updates.last_gps_coords = gps;
+    if (profile?.gps_consent === undefined) updates.gps_consent = true;
+
+    const { error } = await updateProfile(updates);
+    if (!error) {
+      setHasUnsavedChanges(false);
+      toast.success("Đã lưu thông tin cá nhân");
+    }
+  }, [isAuthenticated, phone, gps, profile, updateProfile]);
 
   const fetchGPS = async () => {
     setGpsLoading(true);
@@ -159,13 +206,13 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
             type="tel"
             placeholder="Nhập số điện thoại của bạn"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => handlePhoneChange(e.target.value)}
             className="bg-background border-border"
           />
           {phone && (
             <Badge variant="outline" className="text-success border-success">
               <CheckCircle2 className="h-3 w-3 mr-1" />
-              Đã nhập
+              {profile?.phone === phone ? "Đã lưu" : "Đã nhập"}
             </Badge>
           )}
         </div>
@@ -295,12 +342,24 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
           )}
         </div>
 
+        {/* Save Button - Only show when authenticated and has changes */}
+        {isAuthenticated && hasUnsavedChanges && (
+          <Button
+            onClick={saveToProfile}
+            className="w-full bg-success hover:bg-success/90"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            Lưu thông tin cá nhân
+          </Button>
+        )}
+
         {/* Refresh All Button */}
         <Button
           onClick={() => {
             fetchGPS();
           }}
-          className="w-full bg-primary hover:bg-primary/90"
+          variant={hasUnsavedChanges ? "outline" : "default"}
+          className={hasUnsavedChanges ? "w-full" : "w-full bg-primary hover:bg-primary/90"}
           disabled={gpsLoading || envLoading}
         >
           {(gpsLoading || envLoading) ? (
@@ -310,6 +369,13 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
           )}
           Cập nhật tất cả dữ liệu
         </Button>
+
+        {/* Login hint for non-authenticated users */}
+        {!isAuthenticated && phone && (
+          <p className="text-xs text-muted-foreground text-center">
+            💡 Đăng nhập để lưu thông tin và không phải nhập lại
+          </p>
+        )}
       </CardContent>
     </Card>
   );
