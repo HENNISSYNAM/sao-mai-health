@@ -31,13 +31,19 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 const VERIFIED_SOURCES: Record<string, string> = {
   // Vietnamese official sources
   'Bộ Y tế Việt Nam': 'https://moh.gov.vn/tin-tuc',
+  'Bộ Y tế': 'https://moh.gov.vn/tin-tuc',
   'Cục Y tế dự phòng': 'https://vncdc.gov.vn',
   'VnExpress Sức khỏe': 'https://vnexpress.net/suc-khoe',
+  'VnExpress': 'https://vnexpress.net/suc-khoe',
   'Tuổi Trẻ Sức khỏe': 'https://tuoitre.vn/suc-khoe.htm',
+  'Tuổi Trẻ': 'https://tuoitre.vn/suc-khoe.htm',
   'Thanh Niên Y tế': 'https://thanhnien.vn/suc-khoe/',
+  'Thanh Niên': 'https://thanhnien.vn/suc-khoe/',
   'Dân Trí Sức khỏe': 'https://dantri.com.vn/suc-khoe.htm',
+  'Dân Trí': 'https://dantri.com.vn/suc-khoe.htm',
   'Sức khỏe & Đời sống': 'https://suckhoedoisong.vn',
   'Người Lao Động': 'https://nld.com.vn/suc-khoe.htm',
+  'Báo Sức khỏe': 'https://suckhoedoisong.vn',
   // International sources
   'WHO': 'https://www.who.int/news',
   'WHO Western Pacific': 'https://www.who.int/westernpacific/news',

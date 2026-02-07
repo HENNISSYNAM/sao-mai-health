@@ -525,6 +525,7 @@ export type Database = {
           patient_id: string | null
           source: string | null
           symptoms: Json | null
+          user_id: string | null
           ward_id: string | null
         }
         Insert: {
@@ -542,6 +543,7 @@ export type Database = {
           patient_id?: string | null
           source?: string | null
           symptoms?: Json | null
+          user_id?: string | null
           ward_id?: string | null
         }
         Update: {
@@ -559,6 +561,7 @@ export type Database = {
           patient_id?: string | null
           source?: string | null
           symptoms?: Json | null
+          user_id?: string | null
           ward_id?: string | null
         }
         Relationships: [
@@ -3535,6 +3538,7 @@ export type Database = {
           phone: string
           push_subscription: Json | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           age_group?: string | null
@@ -3556,6 +3560,7 @@ export type Database = {
           phone: string
           push_subscription?: Json | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           age_group?: string | null
@@ -3577,6 +3582,7 @@ export type Database = {
           phone?: string
           push_subscription?: Json | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }

@@ -10,6 +10,7 @@ import { UserPlus, Search, Navigation, Loader2, CreditCard, CheckCircle } from "
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { sha256Hex } from "@/lib/crypto"
+import { useAuth } from "@/hooks/useAuth"
 
 interface PatientForm {
   vnid: string
@@ -50,6 +51,7 @@ const VNID_DATABASE: Record<string, Omit<PatientForm, 'vnid' | 'disease_code' | 
 }
 
 export default function SmartPatientForm() {
+  const { user } = useAuth()
   const [form, setForm] = useState<PatientForm>({
     vnid: '',
     full_name: '',
@@ -197,7 +199,8 @@ export default function SmartPatientForm() {
           patient_hash: mpiHash,
           patient_gender: form.gender || null,
           patient_age_bucket: form.birth_year ? `${Math.floor((new Date().getFullYear() - parseInt(form.birth_year)) / 10) * 10}-${Math.floor((new Date().getFullYear() - parseInt(form.birth_year)) / 10) * 10 + 9}` : null,
-          source: 'vnid_entry'
+          source: 'vnid_entry',
+          user_id: user?.id || null
         })
 
       if (caseError) throw caseError

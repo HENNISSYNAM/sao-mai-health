@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, User, MapPin, Stethoscope } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { toast } from "sonner"
+import { useAuth } from "@/hooks/useAuth"
 
 interface AddCaseModalProps {
   open: boolean
@@ -17,6 +18,7 @@ interface AddCaseModalProps {
 }
 
 export function AddCaseModal({ open, onOpenChange, onCaseAdded }: AddCaseModalProps) {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     disease_code: '',
@@ -85,7 +87,8 @@ export function AddCaseModal({ open, onOpenChange, onCaseAdded }: AddCaseModalPr
           district_id: formData.district_id,
           source: formData.source,
           symptoms: formData.symptoms,
-          occurred_at: new Date().toISOString()
+          occurred_at: new Date().toISOString(),
+          user_id: user?.id || null
         })
 
       if (error) throw error

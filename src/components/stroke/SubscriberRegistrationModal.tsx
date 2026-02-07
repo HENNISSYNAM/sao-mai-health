@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { UserPlus, Brain, Shield, CheckCircle2, Bell } from 'lucide-react';
 import healthLogo from '@/assets/health-logo.png';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SubscriberRegistrationModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = 
   gps,
   barometerData
 }) => {
+  const { user } = useAuth();
   const [phone, setPhone] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [gender, setGender] = useState<'male' | 'female' | 'other'>('male');
@@ -135,7 +137,7 @@ const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = 
         subscriberId = updated!.id;
         toast.success('Đã cập nhật thông tin đăng ký!');
       } else {
-        // Create new subscriber
+        // Create new subscriber - include user_id if logged in
         const { data: created, error: createError } = await supabase
           .from('stroke_alert_subscribers')
           .insert({
@@ -160,7 +162,8 @@ const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = 
               barometer: barometerData,
               ageGroup,
               gender
-            }]
+            }],
+            user_id: user?.id || null
           })
           .select('id')
           .single();
