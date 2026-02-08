@@ -507,38 +507,38 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
         </div>
       )}
 
-      {/* Tracking status badge - top center - Enhanced with weather data */}
+      {/* Tracking status badge - top right (next to home button) - Enhanced with weather data */}
       {!isBlurred && isTracking && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 backdrop-blur-xl rounded-full shadow-xl">
-            <Radio className="h-3.5 w-3.5 text-white animate-pulse" />
-            <span className="text-sm font-semibold text-white">Live</span>
-            <span className="text-xs text-white/80">{gpsHistory.length} điểm</span>
+        <div className="absolute top-3 right-16 z-20 animate-fade-in">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-500 backdrop-blur-xl rounded-full shadow-xl">
+            <Radio className="h-3 w-3 text-white animate-pulse" />
+            <span className="text-xs font-semibold text-white">Live</span>
+            <span className="text-[10px] text-white/80">{gpsHistory.length}</span>
             
             {/* Divider */}
-            <div className="w-px h-4 bg-white/30" />
+            <div className="w-px h-3.5 bg-white/30" />
             
             {/* Temperature */}
-            <div className="flex items-center gap-1">
-              <Thermometer className="h-3 w-3 text-white/90" />
-              <span className="text-xs font-medium text-white">
+            <div className="flex items-center gap-0.5">
+              <Thermometer className="h-2.5 w-2.5 text-white/90" />
+              <span className="text-[10px] font-medium text-white">
                 {environment.temperature !== null ? `${environment.temperature.toFixed(0)}°` : '--'}
               </span>
             </div>
             
             {/* Humidity */}
-            <div className="flex items-center gap-1">
-              <Droplets className="h-3 w-3 text-white/90" />
-              <span className="text-xs font-medium text-white">
+            <div className="flex items-center gap-0.5">
+              <Droplets className="h-2.5 w-2.5 text-white/90" />
+              <span className="text-[10px] font-medium text-white">
                 {environment.humidity !== null ? `${environment.humidity.toFixed(0)}%` : '--'}
               </span>
             </div>
             
-            {/* Pressure - optional, show if available */}
+            {/* Pressure */}
             {displayPressure && (
-              <div className="flex items-center gap-1">
-                <Gauge className="h-3 w-3 text-white/90" />
-                <span className="text-xs font-medium text-white">
+              <div className="flex items-center gap-0.5">
+                <Gauge className="h-2.5 w-2.5 text-white/90" />
+                <span className="text-[10px] font-medium text-white">
                   {displayPressure.toFixed(0)}
                 </span>
               </div>

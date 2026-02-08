@@ -267,7 +267,18 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
       setAiRecommendations(data);
     } catch (error) {
       console.error('Error fetching AI recommendations:', error);
-      setAiError('Không thể tải khuyến nghị AI');
+      // Use fallback recommendations on error
+      setAiRecommendations({
+        summary: "Theo dõi sức khỏe định kỳ",
+        warnings: [],
+        recommendations: {
+          do: ["Uống đủ nước", "Nghỉ ngơi điều độ", "Tập thể dục nhẹ"],
+          avoid: ["Hoạt động ngoài trời khi AQI cao", "Căng thẳng kéo dài"]
+        },
+        healthTip: "Hãy lắng nghe cơ thể và nghỉ ngơi khi cần thiết",
+        urgency: "low"
+      });
+      setAiError(null); // Don't show error since we have fallback
     } finally {
       setIsLoadingAI(false);
     }
@@ -275,14 +286,26 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
 
   // Fetch AI recommendations when expanded (only once)
   useEffect(() => {
-    if (isExpanded && gps && !aiRecommendations && !isLoadingAI && !aiError) {
+    if (isExpanded && gps && !aiRecommendations && !isLoadingAI) {
       // Check if we can make the call
       const now = Date.now();
       if (now - lastAICallRef.current >= MIN_AI_INTERVAL && aiCooldownRef.current <= now) {
         fetchAIRecommendations();
+      } else if (!aiRecommendations) {
+        // If we can't call AI, use default recommendations
+        setAiRecommendations({
+          summary: "Duy trì lối sống lành mạnh",
+          warnings: [],
+          recommendations: {
+            do: ["Uống đủ nước", "Nghỉ ngơi hợp lý", "Theo dõi các chỉ số môi trường"],
+            avoid: ["Ra ngoài khi AQI cao", "Hoạt động gắng sức khi thời tiết cực đoan"]
+          },
+          healthTip: "Lắng nghe cơ thể bạn và nghỉ ngơi khi cần",
+          urgency: "low"
+        });
       }
     }
-  }, [isExpanded, gps, aiRecommendations, isLoadingAI, aiError, fetchAIRecommendations]);
+  }, [isExpanded, gps, aiRecommendations, isLoadingAI, fetchAIRecommendations]);
 
   // Get pressure trend info
   const getPressureTrend = () => {
