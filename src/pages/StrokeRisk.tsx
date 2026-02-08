@@ -114,15 +114,15 @@ const StrokeRisk: React.FC = () => {
   return <div className="fixed inset-0 overflow-hidden" style={{
     background: 'linear-gradient(135deg, hsl(210 40% 8%) 0%, hsl(210 50% 12%) 50%, hsl(199 40% 15%) 100%)'
   }}>
-      {/* Home Button - Fixed top left */}
-      <div className="fixed top-4 left-4 z-50">
+      {/* Home Button - Fixed top right to avoid overlapping left panel */}
+      <div className="fixed top-3 right-4 z-50">
         <Button 
           onClick={() => navigate('/')} 
           variant="outline"
           size="icon"
-          className="bg-background/80 backdrop-blur-sm border-border/50 hover:bg-background shadow-lg rounded-full w-10 h-10"
+          className="bg-background/80 backdrop-blur-sm border-border/50 hover:bg-background shadow-lg rounded-full w-9 h-9"
         >
-          <Home className="h-5 w-5" />
+          <Home className="h-4 w-4" />
         </Button>
       </div>
       {/* Full Screen Map Background */}
