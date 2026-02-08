@@ -305,160 +305,106 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
           </div>
         </div>
       )}
-      {/* Top left controls - Panel toggle and Statistics button */}
+      {/* Top left controls - IG Story-style minimal icons */}
       {!isBlurred && !showDataPanel && (
-        <div className="absolute top-4 left-4 z-20 animate-fade-in flex flex-col gap-2">
+        <div className="absolute top-4 left-4 z-20 animate-fade-in flex items-center gap-2">
           <button
             onClick={() => setShowDataPanel(true)}
-            className="bg-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-border/20 p-3 hover:bg-card transition-all active:scale-95"
+            className="w-10 h-10 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-95"
           >
-            <LayoutDashboard className="h-5 w-5 text-foreground" />
+            <LayoutDashboard className="h-4 w-4 text-white" />
           </button>
           
-          {/* Statistics button - below panel toggle when panel is closed */}
           {showStatisticsButton && onViewStatistics && (
-            <Button 
-              onClick={onViewStatistics} 
-              className="bg-slate-800/90 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600/50 px-3 py-2"
-              size="sm"
+            <button
+              onClick={onViewStatistics}
+              className="w-10 h-10 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-95"
             >
-              <BarChart3 className="h-4 w-4 mr-1.5" />
-              Thống kê
-            </Button>
+              <BarChart3 className="h-4 w-4 text-white" />
+            </button>
           )}
         </div>
       )}
-      {/* Left panel - Environment data - Collapsible */}
+      {/* Left panel - IG Story-style compact vertical stack */}
       {!isBlurred && showDataPanel && (
-        <div className="absolute top-4 left-4 z-20 animate-fade-in flex flex-col gap-2">
-          <div className="bg-card/90 backdrop-blur-xl rounded-2xl shadow-xl border border-border/20 overflow-hidden w-[140px]">
+        <div className="absolute top-4 left-4 z-20 animate-fade-in">
+          <div className="flex flex-col gap-1.5">
             {/* Close button */}
             <button 
               onClick={() => setShowDataPanel(false)}
-              className="absolute top-1 right-1 z-10 p-1 rounded-full bg-muted/50 hover:bg-muted transition-colors"
+              className="w-9 h-9 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-95 self-start"
             >
-              <X className="h-3 w-3 text-muted-foreground" />
+              <X className="h-4 w-4 text-white" />
             </button>
-            
-            {/* Data Grid */}
-            <div className="divide-y divide-border/30">
-              {/* AQI - Clickable - Always show */}
-              <button
-                onClick={toggleAQILayer}
-                className={cn(
-                  "w-full px-3 py-2 text-left transition-all",
-                  showAQILayer ? aqiInfo.color : "hover:bg-muted/50"
-                )}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <Wind className={cn("h-3.5 w-3.5", showAQILayer ? "text-white" : "text-purple-400")} />
-                    <span className={cn("text-[10px] uppercase", showAQILayer ? "text-white/80" : "text-muted-foreground")}>PM2.5</span>
-                  </div>
-                  {showAQILayer ? (
-                    <Eye className="h-3 w-3 text-white" />
-                  ) : (
-                    <EyeOff className="h-3 w-3 text-muted-foreground/50" />
-                  )}
-                </div>
-                <div className={cn("text-lg font-bold", showAQILayer ? "text-white" : "text-foreground")}>
-                  {environment.aqi !== null ? environment.aqi : (environment.pm25 !== null ? environment.pm25 : '--')}
-                </div>
-                {environment.aqi !== null && (
-                  <div className={cn("text-[9px]", showAQILayer ? "text-white/70" : "text-muted-foreground")}>{aqiInfo.label}</div>
-                )}
-              </button>
 
-              {/* Location Type & Outdoor Time */}
-              <div className={cn(
-                "px-3 py-2",
-                isOutdoor 
-                  ? outdoorMinutes >= safeOutdoorMinutes ? 'bg-red-500/90' : 'bg-blue-500/90'
-                  : ''
-              )}>
-                <div className="flex items-center gap-1.5">
-                  {isOutdoor ? (
-                    <TreePine className={cn("h-3.5 w-3.5", isOutdoor ? "text-white" : "text-slate-400")} />
-                  ) : (
-                    <Home className="h-3.5 w-3.5 text-slate-400" />
-                  )}
-                  <span className={cn("text-[10px] uppercase", isOutdoor ? "text-white/80" : "text-muted-foreground")}>
-                    {isOutdoor ? 'Ngoài trời' : 'Trong nhà'}
-                  </span>
-                  {locationConfidence >= 70 && (
-                    <span className={cn("text-[8px] px-1 rounded ml-auto", isOutdoor ? "bg-white/20 text-white" : "bg-muted text-muted-foreground")}>
-                      {locationConfidence}%
-                    </span>
-                  )}
-                </div>
-                {isOutdoor && outdoorMinutes > 0 ? (
-                  <div className="mt-0.5">
-                    <div className="text-lg font-bold text-white">{formatOutdoorTime(outdoorMinutes)}</div>
-                    <div className="flex items-center gap-1">
-                      <div className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
-                        <div 
-                          className={cn(
-                            "h-full rounded-full transition-all",
-                            outdoorMinutes >= safeOutdoorMinutes ? 'bg-red-300' : 'bg-white'
-                          )}
-                          style={{ width: `${Math.min(100, (outdoorMinutes / safeOutdoorMinutes) * 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-[9px] text-white/70">{safeOutdoorMinutes}p</span>
-                    </div>
-                  </div>
-                ) : !isOutdoor ? (
-                  <div className="text-xs text-muted-foreground mt-0.5">Không tính</div>
-                ) : null}
-              </div>
-
-              {/* Temperature & Humidity Row - Always show */}
-              <div className="px-3 py-2 flex gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-1">
-                    <Thermometer className="h-3 w-3 text-orange-400" />
-                    <span className="text-[9px] text-muted-foreground">°C</span>
-                  </div>
-                  <div className="text-base font-bold text-foreground">
-                    {environment.temperature !== null ? `${environment.temperature.toFixed(0)}°` : '--'}
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1">
-                    <Droplets className="h-3 w-3 text-blue-400" />
-                    <span className="text-[9px] text-muted-foreground">%</span>
-                  </div>
-                  <div className="text-base font-bold text-foreground">
-                    {environment.humidity !== null ? `${environment.humidity.toFixed(0)}%` : '--'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Pressure - Always show */}
-              <div className="px-3 py-2">
-                <div className="flex items-center gap-1">
-                  <Gauge className="h-3 w-3 text-teal-400" />
-                  <span className="text-[9px] text-muted-foreground">hPa</span>
-                  {devicePressure && <span className="text-[8px] ml-1">📱</span>}
-                </div>
-                <div className="text-base font-bold text-foreground">
-                  {displayPressure !== null ? displayPressure.toFixed(0) : '--'}
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Statistics button - below panel when panel is open */}
-          {showStatisticsButton && onViewStatistics && (
-            <Button 
-              onClick={onViewStatistics} 
-              className="bg-slate-800/90 hover:bg-slate-700 text-white shadow-lg backdrop-blur-sm border border-slate-600/50 px-3 py-2 w-[140px]"
-              size="sm"
+            {/* AQI Pill - Clickable */}
+            <button
+              onClick={toggleAQILayer}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-full backdrop-blur-md border border-white/10 transition-all active:scale-95",
+                showAQILayer ? aqiInfo.color : "bg-black/40 hover:bg-black/60"
+              )}
             >
-              <BarChart3 className="h-4 w-4 mr-1.5" />
-              Thống kê
-            </Button>
-          )}
+              <Wind className="h-4 w-4 text-white" />
+              <span className="text-sm font-semibold text-white">
+                {environment.aqi !== null ? environment.aqi : (environment.pm25 || '--')}
+              </span>
+              {showAQILayer ? (
+                <Eye className="h-3 w-3 text-white/70" />
+              ) : (
+                <EyeOff className="h-3 w-3 text-white/50" />
+              )}
+            </button>
+
+            {/* Weather Row - Temp & Humidity */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+              <Thermometer className="h-4 w-4 text-orange-400" />
+              <span className="text-sm font-semibold text-white">
+                {environment.temperature !== null ? `${environment.temperature.toFixed(0)}°` : '--'}
+              </span>
+              <div className="w-px h-4 bg-white/20" />
+              <Droplets className="h-4 w-4 text-blue-400" />
+              <span className="text-sm font-semibold text-white">
+                {environment.humidity !== null ? `${environment.humidity.toFixed(0)}%` : '--'}
+              </span>
+            </div>
+
+            {/* Pressure Pill */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-black/40 backdrop-blur-md rounded-full border border-white/10">
+              <Gauge className="h-4 w-4 text-teal-400" />
+              <span className="text-sm font-semibold text-white">
+                {displayPressure !== null ? `${displayPressure.toFixed(0)} hPa` : '--'}
+              </span>
+            </div>
+
+            {/* Location Type Pill */}
+            <div className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-full backdrop-blur-md border border-white/10",
+              isOutdoor 
+                ? outdoorMinutes >= safeOutdoorMinutes ? 'bg-red-500/80' : 'bg-blue-500/80'
+                : 'bg-black/40'
+            )}>
+              {isOutdoor ? (
+                <TreePine className="h-4 w-4 text-white" />
+              ) : (
+                <Home className="h-4 w-4 text-white" />
+              )}
+              <span className="text-sm font-semibold text-white">
+                {isOutdoor ? (outdoorMinutes > 0 ? formatOutdoorTime(outdoorMinutes) : 'Ngoài trời') : 'Trong nhà'}
+              </span>
+            </div>
+
+            {/* Statistics button */}
+            {showStatisticsButton && onViewStatistics && (
+              <button
+                onClick={onViewStatistics}
+                className="flex items-center gap-2 px-3 py-2 bg-slate-700/80 hover:bg-slate-600/80 backdrop-blur-md rounded-full border border-white/10 transition-all active:scale-95"
+              >
+                <BarChart3 className="h-4 w-4 text-white" />
+                <span className="text-sm font-semibold text-white">Thống kê</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
 
