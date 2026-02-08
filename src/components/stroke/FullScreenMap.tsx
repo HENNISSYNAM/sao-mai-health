@@ -507,13 +507,42 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
         </div>
       )}
 
-      {/* Tracking status badge - top center */}
+      {/* Tracking status badge - top center - Enhanced with weather data */}
       {!isBlurred && isTracking && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 animate-fade-in">
-          <div className="flex items-center gap-2.5 px-4 py-2 bg-emerald-500 backdrop-blur-xl rounded-full shadow-xl">
-            <Radio className="h-4 w-4 text-white animate-pulse" />
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 backdrop-blur-xl rounded-full shadow-xl">
+            <Radio className="h-3.5 w-3.5 text-white animate-pulse" />
             <span className="text-sm font-semibold text-white">Live</span>
             <span className="text-xs text-white/80">{gpsHistory.length} điểm</span>
+            
+            {/* Divider */}
+            <div className="w-px h-4 bg-white/30" />
+            
+            {/* Temperature */}
+            <div className="flex items-center gap-1">
+              <Thermometer className="h-3 w-3 text-white/90" />
+              <span className="text-xs font-medium text-white">
+                {environment.temperature !== null ? `${environment.temperature.toFixed(0)}°` : '--'}
+              </span>
+            </div>
+            
+            {/* Humidity */}
+            <div className="flex items-center gap-1">
+              <Droplets className="h-3 w-3 text-white/90" />
+              <span className="text-xs font-medium text-white">
+                {environment.humidity !== null ? `${environment.humidity.toFixed(0)}%` : '--'}
+              </span>
+            </div>
+            
+            {/* Pressure - optional, show if available */}
+            {displayPressure && (
+              <div className="flex items-center gap-1">
+                <Gauge className="h-3 w-3 text-white/90" />
+                <span className="text-xs font-medium text-white">
+                  {displayPressure.toFixed(0)}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
