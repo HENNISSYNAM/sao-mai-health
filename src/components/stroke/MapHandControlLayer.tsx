@@ -390,42 +390,43 @@ export const MapHandControlLayer: React.FC<MapHandControlLayerProps> = ({
 
   return (
     <div className={cn("absolute inset-0 pointer-events-none", className)}>
-      {/* Toggle button - always visible */}
-      <div className="absolute top-4 right-4 z-50 pointer-events-auto">
-        <Button
+      {/* Toggle buttons - IG-style separated pills, top right below home button */}
+      <div className="absolute top-14 right-4 z-50 pointer-events-auto flex flex-col gap-2">
+        <button
           onClick={handleToggle}
-          variant={isActive ? "default" : "secondary"}
-          size="sm"
-          className={cn(
-            "gap-2 shadow-xl transition-all duration-200",
-            isActive && "bg-green-600 hover:bg-green-700 text-white shadow-green-500/30",
-            isInitializing && "animate-pulse",
-            !isActive && !isInitializing && "hover:bg-primary hover:text-primary-foreground",
-          )}
           disabled={isInitializing}
+          className={cn(
+            "w-10 h-10 flex items-center justify-center rounded-full border border-white/10 shadow-xl transition-all active:scale-95",
+            isActive 
+              ? "bg-green-600 hover:bg-green-700" 
+              : "bg-black/40 backdrop-blur-md hover:bg-black/60",
+            isInitializing && "animate-pulse",
+          )}
         >
           {isInitializing ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="hidden sm:inline">Đang bật camera...</span>
-            </>
-          ) : isActive ? (
-            <>
-              <Hand className="h-4 w-4" />
-              <span className="hidden sm:inline">Hand Control</span>
-              <div className="flex items-center gap-1">
-                <Camera className="h-3 w-3" />
-                <div className="w-1.5 h-1.5 rounded-full bg-green-300 animate-pulse" />
-              </div>
-            </>
+            <Loader2 className="h-4 w-4 text-white animate-spin" />
           ) : (
-            <>
-              <Hand className="h-4 w-4" />
-              <span className="hidden sm:inline">Hand Control</span>
-              <CameraOff className="h-3 w-3 opacity-50" />
-            </>
+            <Hand className="h-4 w-4 text-white" />
           )}
-        </Button>
+        </button>
+        
+        {/* Camera status indicator */}
+        <button
+          onClick={handleToggle}
+          disabled={isInitializing}
+          className={cn(
+            "w-10 h-10 flex items-center justify-center rounded-full border border-white/10 shadow-xl transition-all active:scale-95",
+            isActive 
+              ? "bg-green-600 hover:bg-green-700" 
+              : "bg-black/40 backdrop-blur-md hover:bg-black/60",
+          )}
+        >
+          {isActive ? (
+            <Camera className="h-4 w-4 text-white" />
+          ) : (
+            <CameraOff className="h-4 w-4 text-white/60" />
+          )}
+        </button>
       </div>
 
       {/* Permission dialog */}
