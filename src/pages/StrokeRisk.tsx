@@ -115,7 +115,7 @@ const StrokeRisk: React.FC = () => {
     background: 'linear-gradient(135deg, hsl(210 40% 8%) 0%, hsl(210 50% 12%) 50%, hsl(199 40% 15%) 100%)'
   }}>
       {/* Home Button - Fixed top right to avoid overlapping left panel */}
-      <div className="fixed top-3 right-4 z-[9999]">
+      <div className="fixed top-3 left-4 z-[9999]">
         <button 
           onClick={() => navigate('/')} 
           className="w-10 h-10 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-95 shadow-xl"
