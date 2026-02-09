@@ -391,7 +391,7 @@ export const MapHandControlLayer: React.FC<MapHandControlLayerProps> = ({
   return (
     <div className={cn("absolute inset-0 pointer-events-none", className)}>
       {/* Toggle buttons - IG-style separated pills, left side */}
-      <div className="absolute top-14 left-4 z-50 pointer-events-auto flex flex-col gap-2">
+      <div className="absolute top-16 left-4 z-50 pointer-events-auto flex flex-col gap-2">
         <button
           onClick={handleToggle}
           disabled={isInitializing}

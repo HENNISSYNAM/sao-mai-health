@@ -307,7 +307,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
       )}
       {/* Top left controls - IG Story-style minimal icons */}
       {!isBlurred && !showDataPanel && (
-        <div className="absolute top-4 left-4 z-20 animate-fade-in flex items-center gap-2">
+        <div className="absolute top-16 left-4 z-20 animate-fade-in flex items-center gap-2">
           <button
             onClick={() => setShowDataPanel(true)}
             className="w-10 h-10 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-95"
@@ -327,7 +327,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
       )}
       {/* Left panel - IG Story-style compact vertical stack */}
       {!isBlurred && showDataPanel && (
-        <div className="absolute top-4 left-4 z-20 animate-fade-in">
+        <div className="absolute top-16 left-4 z-20 animate-fade-in">
           <div className="flex flex-col gap-1.5">
             {/* Close button */}
             <button 
