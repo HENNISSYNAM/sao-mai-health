@@ -352,7 +352,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
         </div>}
       {/* Left panel - IG Story-style compact vertical stack */}
       {!isBlurred && showDataPanel && <div className="absolute top-16 left-4 z-20 animate-fade-in">
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 my-[300px]">
             {/* Close button */}
             <button onClick={() => setShowDataPanel(false)} className="w-9 h-9 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-95 self-start">
               <X className="h-4 w-4 text-white" />
