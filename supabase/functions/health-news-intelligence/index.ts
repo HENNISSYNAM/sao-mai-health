@@ -167,34 +167,53 @@ serve(async (req) => {
     
     console.log(`📅 Date: ${today}, Time: ${currentTime}`);
 
-    // Build search query for web grounding
+    // Build more precise search queries for better accuracy
     const searchQuery = expertMode
-      ? `latest public health research Vietnam 2025 dengue influenza epidemiology site:pubmed.ncbi.nlm.nih.gov OR site:who.int OR site:thelancet.com`
-      : `tin tức y tế Việt Nam hôm nay ${today} sốt xuất huyết cúm dịch bệnh site:vnexpress.net OR site:tuoitre.vn OR site:moh.gov.vn OR site:suckhoedoisong.vn`;
+      ? `latest peer-reviewed public health research Vietnam 2025 2026 dengue fever influenza COVID-19 hand foot mouth disease epidemiology outbreak surveillance site:pubmed.ncbi.nlm.nih.gov OR site:who.int OR site:thelancet.com OR site:nature.com OR site:nejm.org`
+      : `tin tức y tế Việt Nam hôm nay ${today} sốt xuất huyết cúm tay chân miệng COVID dịch bệnh ca mắc ổ dịch cảnh báo Bộ Y tế site:vnexpress.net OR site:tuoitre.vn OR site:moh.gov.vn OR site:suckhoedoisong.vn OR site:dantri.com.vn OR site:thanhnien.vn`;
 
-    // System prompt that instructs AI to extract real URLs from web search
-    const systemPrompt = `You are a health news aggregator with WEB SEARCH enabled. Today is ${today}.
+    // Enhanced system prompt for higher accuracy and structured extraction
+    const systemPrompt = `You are a HIGHLY ACCURATE health news aggregator with WEB SEARCH enabled. Today is ${today}, current time: ${currentTime} (Vietnam timezone).
 
-CRITICAL REQUIREMENTS:
-1. Use web search to find REAL, CURRENT news articles from today or this week
-2. Extract the ACTUAL URLs from web search results - these must be real, clickable links
-3. Only use verified sources: ${expertMode ? 'PubMed, WHO, CDC, The Lancet, Nature' : 'VnExpress, Tuổi Trẻ, Bộ Y tế, Dân Trí, Sức khỏe & Đời sống'}
-4. Each article MUST have a real URL that users can click to read the full article
+CRITICAL ACCURACY REQUIREMENTS:
+1. Use web search to find REAL, VERIFIABLE news articles published TODAY or within the last 3 days
+2. Extract the EXACT URLs from web search results - they MUST be real, clickable links to actual articles
+3. DO NOT fabricate or hallucinate any article titles, URLs, or statistics
+4. If you cannot find a real URL, DO NOT include that article
+5. Cross-reference facts: numbers, locations, disease names must match the original source
+6. Prioritize BREAKING NEWS and OFFICIAL ANNOUNCEMENTS from health authorities
 
-Return a JSON array with 4-6 articles. Format:
+VERIFIED SOURCES ONLY:
+${expertMode 
+  ? '- PubMed (pubmed.ncbi.nlm.nih.gov)\n- WHO (who.int)\n- CDC (cdc.gov)\n- The Lancet (thelancet.com)\n- Nature Medicine (nature.com)\n- NEJM (nejm.org)'
+  : '- Bộ Y tế Việt Nam (moh.gov.vn)\n- VnExpress Sức khỏe (vnexpress.net/suc-khoe)\n- Tuổi Trẻ (tuoitre.vn)\n- Dân Trí (dantri.com.vn)\n- Thanh Niên (thanhnien.vn)\n- Sức khỏe & Đời sống (suckhoedoisong.vn)\n- WHO Vietnam (who.int/vietnam)'}
+
+DISEASE CLASSIFICATION RULES:
+- "confirmed": Official reports with verified case numbers from health authorities
+- "emerging": Early warning signals, cluster reports, unusual patterns
+- "predictive": Seasonal forecasts, risk assessments, modeling studies
+
+SEVERITY RULES:
+- "critical": Outbreak declared, rapid spread, deaths reported, emergency response activated
+- "high": Significant case increase (>50% above baseline), new pathogen variant, multi-province spread
+- "medium": Moderate case numbers, localized outbreaks, seasonal expected trends
+- "low": Routine surveillance reports, declining trends, awareness campaigns
+
+Return a JSON array with 5-8 articles. Format:
 [{
-  "title": "Actual headline from the article",
-  "source": "Source name (e.g., VnExpress, WHO)",
-  "url": "https://actual-url-from-search-results.com/article",
-  "publishedAt": "${today}",
-  "disease": "dengue/covid19/influenza/general",
-  "location": "Vietnam/TP.HCM/Hà Nội",
-  "severity": "low/medium/high",
-  "content": "2-sentence summary of the article content",
-  "keywords": ["keyword1", "keyword2"]
+  "title": "EXACT headline from the article (copy verbatim)",
+  "source": "Source name (e.g., VnExpress, Bộ Y tế)",
+  "url": "https://exact-url-from-search-results/article-path",
+  "publishedAt": "YYYY-MM-DD (actual publish date)",
+  "disease": "dengue|covid19|influenza|hfmd|measles|rabies|cholera|ari|environmental|food_safety|general",
+  "location": "Specific province/city if mentioned (e.g., TP.HCM, Hà Nội, Đồng Nai)",
+  "severity": "low|medium|high|critical",
+  "classification": "confirmed|emerging|predictive",
+  "content": "2-3 sentence factual summary with specific numbers if available",
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
 }]
 
-IMPORTANT: The URL must be the real link to the article, NOT a made-up link. Return ONLY the JSON array.`;
+IMPORTANT: Return ONLY the JSON array. No markdown formatting. No explanation. Every URL must be a real, verifiable link.`;
 
     console.log(`🌐 Calling Gemini with Web Search Grounding...`);
     
@@ -341,20 +360,35 @@ function processAndReturnResponse(
     rawArticles = getFallbackData(expertMode);
   }
 
-  // Process articles with URL validation
-  const processedArticles: NewsArticle[] = rawArticles.slice(0, 6).map((article: any, idx: number) => {
-    let classification: 'confirmed' | 'emerging' | 'predictive' = 'confirmed';
-    const contentLower = (article.content || article.title || '').toLowerCase();
-    
-    if (contentLower.includes('cảnh báo') || contentLower.includes('outbreak') || contentLower.includes('bùng phát')) {
-      classification = 'emerging';
-    } else if (contentLower.includes('dự báo') || contentLower.includes('forecast')) {
-      classification = 'predictive';
+  // Process articles with improved URL validation and classification
+  const processedArticles: NewsArticle[] = rawArticles.slice(0, 8).map((article: any, idx: number) => {
+    // Use AI-provided classification if valid, otherwise detect from content
+    let classification: 'confirmed' | 'emerging' | 'predictive' = article.classification || 'confirmed';
+    if (!['confirmed', 'emerging', 'predictive'].includes(classification)) {
+      const contentLower = (article.content || article.title || '').toLowerCase();
+      if (contentLower.includes('cảnh báo') || contentLower.includes('outbreak') || contentLower.includes('bùng phát') || contentLower.includes('ổ dịch') || contentLower.includes('gia tăng')) {
+        classification = 'emerging';
+      } else if (contentLower.includes('dự báo') || contentLower.includes('forecast') || contentLower.includes('nguy cơ') || contentLower.includes('risk')) {
+        classification = 'predictive';
+      } else {
+        classification = 'confirmed';
+      }
+    }
+
+    // Use AI-provided severity if valid
+    let severity = article.severity || 'medium';
+    if (!['low', 'medium', 'high', 'critical'].includes(severity)) {
+      severity = 'medium';
     }
 
     let keywords = article.keywords || [];
     if (!Array.isArray(keywords) || keywords.length === 0) {
-      keywords = ['health', 'Vietnam'];
+      // Auto-extract keywords from title and content
+      const text = `${article.title || ''} ${article.content || ''}`.toLowerCase();
+      const diseaseKeywords = ['sốt xuất huyết', 'dengue', 'cúm', 'influenza', 'covid', 'tay chân miệng', 'hfmd', 'sởi', 'measles', 'dại', 'rabies', 'tiêu chảy'];
+      const actionKeywords = ['ổ dịch', 'outbreak', 'ca mắc', 'tử vong', 'tiêm chủng', 'vaccination', 'phòng chống', 'cảnh báo', 'alert'];
+      keywords = [...diseaseKeywords, ...actionKeywords].filter(kw => text.includes(kw)).slice(0, 5);
+      if (keywords.length === 0) keywords = ['y tế', 'Vietnam'];
     }
 
     // Validate URL - prefer grounded URLs, then AI-provided if verified
@@ -362,10 +396,15 @@ function processAndReturnResponse(
     
     // First, try to match with grounded URLs from web search
     if (groundedUrls.length > 0) {
-      const matchingGrounded = groundedUrls.find(g => 
-        g.title.toLowerCase().includes(article.title?.toLowerCase()?.slice(0, 20) || '') ||
-        article.title?.toLowerCase()?.includes(g.title?.toLowerCase()?.slice(0, 20) || '')
-      );
+      const articleTitleLower = (article.title || '').toLowerCase();
+      const matchingGrounded = groundedUrls.find(g => {
+        const gTitleLower = (g.title || '').toLowerCase();
+        // More flexible matching: check for significant word overlap
+        const articleWords = articleTitleLower.split(/\s+/).filter((w: string) => w.length > 3);
+        const groundedWords = gTitleLower.split(/\s+/).filter((w: string) => w.length > 3);
+        const overlap = articleWords.filter((w: string) => groundedWords.includes(w)).length;
+        return overlap >= 2 || gTitleLower.includes(articleTitleLower.slice(0, 25)) || articleTitleLower.includes(gTitleLower.slice(0, 25));
+      });
       if (matchingGrounded) {
         finalUrl = matchingGrounded.url;
         console.log(`✅ Matched grounded URL for: ${article.title?.slice(0, 30)}`);
@@ -374,7 +413,6 @@ function processAndReturnResponse(
 
     // Validate the URL is from a verified domain
     if (!isVerifiedUrl(finalUrl)) {
-      // Use fallback URL based on source
       const sourceName = article.source || 'VnExpress Sức khỏe';
       finalUrl = FALLBACK_SOURCES[sourceName] || FALLBACK_SOURCES['VnExpress Sức khỏe'];
       console.log(`⚠️ Using fallback URL for unverified source: ${sourceName}`);
@@ -391,7 +429,7 @@ function processAndReturnResponse(
       classification,
       disease: article.disease,
       location: article.location,
-      severity: article.severity || 'medium',
+      severity,
       isAcademic: expertMode
     };
   });
