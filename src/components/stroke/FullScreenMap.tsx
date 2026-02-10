@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from '
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
 import type { MapAction } from '@/hooks/useHandGestureController';
-import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2, X, LayoutDashboard, ZoomIn, ZoomOut, Move, BarChart3 } from 'lucide-react';
+import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2, X, ZoomIn, ZoomOut, Move, BarChart3, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { MapHandControlLayer } from './MapHandControlLayer';
@@ -343,7 +343,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
       {/* Top left controls - IG Story-style minimal icons */}
       {!isBlurred && !showDataPanel && <div className="absolute top-16 left-4 z-20 animate-fade-in flex items-center gap-2 mx-0 my-[350px]">
           <button onClick={() => setShowDataPanel(true)} className="w-10 h-10 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-95">
-            <LayoutDashboard className="h-4 w-4 text-white" />
+            <Bell className="h-4 w-4 text-white" />
           </button>
           
           {showStatisticsButton && onViewStatistics && <button onClick={onViewStatistics} className="w-10 h-10 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-95 my-[70px]">
