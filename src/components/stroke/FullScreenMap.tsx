@@ -480,12 +480,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
 
       {/* Data source badge - bottom left */}
       {!isBlurred && <div className="absolute bottom-4 left-4 z-20">
-          <div className="px-2.5 py-1 bg-card/70 backdrop-blur-md rounded-lg border border-border/20">
-            <span className="text-[9px] text-muted-foreground flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Windy • {showAQILayer ? 'CAMS PM2.5' : 'ECMWF Wind'}
-            </span>
-          </div>
+          
         </div>}
     </div>;
 };
