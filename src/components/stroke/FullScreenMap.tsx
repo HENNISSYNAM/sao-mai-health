@@ -346,7 +346,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
             <LayoutDashboard className="h-4 w-4 text-white" />
           </button>
           
-          {showStatisticsButton && onViewStatistics && <button onClick={onViewStatistics} className="w-10 h-10 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-95">
+          {showStatisticsButton && onViewStatistics && <button onClick={onViewStatistics} className="w-10 h-10 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-white/10 hover:bg-black/60 transition-all active:scale-95 my-[70px]">
               <BarChart3 className="h-4 w-4 text-white" />
             </button>}
         </div>}
