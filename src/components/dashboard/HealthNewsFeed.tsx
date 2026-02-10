@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 import { 
   Newspaper, 
   RefreshCw, 
@@ -17,12 +18,16 @@ import {
   Tag,
   GraduationCap,
   Globe,
-  Loader2
+  Loader2,
+  Search,
+  Filter,
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { vi, enUS } from 'date-fns/locale';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface WebSearchArticle {
   id: string;
@@ -65,6 +70,29 @@ interface CacheEntry {
 
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
 
+// Vietnamese-aware text normalization for search
+const normalizeText = (text: string): string => {
+  if (!text) return '';
+  const accents: Record<string, string> = {
+    'à':'a','á':'a','ả':'a','ã':'a','ạ':'a','ằ':'a','ắ':'a','ẳ':'a','ẵ':'a','ặ':'a',
+    'â':'a','ầ':'a','ấ':'a','ẩ':'a','ẫ':'a','ậ':'a',
+    'è':'e','é':'e','ẻ':'e','ẽ':'e','ẹ':'e','ê':'e','ề':'e','ế':'e','ể':'e','ễ':'e','ệ':'e',
+    'ì':'i','í':'i','ỉ':'i','ĩ':'i','ị':'i',
+    'ò':'o','ó':'o','ỏ':'o','õ':'o','ọ':'o','ô':'o','ồ':'o','ố':'o','ổ':'o','ỗ':'o','ộ':'o',
+    'ơ':'o','ờ':'o','ớ':'o','ở':'o','ỡ':'o','ợ':'o',
+    'ù':'u','ú':'u','ủ':'u','ũ':'u','ụ':'u','ư':'u','ừ':'u','ứ':'u','ử':'u','ữ':'u','ự':'u',
+    'ỳ':'y','ý':'y','ỷ':'y','ỹ':'y','ỵ':'y','đ':'d'
+  };
+  let normalized = text.toLowerCase().trim();
+  for (const [accented, plain] of Object.entries(accents)) {
+    normalized = normalized.replace(new RegExp(accented, 'g'), plain);
+  }
+  return normalized;
+};
+
+type SeverityFilter = 'all' | 'critical' | 'high' | 'medium' | 'low';
+type ClassificationFilter = 'all' | 'confirmed' | 'emerging' | 'predictive';
+
 export function HealthNewsFeed() {
   const { i18n, t } = useTranslation();
   const [articles, setArticles] = useState<WebSearchArticle[]>([]);
@@ -74,6 +102,13 @@ export function HealthNewsFeed() {
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<SearchResult['metadata'] | null>(null);
   
+  // Search & filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
+  const [classificationFilter, setClassificationFilter] = useState<ClassificationFilter>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const debouncedSearch = useDebounce(searchQuery, 200);
+  
   // Cache for both modes - persists across mode switches
   const [cache, setCache] = useState<{
     general: CacheEntry | null;
@@ -81,6 +116,45 @@ export function HealthNewsFeed() {
   }>({ general: null, expert: null });
 
   const locale = i18n.language === 'vi' ? vi : enUS;
+  
+  // Filtered articles based on search + filters
+  const filteredArticles = useMemo(() => {
+    let result = articles;
+    
+    // Text search across title, summary, keywords, source, location
+    if (debouncedSearch.length >= 2) {
+      const normalizedQuery = normalizeText(debouncedSearch);
+      const queryTerms = normalizedQuery.split(/\s+/).filter(t => t.length >= 2);
+      
+      result = result.filter(article => {
+        const searchableText = normalizeText(
+          [article.title, article.aiSummary, article.source, article.location, article.disease, ...(article.keywords || [])].filter(Boolean).join(' ')
+        );
+        // All terms must match (AND logic)
+        return queryTerms.every(term => searchableText.includes(term));
+      });
+    }
+    
+    // Severity filter
+    if (severityFilter !== 'all') {
+      result = result.filter(a => a.severity === severityFilter);
+    }
+    
+    // Classification filter
+    if (classificationFilter !== 'all') {
+      result = result.filter(a => a.classification === classificationFilter);
+    }
+    
+    return result;
+  }, [articles, debouncedSearch, severityFilter, classificationFilter]);
+  
+  const hasActiveFilters = searchQuery.length > 0 || severityFilter !== 'all' || classificationFilter !== 'all';
+  
+  const clearAllFilters = () => {
+    setSearchQuery('');
+    setSeverityFilter('all');
+    setClassificationFilter('all');
+  };
 
   // Check if cache is valid
   const isCacheValid = useCallback((entry: CacheEntry | null): boolean => {
@@ -231,7 +305,7 @@ export function HealthNewsFeed() {
 
   return (
     <Card className="rounded-xl sm:rounded-2xl border-border/50 h-full">
-      <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6">
+      <CardHeader className="pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <div className={cn(
@@ -258,7 +332,6 @@ export function HealthNewsFeed() {
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Expert Mode Toggle */}
             <div className="flex items-center gap-1.5">
               <Globe className="h-3 w-3 text-muted-foreground" />
               <Switch
@@ -275,6 +348,15 @@ export function HealthNewsFeed() {
             <Button 
               size="sm" 
               variant="ghost"
+              onClick={() => setShowFilters(!showFilters)}
+              className={cn("gap-1 rounded-lg h-7 sm:h-8 px-2", showFilters && "bg-primary/10 text-primary")}
+            >
+              <Filter className="h-3 w-3" />
+            </Button>
+            
+            <Button 
+              size="sm" 
+              variant="ghost"
               onClick={() => fetchNews(true)}
               disabled={isLoading}
               className="gap-1 rounded-lg h-7 sm:h-8 px-2 sm:px-3"
@@ -284,27 +366,106 @@ export function HealthNewsFeed() {
           </div>
         </div>
         
-        {/* Last updated info */}
-        {lastUpdated && (
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-1">
-            <Clock className="h-2.5 w-2.5" />
-            <span>{formatTime(lastUpdated)}</span>
+        {/* Search bar - always visible */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder={i18n.language === 'vi' ? 'Tìm kiếm tin tức, bệnh, địa điểm...' : 'Search news, disease, location...'}
+            className="h-8 pl-8 pr-8 text-xs rounded-lg bg-muted/50 border-border/50"
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2">
+              <X className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+            </button>
+          )}
+        </div>
+        
+        {/* Filter chips */}
+        {showFilters && (
+          <div className="flex flex-wrap gap-1.5 animate-fade-in">
+            {/* Severity filters */}
+            {(['all', 'critical', 'high', 'medium', 'low'] as SeverityFilter[]).map(sev => (
+              <button
+                key={sev}
+                onClick={() => setSeverityFilter(sev)}
+                className={cn(
+                  "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
+                  severityFilter === sev 
+                    ? "bg-primary text-primary-foreground border-primary" 
+                    : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted"
+                )}
+              >
+                {sev === 'all' 
+                  ? (i18n.language === 'vi' ? 'Tất cả' : 'All')
+                  : getSeverityLabel(sev)
+                }
+              </button>
+            ))}
+            <span className="text-[10px] text-muted-foreground self-center">|</span>
+            {(['all', 'confirmed', 'emerging', 'predictive'] as ClassificationFilter[]).map(cls => (
+              <button
+                key={cls}
+                onClick={() => setClassificationFilter(cls)}
+                className={cn(
+                  "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
+                  classificationFilter === cls
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted"
+                )}
+              >
+                {cls === 'all'
+                  ? (i18n.language === 'vi' ? 'Tất cả' : 'All')
+                  : getClassificationLabel(cls)
+                }
+              </button>
+            ))}
+            {hasActiveFilters && (
+              <button onClick={clearAllFilters} className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20 hover:bg-destructive/20">
+                <X className="h-2.5 w-2.5 inline mr-0.5" />
+                {i18n.language === 'vi' ? 'Xóa lọc' : 'Clear'}
+              </button>
+            )}
           </div>
         )}
+        
+        {/* Last updated + result count */}
+        <div className="flex items-center justify-between">
+          {lastUpdated && (
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Clock className="h-2.5 w-2.5" />
+              <span>{formatTime(lastUpdated)}</span>
+            </div>
+          )}
+          {hasActiveFilters && (
+            <span className="text-[10px] text-muted-foreground">
+              {filteredArticles.length}/{articles.length} {i18n.language === 'vi' ? 'kết quả' : 'results'}
+            </span>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="pt-0 px-3 sm:px-6 pb-3 sm:pb-6">
         <ScrollArea className="h-[280px] sm:h-[340px] lg:h-[380px] pr-2 sm:pr-4">
           <div className="space-y-2 sm:space-y-3">
-            {articles.length === 0 ? (
+            {filteredArticles.length === 0 ? (
               <div className="text-center py-6 sm:py-8 text-muted-foreground">
                 <Newspaper className="h-6 w-6 sm:h-8 sm:w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-xs sm:text-sm">
-                  {i18n.language === 'vi' ? 'Không tìm thấy tin tức' : 'No news found'}
+                  {hasActiveFilters
+                    ? (i18n.language === 'vi' ? 'Không tìm thấy kết quả phù hợp' : 'No matching results')
+                    : (i18n.language === 'vi' ? 'Không tìm thấy tin tức' : 'No news found')
+                  }
                 </p>
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearAllFilters} className="mt-2 text-xs">
+                    {i18n.language === 'vi' ? 'Xóa bộ lọc' : 'Clear filters'}
+                  </Button>
+                )}
               </div>
             ) : (
-              articles.map((article) => (
+              filteredArticles.map((article) => (
                 <div
                   key={article.id}
                   className={cn(
