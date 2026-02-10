@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, memo, useRef } from '
 import { cn } from '@/lib/utils';
 import type { EnvironmentData, RiskAssessment, GPSPoint } from '@/hooks/useStrokeRiskEngine';
 import type { MapAction } from '@/hooks/useHandGestureController';
-import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2, X, ZoomIn, ZoomOut, Move, BarChart3, Bell } from 'lucide-react';
+import { Thermometer, Wind, Gauge, Droplets, Radio, MapPin, Home, TreePine, Eye, EyeOff, Loader2, X, ZoomIn, ZoomOut, Move, BarChart3, Bell, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { MapHandControlLayer } from './MapHandControlLayer';
@@ -360,7 +360,7 @@ const FullScreenMapInner: React.FC<FullScreenMapProps> = ({
 
             {/* AQI Pill - Clickable */}
             <button onClick={toggleAQILayer} className={cn("flex items-center gap-2 px-3 py-2 rounded-full backdrop-blur-md border border-white/10 transition-all active:scale-95", showAQILayer ? aqiInfo.color : "bg-black/40 hover:bg-black/60")}>
-              <Wind className="h-4 w-4 text-white" />
+              <AlertTriangle className="h-4 w-4 text-white" />
               <span className="text-sm font-semibold text-white">
                 {environment.aqi !== null ? environment.aqi : environment.pm25 || '--'}
               </span>
