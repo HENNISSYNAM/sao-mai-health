@@ -68,7 +68,8 @@ interface CacheEntry {
   fetchedAt: number;
 }
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes cache
+const AUTO_REFRESH_INTERVAL = 90 * 1000; // 90 seconds auto-refresh
 
 // Vietnamese-aware text normalization for search
 const normalizeText = (text: string): string => {
@@ -101,6 +102,10 @@ export function HealthNewsFeed() {
   const [expertMode, setExpertMode] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [metadata, setMetadata] = useState<SearchResult['metadata'] | null>(null);
+  const [isLive, setIsLive] = useState(true);
+  const [newArticleIds, setNewArticleIds] = useState<Set<string>>(new Set());
+  const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
+  const [countdown, setCountdown] = useState(90);
   
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -199,9 +204,23 @@ export function HealthNewsFeed() {
       }
 
       if (data?.success && data.articles) {
+        // Detect new articles by comparing IDs
+        const oldIds = new Set(articles.map(a => a.id));
+        const incoming = data.articles as WebSearchArticle[];
+        const freshIds = new Set<string>();
+        incoming.forEach(a => {
+          if (!oldIds.has(a.id)) freshIds.add(a.id);
+        });
+        
+        if (freshIds.size > 0 && articles.length > 0) {
+          setNewArticleIds(freshIds);
+          // Clear highlight after 5s
+          setTimeout(() => setNewArticleIds(new Set()), 5000);
+        }
+
         // Update cache
         const newCacheEntry: CacheEntry = {
-          articles: data.articles,
+          articles: incoming,
           lastUpdated: data.lastUpdated,
           metadata: data.metadata,
           fetchedAt: Date.now()
@@ -212,17 +231,44 @@ export function HealthNewsFeed() {
           [cacheKey]: newCacheEntry
         }));
 
-        setArticles(data.articles);
+        setArticles(incoming);
         setLastUpdated(data.lastUpdated);
         setMetadata(data.metadata);
-        console.log(`✅ Cached ${data.articles.length} ${cacheKey} articles`);
+        setLastRefreshTime(Date.now());
+        setCountdown(90);
+        console.log(`✅ Cached ${incoming.length} ${cacheKey} articles (${freshIds.size} new)`);
       }
     } catch (error) {
       console.error('Failed to fetch news:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [expertMode, i18n.language, cache, getCacheKey, isCacheValid]);
+  }, [expertMode, i18n.language, cache, getCacheKey, isCacheValid, articles]);
+
+  // Auto-refresh interval (like Google News)
+  useEffect(() => {
+    if (!isLive) return;
+    
+    const interval = setInterval(() => {
+      console.log('🔄 Auto-refreshing news feed...');
+      fetchNews(true);
+    }, AUTO_REFRESH_INTERVAL);
+    
+    return () => clearInterval(interval);
+  }, [isLive, fetchNews]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!isLive) return;
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        const elapsed = Math.floor((Date.now() - lastRefreshTime) / 1000);
+        const remaining = Math.max(0, 90 - elapsed);
+        return remaining;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isLive, lastRefreshTime]);
 
   // Handle mode switch - instant if cached
   useEffect(() => {
@@ -319,19 +365,33 @@ export function HealthNewsFeed() {
               )}
             </div>
             <div className="min-w-0">
-              <CardTitle className="text-sm sm:text-base truncate">
-                {expertMode 
-                  ? (i18n.language === 'vi' ? 'Nghiên cứu học thuật' : 'Academic Research')
-                  : (i18n.language === 'vi' ? 'Tin tức y tế' : 'Health News')
-                }
-              </CardTitle>
+              <div className="flex items-center gap-1.5">
+                <CardTitle className="text-sm sm:text-base truncate">
+                  {expertMode 
+                    ? (i18n.language === 'vi' ? 'Nghiên cứu học thuật' : 'Academic Research')
+                    : (i18n.language === 'vi' ? 'Tin tức y tế' : 'Health News')
+                  }
+                </CardTitle>
+                {isLive && (
+                  <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-destructive">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
+                    </span>
+                    LIVE
+                  </span>
+                )}
+              </div>
               <CardDescription className="text-[10px] sm:text-xs">
-                {metadata?.mode || (i18n.language === 'vi' ? 'Tự động cập nhật' : 'Auto-updated')}
+                {isLive 
+                  ? (i18n.language === 'vi' ? `Cập nhật sau ${countdown}s` : `Refreshing in ${countdown}s`)
+                  : (metadata?.mode || (i18n.language === 'vi' ? 'Đã tạm dừng' : 'Paused'))
+                }
               </CardDescription>
             </div>
           </div>
           
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <div className="flex items-center gap-1.5">
               <Globe className="h-3 w-3 text-muted-foreground" />
               <Switch
@@ -352,6 +412,18 @@ export function HealthNewsFeed() {
               className={cn("gap-1 rounded-lg h-7 sm:h-8 px-2", showFilters && "bg-primary/10 text-primary")}
             >
               <Filter className="h-3 w-3" />
+            </Button>
+
+            <Button
+              size="sm"
+              variant={isLive ? "default" : "ghost"}
+              onClick={() => setIsLive(!isLive)}
+              className={cn(
+                "gap-1 rounded-lg h-7 sm:h-8 px-2 text-[10px] sm:text-xs",
+                isLive && "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+              )}
+            >
+              {isLive ? 'LIVE' : 'OFF'}
             </Button>
             
             <Button 
@@ -469,11 +541,12 @@ export function HealthNewsFeed() {
                 <div
                   key={article.id}
                   className={cn(
-                    "p-2.5 sm:p-3 rounded-lg sm:rounded-xl border bg-card/50 hover:bg-muted/30 transition-colors cursor-pointer",
+                    "p-2.5 sm:p-3 rounded-lg sm:rounded-xl border bg-card/50 hover:bg-muted/30 transition-all duration-500 cursor-pointer",
                     article.severity === 'critical' && "border-destructive/30 bg-destructive/5",
                     article.severity === 'high' && "border-orange-500/30 bg-orange-500/5",
                     article.isAcademic && "border-purple-500/20 bg-purple-500/5",
-                    expanded === article.id && "ring-2 ring-primary/30"
+                    expanded === article.id && "ring-2 ring-primary/30",
+                    newArticleIds.has(article.id) && "ring-2 ring-primary animate-pulse border-primary/50 bg-primary/5"
                   )}
                   onClick={() => {
                     if (article.url && article.url !== '#') {
