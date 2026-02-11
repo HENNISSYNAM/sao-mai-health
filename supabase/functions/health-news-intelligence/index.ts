@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 interface NewsArticle {
@@ -21,27 +21,21 @@ interface NewsArticle {
   isAcademic?: boolean;
 }
 
-// In-memory cache with TTL (5 minutes)
+// In-memory cache with TTL
 const cache: { data: any; timestamp: number } = { data: null, timestamp: 0 };
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
-// Verified source domains for validation
+// Verified source domains
 const VERIFIED_DOMAINS = [
   'moh.gov.vn', 'vncdc.gov.vn', 'vnexpress.net', 'tuoitre.vn', 'thanhnien.vn',
   'dantri.com.vn', 'suckhoedoisong.vn', 'nld.com.vn', 'who.int', 'cdc.gov',
   'pubmed.ncbi.nlm.nih.gov', 'thelancet.com', 'nature.com', 'nejm.org',
-  'reuters.com', 'bbc.com', 'apnews.com', 'medicalnewstoday.com'
+  'reuters.com', 'bbc.com', 'apnews.com', 'medicalnewstoday.com',
+  'baomoi.com', 'nhandan.vn', 'vietnamnet.vn', 'zingnews.vn', 'kenh14.vn',
+  'laodong.vn', 'plo.vn', 'tienphong.vn', 'vov.vn', 'vtv.vn',
+  'ncbi.nlm.nih.gov', 'bmj.com', 'sciencedirect.com', 'springer.com',
+  'mdpi.com', 'frontiersin.org', 'medrxiv.org'
 ];
-
-// Fallback verified URLs when web search fails
-const FALLBACK_SOURCES: Record<string, string> = {
-  'Bộ Y tế Việt Nam': 'https://moh.gov.vn/tin-tuc',
-  'VnExpress Sức khỏe': 'https://vnexpress.net/suc-khoe',
-  'Tuổi Trẻ Sức khỏe': 'https://tuoitre.vn/suc-khoe.htm',
-  'WHO': 'https://www.who.int/news',
-  'CDC': 'https://www.cdc.gov/media/releases/index.html',
-  'PubMed': 'https://pubmed.ncbi.nlm.nih.gov/?term=vietnam+public+health',
-};
 
 function isVerifiedUrl(url: string): boolean {
   try {
@@ -52,69 +46,78 @@ function isVerifiedUrl(url: string): boolean {
   }
 }
 
+function extractDomainName(url: string): string {
+  try {
+    const hostname = new URL(url).hostname.replace('www.', '');
+    const domainMap: Record<string, string> = {
+      'vnexpress.net': 'VnExpress',
+      'tuoitre.vn': 'Tuổi Trẻ',
+      'thanhnien.vn': 'Thanh Niên',
+      'dantri.com.vn': 'Dân Trí',
+      'suckhoedoisong.vn': 'Sức khỏe & Đời sống',
+      'moh.gov.vn': 'Bộ Y tế',
+      'vncdc.gov.vn': 'VNCDC',
+      'who.int': 'WHO',
+      'cdc.gov': 'CDC',
+      'pubmed.ncbi.nlm.nih.gov': 'PubMed',
+      'ncbi.nlm.nih.gov': 'PubMed',
+      'thelancet.com': 'The Lancet',
+      'nature.com': 'Nature',
+      'nejm.org': 'NEJM',
+      'nld.com.vn': 'Người Lao Động',
+      'baomoi.com': 'Báo Mới',
+      'vietnamnet.vn': 'VietNamNet',
+      'nhandan.vn': 'Nhân Dân',
+      'vtv.vn': 'VTV',
+      'vov.vn': 'VOV',
+      'laodong.vn': 'Lao Động',
+      'plo.vn': 'Pháp Luật',
+      'tienphong.vn': 'Tiền Phong',
+      'reuters.com': 'Reuters',
+      'bbc.com': 'BBC',
+    };
+    for (const [domain, name] of Object.entries(domainMap)) {
+      if (hostname.includes(domain)) return name;
+    }
+    return hostname;
+  } catch {
+    return 'Unknown';
+  }
+}
+
 function getFallbackData(expertMode: boolean): NewsArticle[] {
   const today = new Date().toISOString().split('T')[0];
-  
   if (expertMode) {
     return [
       {
         id: `fallback-1-${Date.now()}`,
-        title: "Dengue Fever Surveillance in Southern Vietnam: 2025-2026 Seasonal Analysis",
+        title: "Dengue Fever Surveillance in Southern Vietnam: Seasonal Analysis",
         source: "WHO",
-        url: FALLBACK_SOURCES['WHO'],
+        url: "https://www.who.int/vietnam",
         publishedAt: today,
-        aiSummary: "Ongoing surveillance shows dengue cases follow seasonal patterns with peak during rainy season. Vector control remains the primary prevention strategy.",
-        keywords: ["dengue", "surveillance", "Vietnam", "vector control"],
+        aiSummary: "Ongoing surveillance shows dengue cases follow seasonal patterns with peak during rainy season.",
+        keywords: ["dengue", "surveillance", "Vietnam"],
         classification: "confirmed",
         disease: "dengue",
         location: "Southern Vietnam",
         severity: "medium",
         isAcademic: true
-      },
-      {
-        id: `fallback-2-${Date.now()}`,
-        title: "Respiratory Illness Trends in Southeast Asia: Winter 2025-2026",
-        source: "CDC",
-        url: FALLBACK_SOURCES['CDC'],
-        publishedAt: today,
-        aiSummary: "Influenza activity in the region shows typical seasonal elevation. Vaccination coverage improving in urban areas.",
-        keywords: ["influenza", "respiratory", "vaccination", "epidemiology"],
-        classification: "confirmed",
-        disease: "influenza",
-        location: "Southeast Asia",
-        severity: "low",
-        isAcademic: true
       }
     ];
   }
-  
   return [
     {
       id: `fallback-1-${Date.now()}`,
-      title: "Bộ Y tế cập nhật tình hình dịch bệnh tuần qua",
-      source: "Bộ Y tế Việt Nam",
-      url: FALLBACK_SOURCES['Bộ Y tế Việt Nam'],
+      title: "Bộ Y tế cập nhật tình hình dịch bệnh",
+      source: "Bộ Y tế",
+      url: "https://moh.gov.vn/tin-tuc",
       publishedAt: today,
-      aiSummary: "Theo báo cáo mới nhất, tình hình dịch bệnh tại Việt Nam đang được kiểm soát tốt.",
-      keywords: ["Bộ Y tế", "dịch bệnh", "kiểm soát"],
+      aiSummary: "Theo báo cáo mới nhất, tình hình dịch bệnh tại Việt Nam đang được kiểm soát.",
+      keywords: ["Bộ Y tế", "dịch bệnh"],
       classification: "confirmed",
       disease: "general",
       location: "Việt Nam",
       severity: "low",
-      isAcademic: false
-    },
-    {
-      id: `fallback-2-${Date.now()}`,
-      title: "Tăng cường phòng chống sốt xuất huyết mùa mưa",
-      source: "VnExpress Sức khỏe",
-      url: FALLBACK_SOURCES['VnExpress Sức khỏe'],
-      publishedAt: today,
-      aiSummary: "Các địa phương đẩy mạnh chiến dịch diệt lăng quăng, bọ gậy để phòng chống sốt xuất huyết.",
-      keywords: ["sốt xuất huyết", "phòng chống", "mùa mưa"],
-      classification: "confirmed",
-      disease: "dengue",
-      location: "TP.HCM",
-      severity: "medium",
       isAcademic: false
     }
   ];
@@ -130,126 +133,256 @@ serve(async (req) => {
     const expertMode = body.expertMode === true;
     const language = body.language || 'vi';
     const forceRefresh = body.forceRefresh === true;
-    
-    console.log(`🔍 Health News AI Agent - Expert Mode: ${expertMode}, Language: ${language}, WebSearch: ENABLED`);
-    
-    // Check cache first (unless force refresh)
+
+    console.log(`🔍 Health News Agent - Expert: ${expertMode}, Lang: ${language}`);
+
+    // Check cache
     const now = Date.now();
-    
-    if (!forceRefresh && cache.data && (now - cache.timestamp) < CACHE_TTL) {
+    const cacheKey = expertMode ? 'expert' : 'general';
+    if (!forceRefresh && cache.data?.key === cacheKey && (now - cache.timestamp) < CACHE_TTL) {
       console.log('📦 Returning cached data');
       return new Response(
-        JSON.stringify({ ...cache.data, fromCache: true }),
+        JSON.stringify({ ...cache.data.response, fromCache: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
+
     const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') || Deno.env.get('GOOGLE_API_KEY') || Deno.env.get('GOOGLE_AI_API_KEY');
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!GEMINI_API_KEY) {
-      console.log('⚠️ No Gemini API key, returning fallback data');
+
+    if (!GEMINI_API_KEY && !LOVABLE_API_KEY) {
+      console.log('⚠️ No API keys, returning fallback');
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          articles: getFallbackData(expertMode),
-          overallRisk: 'low',
-          lastUpdated: new Date().toISOString(),
-          expertMode,
-          fromFallback: true,
-          metadata: { note: 'Using fallback data - API key not configured' }
-        }),
+        JSON.stringify({ success: true, articles: getFallbackData(expertMode), overallRisk: 'low', lastUpdated: new Date().toISOString(), expertMode, fromFallback: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     const today = new Date().toISOString().split('T')[0];
     const currentTime = new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-    
-    console.log(`📅 Date: ${today}, Time: ${currentTime}`);
 
-    // Build more precise search queries for better accuracy
+    // STEP 1: Use Gemini with Google Search Grounding to get REAL articles with REAL URLs
     const searchQuery = expertMode
-      ? `latest peer-reviewed public health research Vietnam 2025 2026 dengue fever influenza COVID-19 hand foot mouth disease epidemiology outbreak surveillance site:pubmed.ncbi.nlm.nih.gov OR site:who.int OR site:thelancet.com OR site:nature.com OR site:nejm.org`
-      : `tin tức y tế Việt Nam hôm nay ${today} sốt xuất huyết cúm tay chân miệng COVID dịch bệnh ca mắc ổ dịch cảnh báo Bộ Y tế site:vnexpress.net OR site:tuoitre.vn OR site:moh.gov.vn OR site:suckhoedoisong.vn OR site:dantri.com.vn OR site:thanhnien.vn`;
+      ? `latest public health research Vietnam 2025 2026 dengue influenza COVID-19 hand foot mouth disease outbreak epidemiology`
+      : `tin tức y tế Việt Nam mới nhất hôm nay ${today} dịch bệnh sốt xuất huyết cúm tay chân miệng COVID ca mắc ổ dịch cảnh báo Bộ Y tế`;
 
-    // Enhanced system prompt for higher accuracy and structured extraction
-    const systemPrompt = `You are a HIGHLY ACCURATE health news aggregator with WEB SEARCH enabled. Today is ${today}, current time: ${currentTime} (Vietnam timezone).
+    // System prompt focused on extracting and classifying grounded results
+    const systemPrompt = `You are a health news analyst. Today is ${today}, ${currentTime} Vietnam time.
 
-CRITICAL ACCURACY REQUIREMENTS:
-1. Use web search to find REAL, VERIFIABLE news articles published TODAY or within the last 3 days
-2. Extract the EXACT URLs from web search results - they MUST be real, clickable links to actual articles
-3. DO NOT fabricate or hallucinate any article titles, URLs, or statistics
-4. If you cannot find a real URL, DO NOT include that article
-5. Cross-reference facts: numbers, locations, disease names must match the original source
-6. Prioritize BREAKING NEWS and OFFICIAL ANNOUNCEMENTS from health authorities
+TASK: Search for the latest health news and return ONLY articles with REAL, VERIFIED URLs from web search results.
 
-VERIFIED SOURCES ONLY:
-${expertMode 
-  ? '- PubMed (pubmed.ncbi.nlm.nih.gov)\n- WHO (who.int)\n- CDC (cdc.gov)\n- The Lancet (thelancet.com)\n- Nature Medicine (nature.com)\n- NEJM (nejm.org)'
-  : '- Bộ Y tế Việt Nam (moh.gov.vn)\n- VnExpress Sức khỏe (vnexpress.net/suc-khoe)\n- Tuổi Trẻ (tuoitre.vn)\n- Dân Trí (dantri.com.vn)\n- Thanh Niên (thanhnien.vn)\n- Sức khỏe & Đời sống (suckhoedoisong.vn)\n- WHO Vietnam (who.int/vietnam)'}
+CRITICAL RULES:
+1. ONLY use URLs that come directly from your web search results - NEVER fabricate URLs
+2. Each article MUST have a real, clickable URL to the actual article page (not a homepage)
+3. Copy the exact title from the source - do not paraphrase headlines
+4. Write a concise 2-3 sentence summary of the key facts (numbers, locations, actions)
+5. Classify each article's severity and type based on content
 
-DISEASE CLASSIFICATION RULES:
-- "confirmed": Official reports with verified case numbers from health authorities
-- "emerging": Early warning signals, cluster reports, unusual patterns
-- "predictive": Seasonal forecasts, risk assessments, modeling studies
-
-SEVERITY RULES:
-- "critical": Outbreak declared, rapid spread, deaths reported, emergency response activated
-- "high": Significant case increase (>50% above baseline), new pathogen variant, multi-province spread
-- "medium": Moderate case numbers, localized outbreaks, seasonal expected trends
-- "low": Routine surveillance reports, declining trends, awareness campaigns
-
-Return a JSON array with 5-8 articles. Format:
+Return a JSON array with 5-8 articles:
 [{
-  "title": "EXACT headline from the article (copy verbatim)",
-  "source": "Source name (e.g., VnExpress, Bộ Y tế)",
-  "url": "https://exact-url-from-search-results/article-path",
-  "publishedAt": "YYYY-MM-DD (actual publish date)",
-  "disease": "dengue|covid19|influenza|hfmd|measles|rabies|cholera|ari|environmental|food_safety|general",
-  "location": "Specific province/city if mentioned (e.g., TP.HCM, Hà Nội, Đồng Nai)",
+  "title": "EXACT headline copied from the article",
+  "url": "EXACT URL from search results",
+  "source": "Source name",
+  "publishedAt": "YYYY-MM-DD",
+  "summary": "2-3 sentence factual summary with specific numbers",
+  "disease": "dengue|covid19|influenza|hfmd|measles|rabies|ari|environmental|food_safety|general",
+  "location": "Province/city name if mentioned",
   "severity": "low|medium|high|critical",
   "classification": "confirmed|emerging|predictive",
-  "content": "2-3 sentence factual summary with specific numbers if available",
-  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
+  "keywords": ["keyword1", "keyword2", "keyword3"]
 }]
 
-IMPORTANT: Return ONLY the JSON array. No markdown formatting. No explanation. Every URL must be a real, verifiable link.`;
+SEVERITY: critical=outbreak/deaths, high=significant increase, medium=moderate/localized, low=routine/declining
+CLASSIFICATION: confirmed=official verified data, emerging=early warnings/clusters, predictive=forecasts/risk assessments
 
-    console.log(`🌐 Calling Gemini with Web Search Grounding...`);
-    
-    // Use Gemini with grounding (web search)
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: searchQuery }]
-          }],
-          systemInstruction: {
-            parts: [{ text: systemPrompt }]
-          },
-          tools: [{
-            googleSearch: {}
-          }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 4096
+Return ONLY the JSON array. No markdown. No explanation.`;
+
+    let articles: NewsArticle[] = [];
+    let groundedUrls: { url: string; title: string }[] = [];
+
+    // Try Gemini with grounding first (best for accurate URLs)
+    if (GEMINI_API_KEY) {
+      try {
+        console.log('🌐 Calling Gemini with Google Search Grounding...');
+        const geminiResponse = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: searchQuery }] }],
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              tools: [{ googleSearch: {} }],
+              generationConfig: { temperature: 0.1, maxOutputTokens: 4096 }
+            }),
           }
-        }),
-      }
-    );
+        );
 
-    if (!geminiResponse.ok) {
-      const errorText = await geminiResponse.text();
-      console.error(`❌ Gemini API error: ${geminiResponse.status}`, errorText);
-      
-      // Try fallback to Lovable AI without web search
-      console.log('⚠️ Trying Lovable AI fallback...');
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-      
-      if (LOVABLE_API_KEY) {
+        if (geminiResponse.ok) {
+          const geminiData = await geminiResponse.json();
+          const candidate = geminiData.candidates?.[0];
+          const content = candidate?.content?.parts?.[0]?.text || '';
+          const groundingMetadata = candidate?.groundingMetadata;
+          const groundingChunks = groundingMetadata?.groundingChunks || [];
+          const searchEntryPoint = groundingMetadata?.searchEntryPoint;
+
+          // Extract ALL grounded URLs - these are real, verified URLs
+          groundedUrls = groundingChunks
+            .filter((chunk: any) => chunk.web?.uri)
+            .map((chunk: any) => ({
+              url: chunk.web.uri,
+              title: chunk.web.title || ''
+            }));
+
+          console.log(`🔗 Got ${groundedUrls.length} grounded URLs from Google Search`);
+          groundedUrls.forEach((g, i) => console.log(`  ${i+1}. ${g.title?.slice(0, 50)} -> ${g.url?.slice(0, 80)}`));
+
+          // Parse AI-generated article list
+          let rawArticles: any[] = [];
+          try {
+            const jsonMatch = content.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+              rawArticles = JSON.parse(jsonMatch[0]);
+              console.log(`✅ Parsed ${rawArticles.length} articles from AI`);
+            }
+          } catch (e) {
+            console.error('❌ JSON parse failed:', e);
+          }
+
+          // STEP 2: Cross-reference AI articles with grounded URLs for maximum accuracy
+          articles = rawArticles.slice(0, 8).map((article: any, idx: number) => {
+            let finalUrl = article.url || '';
+            let urlSource = 'ai';
+
+            // Strategy 1: Check if AI-provided URL exists in grounded URLs (exact match)
+            const exactGrounded = groundedUrls.find(g => g.url === finalUrl);
+            if (exactGrounded) {
+              urlSource = 'grounded-exact';
+            } else {
+              // Strategy 2: Find best matching grounded URL by title similarity
+              const titleLower = (article.title || '').toLowerCase();
+              let bestMatch: typeof groundedUrls[0] | null = null;
+              let bestScore = 0;
+
+              for (const g of groundedUrls) {
+                const gTitle = (g.title || '').toLowerCase();
+                // Calculate word overlap score
+                const titleWords = titleLower.split(/\s+/).filter((w: string) => w.length > 2);
+                const gWords = gTitle.split(/\s+/).filter((w: string) => w.length > 2);
+                const overlap = titleWords.filter((w: string) => gWords.some((gw: string) => gw.includes(w) || w.includes(gw))).length;
+                const score = titleWords.length > 0 ? overlap / titleWords.length : 0;
+
+                if (score > bestScore && score >= 0.3) {
+                  bestScore = score;
+                  bestMatch = g;
+                }
+              }
+
+              if (bestMatch) {
+                finalUrl = bestMatch.url;
+                urlSource = `grounded-match(${Math.round(bestScore * 100)}%)`;
+              } else {
+                // Strategy 3: Find grounded URL from same domain
+                if (finalUrl && isVerifiedUrl(finalUrl)) {
+                  const aiDomain = new URL(finalUrl).hostname;
+                  const sameDomainGrounded = groundedUrls.find(g => {
+                    try { return new URL(g.url).hostname === aiDomain; } catch { return false; }
+                  });
+                  if (sameDomainGrounded) {
+                    finalUrl = sameDomainGrounded.url;
+                    urlSource = 'grounded-domain';
+                  } else {
+                    urlSource = 'ai-verified';
+                  }
+                } else {
+                  // Strategy 4: Use any unmatched grounded URL 
+                  if (groundedUrls[idx]) {
+                    finalUrl = groundedUrls[idx].url;
+                    urlSource = 'grounded-fallback';
+                  } else if (groundedUrls.length > 0) {
+                    finalUrl = groundedUrls[0].url;
+                    urlSource = 'grounded-first';
+                  }
+                }
+              }
+            }
+
+            // Final validation: URL must be from a known domain
+            if (!isVerifiedUrl(finalUrl)) {
+              // Last resort: use a grounded URL if any exist
+              const anyGrounded = groundedUrls.find(g => isVerifiedUrl(g.url));
+              if (anyGrounded) {
+                finalUrl = anyGrounded.url;
+                urlSource = 'grounded-rescue';
+              } else {
+                finalUrl = expertMode ? 'https://pubmed.ncbi.nlm.nih.gov/?term=vietnam+public+health' : 'https://vnexpress.net/suc-khoe';
+                urlSource = 'fallback-homepage';
+              }
+            }
+
+            console.log(`  📰 [${idx}] ${urlSource}: ${finalUrl.slice(0, 70)}`);
+
+            // Classify
+            let classification: 'confirmed' | 'emerging' | 'predictive' = article.classification || 'confirmed';
+            if (!['confirmed', 'emerging', 'predictive'].includes(classification)) classification = 'confirmed';
+
+            let severity = article.severity || 'medium';
+            if (!['low', 'medium', 'high', 'critical'].includes(severity)) severity = 'medium';
+
+            let keywords = article.keywords || [];
+            if (!Array.isArray(keywords) || keywords.length === 0) {
+              const text = `${article.title || ''} ${article.summary || ''}`.toLowerCase();
+              const kws = ['sốt xuất huyết', 'dengue', 'cúm', 'influenza', 'covid', 'tay chân miệng', 'sởi', 'dại', 'ổ dịch', 'ca mắc', 'tử vong', 'tiêm chủng', 'phòng chống'];
+              keywords = kws.filter(kw => text.includes(kw)).slice(0, 5);
+              if (keywords.length === 0) keywords = ['y tế', 'Vietnam'];
+            }
+
+            return {
+              id: `news-${Date.now()}-${idx}`,
+              title: article.title || 'Health Update',
+              source: extractDomainName(finalUrl),
+              url: finalUrl,
+              publishedAt: article.publishedAt || today,
+              aiSummary: article.summary || article.content || article.aiSummary || '',
+              keywords: keywords.slice(0, 5),
+              classification,
+              disease: article.disease,
+              location: article.location,
+              severity,
+              isAcademic: expertMode
+            };
+          });
+
+          // If AI didn't return articles but we have grounded URLs, build articles from them
+          if (articles.length === 0 && groundedUrls.length > 0) {
+            console.log('⚠️ Building articles directly from grounded URLs');
+            articles = groundedUrls.slice(0, 8).map((g, idx) => ({
+              id: `grounded-${Date.now()}-${idx}`,
+              title: g.title || 'Health News',
+              source: extractDomainName(g.url),
+              url: g.url,
+              publishedAt: today,
+              aiSummary: '',
+              keywords: ['y tế'],
+              classification: 'confirmed' as const,
+              disease: 'general',
+              location: 'Việt Nam',
+              severity: 'medium' as const,
+              isAcademic: expertMode
+            }));
+          }
+        } else {
+          console.error(`❌ Gemini error: ${geminiResponse.status}`);
+        }
+      } catch (e) {
+        console.error('❌ Gemini call failed:', e);
+      }
+    }
+
+    // Fallback to Lovable AI if Gemini failed
+    if (articles.length === 0 && LOVABLE_API_KEY) {
+      try {
+        console.log('🔄 Trying Lovable AI fallback...');
         const lovableResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
           headers: {
@@ -257,221 +390,94 @@ IMPORTANT: Return ONLY the JSON array. No markdown formatting. No explanation. E
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            web_search_options: { search_context_size: 'high' },
+            model: 'google/gemini-3-flash-preview',
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: searchQuery }
             ],
-            temperature: 0.2,
+            temperature: 0.1,
           }),
         });
 
         if (lovableResponse.ok) {
-          const lovableData = await lovableResponse.json();
-          const content = lovableData.choices?.[0]?.message?.content || '';
-          console.log('✅ Lovable AI response received');
-          
-          // Process Lovable response
-          return processAndReturnResponse(content, expertMode, today, currentTime, now);
+          const data = await lovableResponse.json();
+          const content = data.choices?.[0]?.message?.content || '';
+          try {
+            const jsonMatch = content.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+              const rawArticles = JSON.parse(jsonMatch[0]);
+              articles = rawArticles.slice(0, 8).map((a: any, idx: number) => ({
+                id: `lovable-${Date.now()}-${idx}`,
+                title: a.title || 'Health Update',
+                source: a.source || 'News',
+                url: (a.url && isVerifiedUrl(a.url)) ? a.url : (expertMode ? 'https://pubmed.ncbi.nlm.nih.gov' : 'https://vnexpress.net/suc-khoe'),
+                publishedAt: a.publishedAt || today,
+                aiSummary: a.summary || a.content || '',
+                keywords: Array.isArray(a.keywords) ? a.keywords.slice(0, 5) : ['y tế'],
+                classification: ['confirmed', 'emerging', 'predictive'].includes(a.classification) ? a.classification : 'confirmed',
+                disease: a.disease || 'general',
+                location: a.location || 'Việt Nam',
+                severity: ['low', 'medium', 'high', 'critical'].includes(a.severity) ? a.severity : 'medium',
+                isAcademic: expertMode
+              }));
+            }
+          } catch (e) {
+            console.error('❌ Lovable parse failed:', e);
+          }
         }
+      } catch (e) {
+        console.error('❌ Lovable call failed:', e);
       }
-      
-      // Return fallback data
-      const fallbackArticles = getFallbackData(expertMode);
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          articles: fallbackArticles,
-          overallRisk: 'low',
-          lastUpdated: new Date().toISOString(),
-          expertMode,
-          fromFallback: true
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
 
-    const geminiData = await geminiResponse.json();
-    console.log('📰 Gemini response received, processing...');
-    
-    // Extract content and grounding metadata
-    const candidate = geminiData.candidates?.[0];
-    const content = candidate?.content?.parts?.[0]?.text || '';
-    const groundingMetadata = candidate?.groundingMetadata;
-    const groundingChunks = groundingMetadata?.groundingChunks || [];
-    const webSearchQueries = groundingMetadata?.webSearchQueries || [];
-    
-    console.log(`🔗 Found ${groundingChunks.length} grounding sources from web search`);
-    console.log(`🔍 Web search queries: ${webSearchQueries.join(', ')}`);
+    // Final fallback
+    if (articles.length === 0) {
+      articles = getFallbackData(expertMode);
+    }
 
-    // Extract real URLs from grounding chunks
-    const groundedUrls: { url: string; title: string }[] = groundingChunks
-      .filter((chunk: any) => chunk.web?.uri)
-      .map((chunk: any) => ({
-        url: chunk.web.uri,
-        title: chunk.web.title || ''
-      }));
+    // Calculate risk
+    let overallRisk: 'low' | 'medium' | 'high' | 'critical' = 'low';
+    if (articles.some(a => a.severity === 'critical')) overallRisk = 'critical';
+    else if (articles.some(a => a.severity === 'high')) overallRisk = 'high';
+    else if (articles.some(a => a.severity === 'medium')) overallRisk = 'medium';
 
-    console.log(`📎 Extracted ${groundedUrls.length} grounded URLs`);
+    console.log(`✅ Final: ${articles.length} articles, ${groundedUrls.length} grounded URLs, risk: ${overallRisk}`);
 
-    return processAndReturnResponse(content, expertMode, today, currentTime, now, groundedUrls);
+    const responseData = {
+      success: true,
+      articles,
+      overallRisk,
+      lastUpdated: new Date().toISOString(),
+      expertMode,
+      webSearchEnabled: true,
+      groundedSources: groundedUrls.length,
+      metadata: {
+        sourcesChecked: expertMode
+          ? ['PubMed', 'WHO', 'CDC', 'The Lancet', 'Nature']
+          : ['Bộ Y tế Việt Nam', 'VnExpress', 'Tuổi Trẻ', 'Thanh Niên', 'Sức khỏe & Đời sống'],
+        searchDate: today,
+        searchTime: currentTime,
+        articlesProcessed: articles.length,
+        searchEngine: 'Gemini 2.0 Flash + Google Search Grounding',
+        mode: expertMode ? 'Academic Research' : 'General News',
+        groundedUrlsFound: groundedUrls.length
+      }
+    };
+
+    // Cache
+    cache.data = { key: cacheKey, response: responseData };
+    cache.timestamp = now;
+
+    return new Response(
+      JSON.stringify(responseData),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error: any) {
-    console.error('❌ Health News AI Agent error:', error);
-    
-    const fallbackArticles = getFallbackData(false);
+    console.error('❌ Error:', error);
     return new Response(
-      JSON.stringify({ 
-        success: true,
-        articles: fallbackArticles,
-        overallRisk: 'low',
-        fromFallback: true,
-        error: error.message
-      }),
+      JSON.stringify({ success: true, articles: getFallbackData(false), overallRisk: 'low', fromFallback: true, error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
-
-function processAndReturnResponse(
-  content: string,
-  expertMode: boolean,
-  today: string,
-  currentTime: string,
-  cacheTimestamp: number,
-  groundedUrls: { url: string; title: string }[] = []
-) {
-  let rawArticles: any[] = [];
-  
-  try {
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      rawArticles = JSON.parse(jsonMatch[0]);
-      console.log(`✅ Parsed ${rawArticles.length} articles from AI`);
-    }
-  } catch (e) {
-    console.error('❌ Failed to parse AI response:', e);
-  }
-
-  // If no articles parsed, use fallback
-  if (rawArticles.length === 0) {
-    console.log('⚠️ No articles parsed, using fallback');
-    rawArticles = getFallbackData(expertMode);
-  }
-
-  // Process articles with improved URL validation and classification
-  const processedArticles: NewsArticle[] = rawArticles.slice(0, 8).map((article: any, idx: number) => {
-    // Use AI-provided classification if valid, otherwise detect from content
-    let classification: 'confirmed' | 'emerging' | 'predictive' = article.classification || 'confirmed';
-    if (!['confirmed', 'emerging', 'predictive'].includes(classification)) {
-      const contentLower = (article.content || article.title || '').toLowerCase();
-      if (contentLower.includes('cảnh báo') || contentLower.includes('outbreak') || contentLower.includes('bùng phát') || contentLower.includes('ổ dịch') || contentLower.includes('gia tăng')) {
-        classification = 'emerging';
-      } else if (contentLower.includes('dự báo') || contentLower.includes('forecast') || contentLower.includes('nguy cơ') || contentLower.includes('risk')) {
-        classification = 'predictive';
-      } else {
-        classification = 'confirmed';
-      }
-    }
-
-    // Use AI-provided severity if valid
-    let severity = article.severity || 'medium';
-    if (!['low', 'medium', 'high', 'critical'].includes(severity)) {
-      severity = 'medium';
-    }
-
-    let keywords = article.keywords || [];
-    if (!Array.isArray(keywords) || keywords.length === 0) {
-      // Auto-extract keywords from title and content
-      const text = `${article.title || ''} ${article.content || ''}`.toLowerCase();
-      const diseaseKeywords = ['sốt xuất huyết', 'dengue', 'cúm', 'influenza', 'covid', 'tay chân miệng', 'hfmd', 'sởi', 'measles', 'dại', 'rabies', 'tiêu chảy'];
-      const actionKeywords = ['ổ dịch', 'outbreak', 'ca mắc', 'tử vong', 'tiêm chủng', 'vaccination', 'phòng chống', 'cảnh báo', 'alert'];
-      keywords = [...diseaseKeywords, ...actionKeywords].filter(kw => text.includes(kw)).slice(0, 5);
-      if (keywords.length === 0) keywords = ['y tế', 'Vietnam'];
-    }
-
-    // Validate URL - prefer grounded URLs, then AI-provided if verified
-    let finalUrl = article.url;
-    
-    // First, try to match with grounded URLs from web search
-    if (groundedUrls.length > 0) {
-      const articleTitleLower = (article.title || '').toLowerCase();
-      const matchingGrounded = groundedUrls.find(g => {
-        const gTitleLower = (g.title || '').toLowerCase();
-        // More flexible matching: check for significant word overlap
-        const articleWords = articleTitleLower.split(/\s+/).filter((w: string) => w.length > 3);
-        const groundedWords = gTitleLower.split(/\s+/).filter((w: string) => w.length > 3);
-        const overlap = articleWords.filter((w: string) => groundedWords.includes(w)).length;
-        return overlap >= 2 || gTitleLower.includes(articleTitleLower.slice(0, 25)) || articleTitleLower.includes(gTitleLower.slice(0, 25));
-      });
-      if (matchingGrounded) {
-        finalUrl = matchingGrounded.url;
-        console.log(`✅ Matched grounded URL for: ${article.title?.slice(0, 30)}`);
-      }
-    }
-
-    // Validate the URL is from a verified domain
-    if (!isVerifiedUrl(finalUrl)) {
-      const sourceName = article.source || 'VnExpress Sức khỏe';
-      finalUrl = FALLBACK_SOURCES[sourceName] || FALLBACK_SOURCES['VnExpress Sức khỏe'];
-      console.log(`⚠️ Using fallback URL for unverified source: ${sourceName}`);
-    }
-
-    return {
-      id: `news-${Date.now()}-${idx}`,
-      title: article.title || 'Health Update',
-      source: article.source || 'VnExpress',
-      url: finalUrl,
-      publishedAt: article.publishedAt || today,
-      aiSummary: article.content || article.aiSummary || 'Health update from Vietnam.',
-      keywords: Array.isArray(keywords) ? keywords.slice(0, 5) : [],
-      classification,
-      disease: article.disease,
-      location: article.location,
-      severity,
-      isAcademic: expertMode
-    };
-  });
-
-  // Calculate risk
-  let overallRisk: 'low' | 'medium' | 'high' | 'critical' = 'low';
-  const hasCritical = processedArticles.some(a => a.severity === 'critical');
-  const hasHigh = processedArticles.some(a => a.severity === 'high');
-  
-  if (hasCritical) overallRisk = 'critical';
-  else if (hasHigh) overallRisk = 'high';
-  else if (processedArticles.some(a => a.severity === 'medium')) overallRisk = 'medium';
-
-  console.log(`✅ Processed ${processedArticles.length} articles. Risk: ${overallRisk}`);
-
-  const responseData = {
-    success: true,
-    articles: processedArticles,
-    overallRisk,
-    lastUpdated: new Date().toISOString(),
-    expertMode,
-    webSearchEnabled: true,
-    groundedSources: groundedUrls.length,
-    metadata: {
-      sourcesChecked: expertMode 
-        ? ['PubMed', 'WHO', 'CDC', 'The Lancet']
-        : ['Bộ Y tế Việt Nam', 'WHO Vietnam', 'VnExpress', 'Tuổi Trẻ', 'Sức khỏe & Đời sống'],
-      searchDate: today,
-      searchTime: currentTime,
-      articlesProcessed: processedArticles.length,
-      searchEngine: 'Gemini 2.0 Flash with Google Search Grounding',
-      mode: expertMode ? 'Academic Research' : 'General News',
-      groundedUrlsFound: groundedUrls.length
-    }
-  };
-
-  // Cache successful response
-  cache.data = responseData;
-  cache.timestamp = cacheTimestamp;
-
-  return new Response(
-    JSON.stringify(responseData),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-  );
-}

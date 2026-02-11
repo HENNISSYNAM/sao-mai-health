@@ -548,11 +548,7 @@ export function HealthNewsFeed() {
                     expanded === article.id && "ring-2 ring-primary/30",
                     newArticleIds.has(article.id) && "ring-2 ring-primary animate-pulse border-primary/50 bg-primary/5"
                   )}
-                  onClick={() => {
-                    if (article.url && article.url !== '#') {
-                      window.open(article.url, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
+                  onClick={() => setExpanded(expanded === article.id ? null : article.id)}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
@@ -621,30 +617,34 @@ export function HealthNewsFeed() {
                       </div>
 
                       {/* Expanded content - AI Summary */}
-                      {expanded === article.id && article.aiSummary && (
+                      {expanded === article.id && (
                         <div className="mt-2 pt-2 border-t">
-                          <div className="flex items-center gap-1 mb-1">
-                            <Brain className="h-3 w-3 text-primary" />
-                            <span className="text-[10px] font-medium text-primary">
-                              {i18n.language === 'vi' ? 'Tóm tắt AI' : 'AI Summary'}
-                            </span>
-                          </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground">
-                            {article.aiSummary}
-                          </p>
+                          {article.aiSummary && (
+                            <>
+                              <div className="flex items-center gap-1 mb-1">
+                                <Brain className="h-3 w-3 text-primary" />
+                                <span className="text-[10px] font-medium text-primary">
+                                  {i18n.language === 'vi' ? 'Tóm tắt AI' : 'AI Summary'}
+                                </span>
+                              </div>
+                              <p className="text-xs sm:text-sm text-muted-foreground">
+                                {article.aiSummary}
+                              </p>
+                            </>
+                          )}
                           {article.url && article.url !== '#' && (
                             <a
                               href={article.url}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center gap-1 mt-2 text-[10px] sm:text-xs text-primary hover:underline"
+                              className="inline-flex items-center gap-1 mt-2 text-[10px] sm:text-xs font-medium text-primary hover:underline bg-primary/10 px-2 py-1 rounded-md"
                             >
-                              <ExternalLink className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                              {article.isAcademic 
-                                ? (i18n.language === 'vi' ? 'Xem nghiên cứu' : 'View Research')
-                                : (i18n.language === 'vi' ? 'Đọc thêm' : 'Read More')
-                              }
+                              <ExternalLink className="h-3 w-3" />
+                              {i18n.language === 'vi' ? 'Mở nguồn gốc' : 'Open source'}
+                              <span className="text-[9px] text-muted-foreground font-normal ml-1 truncate max-w-[180px]">
+                                {article.url.replace('https://', '').split('/').slice(0, 2).join('/')}
+                              </span>
                             </a>
                           )}
                         </div>
