@@ -287,9 +287,43 @@ export function HealthNewsFeed() {
     }
   }, [expertMode]);
 
-  // Initial fetch on mount
+  // Load cached DB articles instantly on mount, then fetch fresh from AI
   useEffect(() => {
-    fetchNews();
+    const loadCachedArticles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('health_news_articles')
+          .select('*')
+          .order('crawled_at', { ascending: false })
+          .limit(20);
+        
+        if (!error && data && data.length > 0) {
+          const mapped: WebSearchArticle[] = data.map((a: any) => ({
+            id: a.id,
+            title: a.title,
+            source: a.source,
+            url: a.url,
+            publishedAt: a.published_at || a.crawled_at,
+            aiSummary: a.content_summary || '',
+            keywords: a.disease_type ? [a.disease_type] : [],
+            classification: (a.classification as any) || 'confirmed',
+            disease: a.disease_type || undefined,
+            location: a.location || undefined,
+            severity: (a.severity as any) || 'low',
+            isAcademic: false,
+          }));
+          setArticles(mapped);
+          setLastUpdated(data[0].crawled_at);
+          setIsLoading(false);
+          console.log(`⚡ Loaded ${mapped.length} cached DB articles instantly`);
+        }
+      } catch (e) {
+        console.error('Failed to load cached articles:', e);
+      }
+      // Then fetch fresh from AI in background
+      fetchNews(true);
+    };
+    loadCachedArticles();
   }, []);
 
   const severityColors: Record<string, string> = {
