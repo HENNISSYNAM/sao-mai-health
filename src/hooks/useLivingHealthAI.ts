@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuthContext } from '@/components/auth/AuthProvider';
+import { useGPS } from '@/hooks/useGPS';
 
 // Disease priority configuration - COVID deprioritized as endemic
 interface DiseaseIntel {
@@ -136,36 +137,9 @@ export function useLivingHealthAI() {
     aiMood: 'calm'
   });
   
-  const [userGPS, setUserGPS] = useState<{ lat: number; lng: number } | null>(null);
+  const { gps } = useGPS();
+  const userGPS = gps;
   const thinkingInterval = useRef<NodeJS.Timeout | null>(null);
-
-  // Get user GPS from profile or browser
-  useEffect(() => {
-    if (profile?.last_gps_coords) {
-      const coords = profile.last_gps_coords as { lat?: number; lng?: number };
-      if (coords.lat && coords.lng) {
-        setUserGPS({ lat: coords.lat, lng: coords.lng });
-        return;
-      }
-    }
-
-    // Fallback to browser geolocation
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const newGPS = { lat: position.coords.latitude, lng: position.coords.longitude };
-          setUserGPS(newGPS);
-          
-          // Note: GPS is saved automatically via profile - no need to update here
-          // The profile hook handles GPS consent and storage
-        },
-        () => {
-          // Default to HCMC
-          setUserGPS({ lat: 10.8231, lng: 106.6297 });
-        }
-      );
-    }
-  }, [profile, user?.id]);
 
   // Determine user's region based on GPS
   const determineRegion = useCallback((gps: { lat: number; lng: number }) => {

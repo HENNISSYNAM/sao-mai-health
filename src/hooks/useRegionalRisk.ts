@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useGPS } from '@/hooks/useGPS';
 
 export interface EpidemiologicalRegion {
   id: string;
@@ -103,25 +104,16 @@ export function useRegionalRisk(options: UseRegionalRiskOptions = {}) {
     }
   }, [environmentalFactors]);
 
+  const { gps, requestPosition } = useGPS();
+
   const refreshWithCurrentLocation = useCallback(async () => {
-    if (!navigator.geolocation) {
-      setError('Geolocation is not supported');
-      return;
+    const pos = await requestPosition();
+    if (pos) {
+      await fetchRiskData(pos.lat, pos.lng);
+    } else {
+      await fetchRiskData(gps.lat, gps.lng);
     }
-    
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        await fetchRiskData(position.coords.latitude, position.coords.longitude);
-      },
-      (err) => {
-        setError(`Location error: ${err.message}`);
-        toast.error('Không thể lấy vị trí', {
-          description: 'Vui lòng cho phép truy cập vị trí'
-        });
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }, [fetchRiskData]);
+  }, [fetchRiskData, requestPosition, gps]);
 
   const updateEnvironmentalFactors = useCallback((factors: typeof environmentalFactors) => {
     setEnvironmentalFactors(prev => ({ ...prev, ...factors }));

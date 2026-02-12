@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useGPS } from '@/hooks/useGPS';
 
 interface StepResult {
   step: number;
@@ -96,27 +97,8 @@ export function useHealthSystemOrchestrator(
     cycleCount: 0
   });
 
-  const [userGPS, setUserGPS] = useState<{ lat: number; lng: number } | null>(null);
+  const { gps: userGPS } = useGPS();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Get user GPS
-  useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserGPS({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        (error) => {
-          console.warn('GPS not available:', error.message);
-          // Default to HCMC
-          setUserGPS({ lat: 10.8231, lng: 106.6297 });
-        }
-      );
-    }
-  }, []);
 
   // Subscribe to realtime updates
   useEffect(() => {
@@ -322,7 +304,7 @@ export function useHealthSystemOrchestrator(
     getStepProgress,
     getCurrentStepName,
     userGPS,
-    setUserGPS,
+    setUserGPS: () => {}, // GPS managed by useGPS hook
     stepNames: STEP_NAMES
   };
 }
