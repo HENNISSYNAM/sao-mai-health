@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHealth";
 import { Heart } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useGPS } from "@/hooks/useGPS";
 
 // Dashboard Sections
 import { VerifiedKpiSection } from "@/components/dashboard/VerifiedKpiSection";
@@ -36,7 +37,7 @@ export default function Dashboard() {
   const [dailyCounts, setDailyCounts] = useState<DailyCount[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userGPS, setUserGPS] = useState<{ lat: number; lng: number } | null>(null);
+  const { gps: userGPS } = useGPS();
 
   // Realtime subscriptions
   const { isConnected: countsConnected } = useRealtimeDailyCounts(() => {
@@ -48,24 +49,6 @@ export default function Dashboard() {
   });
 
   const isConnected = countsConnected || alertsConnected;
-
-  // Get user GPS for localized alerts
-  useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserGPS({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
-        },
-        () => {
-          // Default to HCMC
-          setUserGPS({ lat: 10.8231, lng: 106.6297 });
-        }
-      );
-    }
-  }, []);
 
   const fetchInitialData = useCallback(async () => {
     try {
