@@ -68,8 +68,8 @@ interface CacheEntry {
   fetchedAt: number;
 }
 
-const CACHE_TTL = 2 * 60 * 1000; // 2 minutes cache
-const AUTO_REFRESH_INTERVAL = 90 * 1000; // 90 seconds auto-refresh
+const CACHE_TTL = 60 * 1000; // 1 minute cache
+const AUTO_REFRESH_INTERVAL = 60 * 1000; // 60 seconds auto-refresh
 
 // Vietnamese-aware text normalization for search
 const normalizeText = (text: string): string => {
@@ -105,7 +105,7 @@ export function HealthNewsFeed() {
   const [isLive, setIsLive] = useState(true);
   const [newArticleIds, setNewArticleIds] = useState<Set<string>>(new Set());
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
-  const [countdown, setCountdown] = useState(90);
+  const [countdown, setCountdown] = useState(60);
   
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -235,7 +235,7 @@ export function HealthNewsFeed() {
         setLastUpdated(data.lastUpdated);
         setMetadata(data.metadata);
         setLastRefreshTime(Date.now());
-        setCountdown(90);
+        setCountdown(60);
         console.log(`✅ Cached ${incoming.length} ${cacheKey} articles (${freshIds.size} new)`);
       }
     } catch (error) {
@@ -262,8 +262,8 @@ export function HealthNewsFeed() {
     if (!isLive) return;
     const timer = setInterval(() => {
       setCountdown(prev => {
-        const elapsed = Math.floor((Date.now() - lastRefreshTime) / 1000);
-        const remaining = Math.max(0, 90 - elapsed);
+      const elapsed = Math.floor((Date.now() - lastRefreshTime) / 1000);
+        const remaining = Math.max(0, 60 - elapsed);
         return remaining;
       });
     }, 1000);

@@ -23,7 +23,7 @@ interface NewsArticle {
 
 // In-memory cache with TTL
 const cache: { data: any; timestamp: number } = { data: null, timestamp: 0 };
-const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+const CACHE_TTL = 60 * 1000; // 1 minute cache (faster refresh)
 
 // Verified source domains
 const VERIFIED_DOMAINS = [
@@ -162,14 +162,24 @@ serve(async (req) => {
     const currentTime = new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
 
     // STEP 1: Use Gemini with Google Search Grounding to get REAL articles with REAL URLs
-    const searchQuery = expertMode
-      ? `latest public health research Vietnam 2025 2026 dengue influenza COVID-19 hand foot mouth disease outbreak epidemiology`
-      : `tin tức y tế Việt Nam mới nhất hôm nay ${today} dịch bệnh sốt xuất huyết cúm tay chân miệng COVID ca mắc ổ dịch cảnh báo Bộ Y tế`;
+    // Use MULTIPLE search queries for more diverse results
+    const searchQueries = expertMode
+      ? [
+          `latest public health research Vietnam 2025 2026 dengue influenza COVID-19 outbreak epidemiology`,
+          `Vietnam disease outbreak alert WHO warning infectious disease 2025 2026`
+        ]
+      : [
+          `tin tức y tế Việt Nam mới nhất hôm nay ${today} dịch bệnh sốt xuất huyết cúm tay chân miệng COVID ca mắc ổ dịch cảnh báo Bộ Y tế sởi dại`,
+          `dịch bệnh bùng phát Việt Nam ${today} số ca mắc tử vong bệnh viện phòng chống sức khỏe cộng đồng tiêm chủng`,
+          `tin nóng y tế hôm nay ${today} ổ dịch mới ca nhiễm bệnh truyền nhiễm cảnh báo sức khỏe`
+        ];
+    
+    const searchQuery = searchQueries.join(' | ');
 
     // System prompt focused on extracting and classifying grounded results
     const systemPrompt = `You are a health news analyst. Today is ${today}, ${currentTime} Vietnam time.
 
-TASK: Search for the latest health news and return ONLY articles with REAL, VERIFIED URLs from web search results.
+TASK: Search for the LATEST and HOTTEST health news and return ONLY articles with REAL, VERIFIED URLs from web search results.
 
 CRITICAL RULES:
 1. ONLY use URLs that come directly from your web search results - NEVER fabricate URLs
@@ -177,8 +187,11 @@ CRITICAL RULES:
 3. Copy the exact title from the source - do not paraphrase headlines
 4. Write a concise 2-3 sentence summary of the key facts (numbers, locations, actions)
 5. Classify each article's severity and type based on content
+6. Prioritize BREAKING NEWS and TRENDING stories first
+7. Include diverse topics: outbreaks, vaccination, food safety, environmental health, hospital news
+8. Return as MANY articles as possible from search results (target 10-15)
 
-Return a JSON array with 5-8 articles:
+Return a JSON array with 10-15 articles:
 [{
   "title": "EXACT headline copied from the article",
   "url": "EXACT URL from search results",
@@ -213,7 +226,7 @@ Return ONLY the JSON array. No markdown. No explanation.`;
               contents: [{ parts: [{ text: searchQuery }] }],
               systemInstruction: { parts: [{ text: systemPrompt }] },
               tools: [{ googleSearch: {} }],
-              generationConfig: { temperature: 0.1, maxOutputTokens: 4096 }
+              generationConfig: { temperature: 0.2, maxOutputTokens: 8192 }
             }),
           }
         );
@@ -250,7 +263,7 @@ Return ONLY the JSON array. No markdown. No explanation.`;
           }
 
           // STEP 2: Cross-reference AI articles with grounded URLs for maximum accuracy
-          articles = rawArticles.slice(0, 8).map((article: any, idx: number) => {
+          articles = rawArticles.slice(0, 15).map((article: any, idx: number) => {
             let finalUrl = article.url || '';
             let urlSource = 'ai';
 
@@ -356,7 +369,7 @@ Return ONLY the JSON array. No markdown. No explanation.`;
           // If AI didn't return articles but we have grounded URLs, build articles from them
           if (articles.length === 0 && groundedUrls.length > 0) {
             console.log('⚠️ Building articles directly from grounded URLs');
-            articles = groundedUrls.slice(0, 8).map((g, idx) => ({
+            articles = groundedUrls.slice(0, 15).map((g, idx) => ({
               id: `grounded-${Date.now()}-${idx}`,
               title: g.title || 'Health News',
               source: extractDomainName(g.url),
@@ -406,7 +419,7 @@ Return ONLY the JSON array. No markdown. No explanation.`;
             const jsonMatch = content.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
               const rawArticles = JSON.parse(jsonMatch[0]);
-              articles = rawArticles.slice(0, 8).map((a: any, idx: number) => ({
+              articles = rawArticles.slice(0, 15).map((a: any, idx: number) => ({
                 id: `lovable-${Date.now()}-${idx}`,
                 title: a.title || 'Health Update',
                 source: a.source || 'News',
