@@ -34,27 +34,34 @@
      }
    }, [loading, isAuthenticated, navigate]);
  
-   const handleGoogleLogin = async () => {
-     try {
-       setAuthLoading(true);
-       setError(null);
- 
-       const redirectUrl = window.location.origin;
-       
-       const { error } = await supabase.auth.signInWithOAuth({
-         provider: 'google',
-         options: {
-           redirectTo: redirectUrl,
-         }
-       });
- 
-       if (error) throw error;
-     } catch (err: any) {
-       console.error('Google login error:', err);
-       setError(err.message || t('auth.errors.googleFailed', 'Đăng nhập Google thất bại'));
-       setAuthLoading(false);
-     }
-   };
+    const handleGoogleLogin = async () => {
+      try {
+        setAuthLoading(true);
+        setError(null);
+
+        // Use the current origin for redirect, works for both preview and published URLs
+        const redirectUrl = `${window.location.origin}/`;
+        
+        console.log('🔑 Google login redirect URL:', redirectUrl);
+
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectUrl,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'consent',
+            }
+          }
+        });
+
+        if (error) throw error;
+      } catch (err: any) {
+        console.error('Google login error:', err);
+        setError(err.message || t('auth.errors.googleFailed', 'Đăng nhập Google thất bại. Vui lòng thử lại.'));
+        setAuthLoading(false);
+      }
+    };
  
    // Show loading while checking auth
    if (loading) {
