@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile, UserProfile } from '@/hooks/useUserProfile';
 import { SmartOnboardingModal } from '@/components/onboarding/SmartOnboardingModal';
-import { supabase } from '@/integrations/supabase/client';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -28,37 +27,20 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
-  const { profile, loading: profileLoading, needsOnboarding, completeOnboarding } = useUserProfile();
+  const { profile, loading: profileLoading, updateProfile } = useUserProfile();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Show onboarding modal when user is authenticated but hasn't completed onboarding
-  useEffect(() => {
-    if (isAuthenticated && !profileLoading && needsOnboarding) {
-      // Small delay to let the app render first
-      const timer = setTimeout(() => {
-        setShowOnboarding(true);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isAuthenticated, profileLoading, needsOnboarding]);
+  // For now, onboarding is considered not needed since the table doesn't have that column
+  const needsOnboarding = false;
 
   const handleOnboardingComplete = async (onboardingProfile: any) => {
     if (!user?.id) return;
 
     try {
-      // Save the onboarding data to user_profiles
-      await completeOnboarding({
-        full_name: user.user_metadata?.full_name || user.user_metadata?.name,
-        avatar_url: user.user_metadata?.avatar_url || user.user_metadata?.picture,
-        language: onboardingProfile.language,
-        region: onboardingProfile.region,
-        living_environment: onboardingProfile.living_environment,
-        date_of_birth: onboardingProfile.date_of_birth,
-        age_group: onboardingProfile.age_group,
-        health_sensitivity: onboardingProfile.health_sensitivity,
-        primary_interests: onboardingProfile.primary_interest || [],
-        alert_threshold: onboardingProfile.alert_threshold,
-        inference_log: onboardingProfile.inference_log || [],
+      // Save only fields that exist in the actual user_profiles table
+      await updateProfile({
+        gender: onboardingProfile.gender,
+        blood_type: onboardingProfile.blood_type,
       });
 
       setShowOnboarding(false);
@@ -72,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isLoading: authLoading || profileLoading,
     user,
     profile,
-    needsOnboarding: needsOnboarding || false,
+    needsOnboarding,
   };
 
   return (

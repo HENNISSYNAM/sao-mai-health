@@ -51,24 +51,15 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
   // Load saved data from profile on mount
   useEffect(() => {
     if (profile) {
-      if (profile.phone && !phone) {
-        setPhone(profile.phone);
-      }
-      if (profile.last_gps_coords && !gps) {
-        const coords = profile.last_gps_coords as { lat: number; lon: number };
-        if (coords.lat && coords.lon) {
-          setGps(coords);
-        }
-      }
+      // phone_hash is available but not raw phone - user needs to re-enter
+      // No last_gps_coords in actual schema
     }
   }, [profile]);
 
-  // Auto-fetch GPS on mount only if no saved GPS
+  // Auto-fetch GPS on mount
   useEffect(() => {
-    if (!profile?.last_gps_coords) {
-      fetchGPS();
-    }
-  }, [profile]);
+    fetchGPS();
+  }, []);
 
   // Auto-fetch environment data when GPS is available
   useEffect(() => {
@@ -92,7 +83,7 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
   // Track unsaved changes
   const handlePhoneChange = (value: string) => {
     setPhone(value);
-    if (isAuthenticated && value !== profile?.phone) {
+    if (isAuthenticated) {
       setHasUnsavedChanges(true);
     }
   };
@@ -105,16 +96,14 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
     }
 
     const updates: Record<string, any> = {};
-    if (phone) updates.phone = phone;
-    if (gps) updates.last_gps_coords = gps;
-    if (profile?.gps_consent === undefined) updates.gps_consent = true;
+    if (phone) updates.phone_hash = phone; // Store in phone_hash field
 
     const { error } = await updateProfile(updates);
     if (!error) {
       setHasUnsavedChanges(false);
       toast.success("Đã lưu thông tin cá nhân");
     }
-  }, [isAuthenticated, phone, gps, profile, updateProfile]);
+  }, [isAuthenticated, phone, updateProfile]);
 
   const fetchGPS = async () => {
     setGpsLoading(true);
@@ -212,7 +201,7 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
           {phone && (
             <Badge variant="outline" className="text-success border-success">
               <CheckCircle2 className="h-3 w-3 mr-1" />
-              {profile?.phone === phone ? "Đã lưu" : "Đã nhập"}
+              Đã nhập
             </Badge>
           )}
         </div>
@@ -342,7 +331,7 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
           )}
         </div>
 
-        {/* Save Button - Only show when authenticated and has changes */}
+        {/* Save Button */}
         {isAuthenticated && hasUnsavedChanges && (
           <Button
             onClick={saveToProfile}
@@ -355,9 +344,7 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
 
         {/* Refresh All Button */}
         <Button
-          onClick={() => {
-            fetchGPS();
-          }}
+          onClick={() => { fetchGPS(); }}
           variant={hasUnsavedChanges ? "outline" : "default"}
           className={hasUnsavedChanges ? "w-full" : "w-full bg-primary hover:bg-primary/90"}
           disabled={gpsLoading || envLoading}
@@ -370,7 +357,6 @@ export function UserDataCollector({ onDataCollected }: UserDataCollectorProps) {
           Cập nhật tất cả dữ liệu
         </Button>
 
-        {/* Login hint for non-authenticated users */}
         {!isAuthenticated && phone && (
           <p className="text-xs text-muted-foreground text-center">
             💡 Đăng nhập để lưu thông tin và không phải nhập lại
