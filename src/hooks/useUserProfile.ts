@@ -4,23 +4,23 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
 export interface UserProfile {
-  id: string;
   user_id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-  phone: string | null;
-  date_of_birth: string | null;
-  age_group: string | null;
-  language: string;
-  region: Record<string, any>;
-  living_environment: Record<string, any>;
-  health_sensitivity: Record<string, any>;
-  primary_interests: string[];
-  alert_threshold: string;
-  gps_consent: boolean;
-  last_gps_coords: Record<string, any> | null;
-  onboarding_completed: boolean;
-  inference_log: any[];
+  role: string;
+  phone_hash: string | null;
+  reputation: number | null;
+  gender: string | null;
+  blood_type: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  medical_conditions: string[] | null;
+  allergies: string[] | null;
+  medications: string[] | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  last_biometric_scan: string | null;
+  biometric_verified: boolean | null;
+  sharing_mode: string | null;
+  allowed_viewers: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -41,22 +41,30 @@ export function useUserProfile() {
 
     try {
       setLoading(true);
-      // Use raw query to avoid type conflicts with existing user_profiles table
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('user_profiles')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (error) {
-        throw error;
-      }
-      
-      // Cast to our UserProfile type since the new table has different structure
-      if (data && 'full_name' in data) {
+      if (fetchError) throw fetchError;
+
+      if (data) {
         setProfile(data as unknown as UserProfile);
       } else {
-        setProfile(null);
+        // Auto-create profile if it doesn't exist
+        const { data: newProfile, error: insertError } = await supabase
+          .from('user_profiles')
+          .insert({ user_id: user.id } as any)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+          setProfile(null);
+        } else {
+          setProfile(newProfile as unknown as UserProfile);
+        }
       }
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -74,24 +82,25 @@ export function useUserProfile() {
     if (!user?.id) return { error: new Error('Not authenticated') };
 
     try {
-      const { data, error } = await supabase
+      // Remove fields that don't exist in the actual table
+      const { user_id, created_at, updated_at, ...safeUpdates } = updates as any;
+
+      const { data, error: updateError } = await supabase
         .from('user_profiles')
-        .update(updates as any)
+        .update(safeUpdates)
         .eq('user_id', user.id)
         .select()
         .single();
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      if (data && 'full_name' in data) {
-        setProfile(data as unknown as UserProfile);
-      }
-      
+      setProfile(data as unknown as UserProfile);
+
       toast({
         title: 'Cập nhật thành công',
         description: 'Hồ sơ của bạn đã được cập nhật.',
       });
-      
+
       return { data, error: null };
     } catch (err) {
       console.error('Error updating profile:', err);
@@ -104,21 +113,12 @@ export function useUserProfile() {
     }
   };
 
-  const completeOnboarding = async (profileData: Partial<UserProfile>) => {
-    return updateProfile({
-      ...profileData,
-      onboarding_completed: true,
-    });
-  };
-
   return {
     profile,
     loading,
     error,
     isAuthenticated,
     updateProfile,
-    completeOnboarding,
     refreshProfile: fetchProfile,
-    needsOnboarding: isAuthenticated && profile && !profile.onboarding_completed,
   };
 }
