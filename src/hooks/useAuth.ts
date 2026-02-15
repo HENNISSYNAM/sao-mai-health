@@ -14,6 +14,12 @@ export function useAuth() {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        // Store user_id for localStorage namespacing (data isolation)
+        if (session?.user?.id) {
+          localStorage.setItem('supabase_user_id', session.user.id);
+        } else if (event === 'SIGNED_OUT') {
+          localStorage.removeItem('supabase_user_id');
+        }
       }
     );
 

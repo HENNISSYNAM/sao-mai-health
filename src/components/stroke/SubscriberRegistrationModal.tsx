@@ -39,13 +39,17 @@ const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = 
   const { subscribe: subscribePush, isSupported: isPushSupported } = usePushNotifications();
 
   const calculateAgeGroup = (dob: string): string => {
-    const birthDate = new Date(dob);
+    // Parse date string safely to avoid UTC timezone shift
+    const [year, month, day] = dob.split('-').map(Number);
+    const birthDate = new Date(year, month - 1, day);
     const today = new Date();
     const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age;
     
-    if (age <= 35) return '18-35';
-    if (age <= 55) return '36-55';
-    if (age <= 70) return '56-70';
+    if (actualAge <= 35) return '18-35';
+    if (actualAge <= 55) return '36-55';
+    if (actualAge <= 70) return '56-70';
     return '70+';
   };
 
@@ -173,9 +177,10 @@ const SubscriberRegistrationModal: React.FC<SubscriberRegistrationModalProps> = 
         toast.success('Đăng ký thành công!');
       }
 
-      // Store phone in localStorage for future sessions
-      localStorage.setItem('stroke_subscriber_phone', formattedPhone);
-      localStorage.setItem('stroke_subscriber_id', subscriberId);
+      // Store phone in localStorage namespaced by user_id for data isolation
+      const storagePrefix = user?.id ? `${user.id}:` : '';
+      localStorage.setItem(`${storagePrefix}stroke_subscriber_phone`, formattedPhone);
+      localStorage.setItem(`${storagePrefix}stroke_subscriber_id`, subscriberId);
 
       // Enable push notifications
       if (isPushSupported) {
