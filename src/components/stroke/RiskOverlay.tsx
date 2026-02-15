@@ -118,8 +118,10 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
 
   // Check notification permission and subscriber status on mount
   useEffect(() => {
-    // Check if user is already subscribed
-    const savedPhone = localStorage.getItem('stroke_subscriber_phone');
+    // Check if user is already subscribed - try user-namespaced key first, then fallback
+    const userId = localStorage.getItem('supabase_user_id');
+    const prefix = userId ? `${userId}:` : '';
+    const savedPhone = localStorage.getItem(`${prefix}stroke_subscriber_phone`) || localStorage.getItem('stroke_subscriber_phone');
     if (savedPhone) {
       setSubscriberPhone(savedPhone);
       setNotificationsEnabled(true);
@@ -169,6 +171,11 @@ const RiskOverlay: React.FC<RiskOverlayProps> = ({
     if (notificationsEnabled && subscriberPhone) {
       // Already subscribed - disable notifications
       setNotificationsEnabled(false);
+      const userId = localStorage.getItem('supabase_user_id');
+      const prefix = userId ? `${userId}:` : '';
+      localStorage.removeItem(`${prefix}stroke_subscriber_phone`);
+      localStorage.removeItem(`${prefix}stroke_subscriber_id`);
+      // Also clean up old non-namespaced keys
       localStorage.removeItem('stroke_subscriber_phone');
       localStorage.removeItem('stroke_subscriber_id');
       setSubscriberPhone(null);
