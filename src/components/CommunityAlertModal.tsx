@@ -9,11 +9,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import {
-  AlertClassification,
+  type AlertClassification,
   DISEASE_CATEGORIES,
   getPrecisionLevel,
   getSyntheticCasesBySeverity,
   mapCategoryToDiseaseCode,
+  type AppGpsRecord,
   normalizeClassification,
 } from '@/lib/communityAlert';
 
@@ -21,13 +22,6 @@ interface CommunityAlertModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAlertCreated?: () => void;
-}
-
-interface AppGpsRecord {
-  lat: number;
-  lng: number;
-  accuracy: number | null;
-  recordedAt: string | null;
 }
 
 

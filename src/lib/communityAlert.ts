@@ -78,3 +78,11 @@ export const mapCategoryToDiseaseCode = (category: string) => {
 
   return category;
 };
+
+
+export interface AppGpsRecord {
+  lat: number;
+  lng: number;
+  accuracy: number | null;
+  recordedAt: string | null;
+}
