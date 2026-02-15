@@ -63,6 +63,7 @@ export function GlobalSurveillanceMap() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const casePointClickHandlerRef = useRef<((e: any) => void) | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
   const [cases, setCases] = useState<CasePoint[]>([]);
@@ -290,6 +291,9 @@ export function GlobalSurveillanceMap() {
     });
 
     return () => {
+      if (map.current && casePointClickHandlerRef.current) {
+        map.current.off('click', 'cases-unclustered', casePointClickHandlerRef.current);
+      }
       map.current?.remove();
       map.current = null;
     };
@@ -370,7 +374,9 @@ export function GlobalSurveillanceMap() {
             ]
           }
         });
-      } else if (showClustering) {
+      }
+
+      if (showClustering) {
         // Cluster circles
         map.current!.addLayer({
           id: 'cases-cluster',
@@ -406,89 +412,102 @@ export function GlobalSurveillanceMap() {
             'text-color': '#fff'
           }
         });
-
-        // Unclustered points
-        map.current!.addLayer({
-          id: 'cases-unclustered',
-          type: 'circle',
-          source: 'cases',
-          filter: ['!', ['has', 'point_count']],
-          paint: {
-            'circle-color': [
-              'match', ['get', 'disease'],
-              'dengue', '#ef4444',
-              'covid19', '#3b82f6',
-              'malaria', '#22c55e',
-              'influenza', '#eab308',
-              'community_alert', '#f97316',
-              'food_poisoning', '#a855f7',
-              'flood', '#06b6d4',
-              'pollution', '#6b7280',
-              'animal_bite', '#dc2626',
-              'hand_foot_mouth', '#f59e0b',
-              'measles', '#ec4899',
-              '#6b7280'
-            ],
-            'circle-radius': [
-              'case',
-              ['get', 'isCommunityAlert'], 12,
-              8
-            ],
-            'circle-stroke-width': [
-              'case',
-              ['get', 'isCommunityAlert'], 3,
-              2
-            ],
-            'circle-stroke-color': [
-              'case',
-              ['get', 'isCommunityAlert'], '#f97316',
-              '#fff'
-            ]
-          }
-        });
-
-
-        map.current!.addLayer({
-          id: 'case-icons',
-          type: 'symbol',
-          source: 'cases',
-          filter: ['!', ['has', 'point_count']],
-          layout: {
-            'text-field': ['coalesce', ['get', 'icon'], '•'],
-            'text-size': 12,
-            'text-offset': [0, 0],
-            'text-allow-overlap': true,
-          },
-          paint: {
-            'text-color': '#111827'
-          }
-        });
-
-        // Add click handler for community alert popups
-        map.current!.on('click', 'cases-unclustered', (e: any) => {
-          const feature = e.features?.[0];
-          if (!feature) return;
-          const props = feature.properties;
-          if (props.isCommunityAlert === true || props.isCommunityAlert === 'true') {
-            const coords = feature.geometry.coordinates.slice();
-            let html = `<div class="p-3 min-w-[220px]">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="text-lg">${props.icon || '🚨'}</span>
-                <span class="font-bold text-sm">Cảnh báo cộng đồng</span>
-              </div>
-              <p class="text-xs text-gray-700 mb-2">${props.description || ''}</p>`;
-            if (props.photoUrl) {
-              html += `<img src="${props.photoUrl}" class="w-full h-24 object-cover rounded mb-2" />`;
-            }
-            html += `<p class="text-xs text-gray-500">${new Date(props.date).toLocaleString('vi-VN')}</p></div>`;
-            
-            new mapboxgl.Popup({ closeButton: true })
-              .setLngLat(coords)
-              .setHTML(html)
-              .addTo(map.current!);
-          }
-        });
       }
+
+      // Always show points (with/without clustering)
+      map.current!.addLayer({
+        id: 'cases-unclustered',
+        type: 'circle',
+        source: 'cases',
+        filter: showClustering ? ['!', ['has', 'point_count']] : ['all'],
+        paint: {
+          'circle-color': [
+            'match', ['get', 'disease'],
+            'dengue', '#ef4444',
+            'covid19', '#3b82f6',
+            'malaria', '#22c55e',
+            'influenza', '#eab308',
+            'community_alert', '#f97316',
+            'food_poisoning', '#a855f7',
+            'flood', '#06b6d4',
+            'pollution', '#6b7280',
+            'animal_bite', '#dc2626',
+            'hand_foot_mouth', '#f59e0b',
+            'measles', '#ec4899',
+            '#6b7280'
+          ],
+          'circle-radius': [
+            'case',
+            ['get', 'isCommunityAlert'], 12,
+            8
+          ],
+          'circle-stroke-width': [
+            'case',
+            ['get', 'isCommunityAlert'], 3,
+            2
+          ],
+          'circle-stroke-color': [
+            'case',
+            ['get', 'isCommunityAlert'], '#f97316',
+            '#fff'
+          ]
+        }
+      });
+
+      map.current!.addLayer({
+        id: 'case-icons',
+        type: 'symbol',
+        source: 'cases',
+        filter: showClustering ? ['!', ['has', 'point_count']] : ['all'],
+        layout: {
+          'text-field': ['coalesce', ['get', 'icon'], '•'],
+          'text-size': 12,
+          'text-offset': [0, 0],
+          'text-allow-overlap': true,
+        },
+        paint: {
+          'text-color': '#111827'
+        }
+      });
+
+      const handleCasePointClick = (e: any) => {
+        const feature = e.features?.[0];
+        if (!feature) return;
+
+        const props = feature.properties;
+        const coords = feature.geometry.coordinates.slice();
+
+        const sourceLabel = props.sourceType === 'digital_twin'
+          ? 'Song sinh số'
+          : props.isCommunityAlert === true || props.isCommunityAlert === 'true'
+            ? 'Cảnh báo cộng đồng'
+            : 'Hồ sơ ca bệnh';
+
+        let html = `<div class="p-3 min-w-[220px]">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-lg">${props.icon || '📍'}</span>
+            <span class="font-bold text-sm">${sourceLabel}</span>
+          </div>
+          <p class="text-xs text-gray-700 mb-2">${props.description || props.disease || ''}</p>`;
+
+        if (props.photoUrl) {
+          html += `<img src="${props.photoUrl}" class="w-full h-24 object-cover rounded mb-2" />`;
+        }
+
+        html += `<p class="text-xs text-gray-500">${new Date(props.date).toLocaleString('vi-VN')}</p></div>`;
+
+        new mapboxgl.Popup({ closeButton: true })
+          .setLngLat(coords)
+          .setHTML(html)
+          .addTo(map.current!);
+      };
+
+      if (casePointClickHandlerRef.current) {
+        map.current!.off('click', 'cases-unclustered', casePointClickHandlerRef.current);
+      }
+
+      casePointClickHandlerRef.current = handleCasePointClick;
+      map.current!.on('click', 'cases-unclustered', handleCasePointClick);
     }
 
     if (drawnZones.length > 0) {
