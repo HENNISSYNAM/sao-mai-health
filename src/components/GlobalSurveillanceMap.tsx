@@ -26,6 +26,10 @@ interface CasePoint {
   disease: string;
   date: string;
   riskScore?: number;
+  isCommunityAlert?: boolean;
+  icon?: string;
+  description?: string;
+  photoUrl?: string;
 }
 
 interface LayerConfig {
@@ -64,10 +68,11 @@ export function GlobalSurveillanceMap() {
   const [clickPrediction, setClickPrediction] = useState<ClickPrediction | null>(null);
   const [zoomLevel, setZoomLevel] = useState(4);
 
-  // Fetch case data
+  // Fetch case data + community alerts
   useEffect(() => {
     const fetchCases = async () => {
       try {
+        // Fetch case_events
         const { data, error } = await supabase
           .from('case_events')
           .select('id, lat, lon, disease_code, occurred_at')
@@ -76,50 +81,116 @@ export function GlobalSurveillanceMap() {
           .order('occurred_at', { ascending: false })
           .limit(500);
 
-        if (error) throw error;
+        let casePoints: CasePoint[] = [];
+        
+        if (!error && data) {
+          casePoints = data.map(c => ({
+            id: c.id,
+            lat: c.lat!,
+            lng: c.lon!,
+            disease: c.disease_code,
+            date: c.occurred_at
+          }));
+        }
 
-        const casePoints: CasePoint[] = (data || []).map(c => ({
-          id: c.id,
-          lat: c.lat!,
-          lng: c.lon!,
-          disease: c.disease_code,
-          date: c.occurred_at
-        }));
+        // Fetch community alerts
+        try {
+          const { data: alerts, error: alertsErr } = await supabase
+            .from('community_alerts' as any)
+            .select('*')
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false })
+            .limit(200);
 
-        setCases(casePoints);
+          if (!alertsErr && alerts) {
+            const alertPoints: CasePoint[] = (alerts as any[]).map(a => ({
+              id: a.id,
+              lat: a.lat,
+              lng: a.lng,
+              disease: a.category || 'community_alert',
+              date: a.created_at,
+              riskScore: a.severity === 'critical' ? 90 : a.severity === 'high' ? 75 : a.severity === 'medium' ? 55 : 35,
+              isCommunityAlert: true,
+              icon: a.icon,
+              description: a.description,
+              photoUrl: a.photo_url,
+            }));
+            casePoints = [...alertPoints, ...casePoints];
+          }
+        } catch (e) {
+          console.error('Error fetching community alerts:', e);
+        }
+
+        if (casePoints.length > 0) {
+          setCases(casePoints);
+        } else {
+          // Generate mock data for demo
+          const mockCases: CasePoint[] = [];
+          const regions = [
+            { lat: 10.8231, lng: 106.6297, name: 'HCMC' },
+            { lat: 21.0285, lng: 105.8542, name: 'Hanoi' },
+            { lat: 16.0544, lng: 108.2022, name: 'Da Nang' },
+            { lat: 13.7563, lng: 100.5018, name: 'Bangkok' },
+            { lat: 1.3521, lng: 103.8198, name: 'Singapore' },
+            { lat: -6.2088, lng: 106.8456, name: 'Jakarta' }
+          ];
+
+          regions.forEach((region, ri) => {
+            for (let i = 0; i < 50; i++) {
+              mockCases.push({
+                id: `mock-${ri}-${i}`,
+                lat: region.lat + (Math.random() - 0.5) * 0.5,
+                lng: region.lng + (Math.random() - 0.5) * 0.5,
+                disease: ['dengue', 'covid19', 'malaria', 'influenza'][Math.floor(Math.random() * 4)],
+                date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+                riskScore: Math.floor(Math.random() * 50) + 50
+              });
+            }
+          });
+
+          setCases(mockCases);
+        }
       } catch (error) {
         console.error('Error fetching cases:', error);
-        // Generate mock data for demo
-        const mockCases: CasePoint[] = [];
-        const regions = [
-          { lat: 10.8231, lng: 106.6297, name: 'HCMC' },
-          { lat: 21.0285, lng: 105.8542, name: 'Hanoi' },
-          { lat: 16.0544, lng: 108.2022, name: 'Da Nang' },
-          { lat: 13.7563, lng: 100.5018, name: 'Bangkok' },
-          { lat: 1.3521, lng: 103.8198, name: 'Singapore' },
-          { lat: -6.2088, lng: 106.8456, name: 'Jakarta' }
-        ];
-
-        regions.forEach((region, ri) => {
-          for (let i = 0; i < 50; i++) {
-            mockCases.push({
-              id: `mock-${ri}-${i}`,
-              lat: region.lat + (Math.random() - 0.5) * 0.5,
-              lng: region.lng + (Math.random() - 0.5) * 0.5,
-              disease: ['dengue', 'covid19', 'malaria', 'influenza'][Math.floor(Math.random() * 4)],
-              date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-              riskScore: Math.floor(Math.random() * 50) + 50
-            });
-          }
-        });
-
-        setCases(mockCases);
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchCases();
+
+    // Realtime subscription for new community alerts
+    const channel = supabase
+      .channel('community-alerts-map')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'community_alerts'
+      }, (payload) => {
+        const a = payload.new as any;
+        if (a.lat && a.lng) {
+          const newPoint: CasePoint = {
+            id: a.id,
+            lat: a.lat,
+            lng: a.lng,
+            disease: a.category || 'community_alert',
+            date: a.created_at,
+            riskScore: a.severity === 'critical' ? 90 : a.severity === 'high' ? 75 : 55,
+            isCommunityAlert: true,
+            icon: a.icon,
+            description: a.description,
+            photoUrl: a.photo_url,
+          };
+          setCases(prev => [newPoint, ...prev]);
+          toast({
+            title: `${a.icon || '🚨'} Cảnh báo cộng đồng mới`,
+            description: a.description?.slice(0, 80) || a.category,
+          });
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   // Initialize map
@@ -195,7 +266,11 @@ export function GlobalSurveillanceMap() {
         id: c.id,
         disease: c.disease,
         date: c.date,
-        riskScore: c.riskScore || 50
+        riskScore: c.riskScore || 50,
+        isCommunityAlert: c.isCommunityAlert || false,
+        icon: c.icon || '',
+        description: c.description || '',
+        photoUrl: c.photoUrl || ''
       }
     }));
 
@@ -280,11 +355,55 @@ export function GlobalSurveillanceMap() {
               'covid19', '#3b82f6',
               'malaria', '#22c55e',
               'influenza', '#eab308',
+              'community_alert', '#f97316',
+              'food_poisoning', '#a855f7',
+              'flood', '#06b6d4',
+              'pollution', '#6b7280',
+              'animal_bite', '#dc2626',
+              'hand_foot_mouth', '#f59e0b',
+              'measles', '#ec4899',
               '#6b7280'
             ],
-            'circle-radius': 8,
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#fff'
+            'circle-radius': [
+              'case',
+              ['get', 'isCommunityAlert'], 12,
+              8
+            ],
+            'circle-stroke-width': [
+              'case',
+              ['get', 'isCommunityAlert'], 3,
+              2
+            ],
+            'circle-stroke-color': [
+              'case',
+              ['get', 'isCommunityAlert'], '#f97316',
+              '#fff'
+            ]
+          }
+        });
+
+        // Add click handler for community alert popups
+        map.current!.on('click', 'cases-unclustered', (e: any) => {
+          const feature = e.features?.[0];
+          if (!feature) return;
+          const props = feature.properties;
+          if (props.isCommunityAlert === true || props.isCommunityAlert === 'true') {
+            const coords = feature.geometry.coordinates.slice();
+            let html = `<div class="p-3 min-w-[220px]">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-lg">${props.icon || '🚨'}</span>
+                <span class="font-bold text-sm">Cảnh báo cộng đồng</span>
+              </div>
+              <p class="text-xs text-gray-700 mb-2">${props.description || ''}</p>`;
+            if (props.photoUrl) {
+              html += `<img src="${props.photoUrl}" class="w-full h-24 object-cover rounded mb-2" />`;
+            }
+            html += `<p class="text-xs text-gray-500">${new Date(props.date).toLocaleString('vi-VN')}</p></div>`;
+            
+            new mapboxgl.Popup({ closeButton: true })
+              .setLngLat(coords)
+              .setHTML(html)
+              .addTo(map.current!);
           }
         });
       }

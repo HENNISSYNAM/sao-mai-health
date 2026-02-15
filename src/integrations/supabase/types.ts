@@ -588,6 +588,57 @@ export type Database = {
           },
         ]
       }
+      community_alerts: {
+        Row: {
+          address: string | null
+          ai_classification: Json | null
+          category: string
+          created_at: string
+          description: string
+          icon: string
+          id: string
+          lat: number
+          lng: number
+          photo_url: string | null
+          severity: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          ai_classification?: Json | null
+          category?: string
+          created_at?: string
+          description: string
+          icon?: string
+          id?: string
+          lat: number
+          lng: number
+          photo_url?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          ai_classification?: Json | null
+          category?: string
+          created_at?: string
+          description?: string
+          icon?: string
+          id?: string
+          lat?: number
+          lng?: number
+          photo_url?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       convoys: {
         Row: {
           created_at: string
