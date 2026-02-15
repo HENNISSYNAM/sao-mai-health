@@ -68,8 +68,8 @@ interface CacheEntry {
   fetchedAt: number;
 }
 
-const CACHE_TTL = 60 * 1000; // 1 minute cache
-const AUTO_REFRESH_INTERVAL = 60 * 1000; // 60 seconds auto-refresh
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24h cache
+const AUTO_REFRESH_INTERVAL = 24 * 60 * 60 * 1000; // update once per day
 
 // Vietnamese-aware text normalization for search
 const normalizeText = (text: string): string => {
@@ -94,6 +94,33 @@ const normalizeText = (text: string): string => {
 type SeverityFilter = 'all' | 'critical' | 'high' | 'medium' | 'low';
 type ClassificationFilter = 'all' | 'confirmed' | 'emerging' | 'predictive';
 
+
+const normalizeArticleUrl = (url?: string | null): string | null => {
+  if (!url) return null;
+  const candidate = url.trim();
+  if (!candidate || candidate === '#') return null;
+
+  const withProtocol = /^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`;
+  try {
+    const parsed = new URL(withProtocol);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+};
+
+const normalizeArticles = (incoming: WebSearchArticle[]): WebSearchArticle[] => {
+  return incoming.map((article) => {
+    const normalizedUrl = normalizeArticleUrl(article.url);
+    return {
+      ...article,
+      source: article.source || (normalizedUrl ? new URL(normalizedUrl).hostname : 'Unknown source'),
+      url: normalizedUrl || '#',
+    };
+  });
+};
+
 export function HealthNewsFeed() {
   const { i18n, t } = useTranslation();
   const [articles, setArticles] = useState<WebSearchArticle[]>([]);
@@ -105,7 +132,7 @@ export function HealthNewsFeed() {
   const [isLive, setIsLive] = useState(true);
   const [newArticleIds, setNewArticleIds] = useState<Set<string>>(new Set());
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
-  const [countdown, setCountdown] = useState(60);
+  const [countdown, setCountdown] = useState(Math.floor(AUTO_REFRESH_INTERVAL / 1000));
   
   // Search & filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -206,7 +233,7 @@ export function HealthNewsFeed() {
       if (data?.success && data.articles) {
         // Detect new articles by comparing IDs
         const oldIds = new Set(articles.map(a => a.id));
-        const incoming = data.articles as WebSearchArticle[];
+        const incoming = normalizeArticles(data.articles as WebSearchArticle[]);
         const freshIds = new Set<string>();
         incoming.forEach(a => {
           if (!oldIds.has(a.id)) freshIds.add(a.id);
@@ -235,7 +262,7 @@ export function HealthNewsFeed() {
         setLastUpdated(data.lastUpdated);
         setMetadata(data.metadata);
         setLastRefreshTime(Date.now());
-        setCountdown(60);
+        setCountdown(Math.floor(AUTO_REFRESH_INTERVAL / 1000));
         console.log(`✅ Cached ${incoming.length} ${cacheKey} articles (${freshIds.size} new)`);
       }
     } catch (error) {
@@ -263,7 +290,7 @@ export function HealthNewsFeed() {
     const timer = setInterval(() => {
       setCountdown(prev => {
       const elapsed = Math.floor((Date.now() - lastRefreshTime) / 1000);
-        const remaining = Math.max(0, 60 - elapsed);
+        const remaining = Math.max(0, Math.floor(AUTO_REFRESH_INTERVAL / 1000) - elapsed);
         return remaining;
       });
     }, 1000);
@@ -301,8 +328,8 @@ export function HealthNewsFeed() {
           const mapped: WebSearchArticle[] = data.map((a: any) => ({
             id: a.id,
             title: a.title,
-            source: a.source,
-            url: a.url,
+            source: a.source || 'Unknown source',
+            url: normalizeArticleUrl(a.url) || '#',
             publishedAt: a.published_at || a.crawled_at,
             aiSummary: a.content_summary || '',
             keywords: a.disease_type ? [a.disease_type] : [],
@@ -312,7 +339,7 @@ export function HealthNewsFeed() {
             severity: (a.severity as any) || 'low',
             isAcademic: false,
           }));
-          setArticles(mapped);
+          setArticles(normalizeArticles(mapped));
           setLastUpdated(data[0].crawled_at);
           setIsLoading(false);
           console.log(`⚡ Loaded ${mapped.length} cached DB articles instantly`);
@@ -418,7 +445,11 @@ export function HealthNewsFeed() {
               </div>
               <CardDescription className="text-[10px] sm:text-xs">
                 {isLive 
-                  ? (i18n.language === 'vi' ? `Cập nhật sau ${countdown}s` : `Refreshing in ${countdown}s`)
+                  ? (
+                    i18n.language === 'vi'
+                      ? `Cập nhật tự động mỗi ngày (còn ${Math.floor(countdown / 3600)}h ${Math.floor((countdown % 3600) / 60)}m)`
+                      : `Auto-updates daily (${Math.floor(countdown / 3600)}h ${Math.floor((countdown % 3600) / 60)}m left)`
+                  )
                   : (metadata?.mode || (i18n.language === 'vi' ? 'Đã tạm dừng' : 'Paused'))
                 }
               </CardDescription>
@@ -666,9 +697,9 @@ export function HealthNewsFeed() {
                               </p>
                             </>
                           )}
-                          {article.url && article.url !== '#' && (
+                          {normalizeArticleUrl(article.url) && (
                             <a
-                              href={article.url}
+                              href={normalizeArticleUrl(article.url) || "#"}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
@@ -677,7 +708,7 @@ export function HealthNewsFeed() {
                               <ExternalLink className="h-3 w-3" />
                               {i18n.language === 'vi' ? 'Mở nguồn gốc' : 'Open source'}
                               <span className="text-[9px] text-muted-foreground font-normal ml-1 truncate max-w-[180px]">
-                                {article.url.replace('https://', '').split('/').slice(0, 2).join('/')}
+                                {(normalizeArticleUrl(article.url) || '').replace('https://', '').replace('http://', '').split('/').slice(0, 2).join('/')}
                               </span>
                             </a>
                           )}
