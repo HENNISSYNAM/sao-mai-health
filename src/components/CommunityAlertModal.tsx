@@ -30,6 +30,16 @@ const DISEASE_CATEGORIES = new Set([
   'measles',
 ]);
 
+const VALID_ALERT_DISEASE_CODES = new Set([
+  'dengue',
+  'covid',
+  'food_poisoning',
+  'hand_foot_mouth',
+  'measles',
+  'influenza',
+  'ari',
+]);
+
 const getPrecisionLevel = (accuracy: number | null) => {
   if (typeof accuracy !== 'number') return 'low';
   if (accuracy <= 25) return 'high';
@@ -55,6 +65,11 @@ const mapCategoryToDiseaseCode = (category: string) => {
   if (category === 'pollution' || category === 'flood' || category === 'animal_bite' || category === 'unknown') {
     return 'ari';
   }
+
+  if (!VALID_ALERT_DISEASE_CODES.has(category)) {
+    return 'ari';
+  }
+
   return category;
 };
 
@@ -125,7 +140,7 @@ export function CommunityAlertModal({ open, onOpenChange, onAlertCreated }: Comm
 
       const candidates: AppGpsRecord[] = [];
 
-      if (twinResult.data?.current_lat && twinResult.data?.current_lng) {
+      if (twinResult.data?.current_lat != null && twinResult.data?.current_lng != null) {
         candidates.push({
           lat: twinResult.data.current_lat,
           lng: twinResult.data.current_lng,
@@ -134,7 +149,7 @@ export function CommunityAlertModal({ open, onOpenChange, onAlertCreated }: Comm
         });
       }
 
-      if (presenceResult.data?.lat && presenceResult.data?.lng) {
+      if (presenceResult.data?.lat != null && presenceResult.data?.lng != null) {
         candidates.push({
           lat: presenceResult.data.lat,
           lng: presenceResult.data.lng,
@@ -148,7 +163,14 @@ export function CommunityAlertModal({ open, onOpenChange, onAlertCreated }: Comm
       const bestRecord = candidates.sort((a, b) => {
         const aTs = a.recordedAt ? new Date(a.recordedAt).getTime() : 0;
         const bTs = b.recordedAt ? new Date(b.recordedAt).getTime() : 0;
-        return bTs - aTs;
+
+        if (aTs !== bTs) {
+          return bTs - aTs;
+        }
+
+        const aAccuracy = typeof a.accuracy === 'number' ? a.accuracy : Number.POSITIVE_INFINITY;
+        const bAccuracy = typeof b.accuracy === 'number' ? b.accuracy : Number.POSITIVE_INFINITY;
+        return aAccuracy - bAccuracy;
       })[0];
 
       setCoords({ lat: bestRecord.lat, lng: bestRecord.lng });
