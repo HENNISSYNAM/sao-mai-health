@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { useAuth } from "@/hooks/useAuth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -47,6 +48,7 @@ import { useRealtimeAlerts } from "@/hooks/useRealtimeHealth"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { CommandControlPanel } from "@/components/CommandControlPanel"
+import { CommunityAlertModal } from "@/components/CommunityAlertModal"
 
 interface Alert {
   id: string
@@ -118,6 +120,7 @@ const LEVEL_CONFIG = {
 
 export default function AlertsNew() {
   const { t, i18n } = useTranslation()
+  const { user, isAuthenticated } = useAuth()
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -126,6 +129,7 @@ export default function AlertsNew() {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [showCommunityAlertModal, setShowCommunityAlertModal] = useState(false)
 
   // Realtime subscription
   const { isConnected, nowTs } = useRealtimeAlerts((payload) => {
@@ -419,6 +423,17 @@ export default function AlertsNew() {
           <p className="text-muted-foreground">{t('alerts.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
+          {isAuthenticated && (
+            <Button 
+              onClick={() => setShowCommunityAlertModal(true)}
+              variant="destructive"
+              size="sm"
+              className="gap-2"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Gửi cảnh báo
+            </Button>
+          )}
           <Badge variant={isConnected ? "default" : "secondary"} className={cn(
             "px-3 py-1",
             isConnected && "bg-success text-success-foreground"
@@ -434,6 +449,13 @@ export default function AlertsNew() {
           </span>
         </div>
       </div>
+
+      {/* Community Alert Modal */}
+      <CommunityAlertModal 
+        open={showCommunityAlertModal} 
+        onOpenChange={setShowCommunityAlertModal}
+        onAlertCreated={handleRefresh}
+      />
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
