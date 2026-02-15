@@ -7,11 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  Map, Layers, ThermometerSun, CloudRain, Users, 
+  Map, Layers, ThermometerSun, Users, 
   Activity, AlertTriangle, MousePointerClick, Loader2
 } from 'lucide-react';
 import { getICD11Display } from '@/lib/icd11';
@@ -30,6 +29,15 @@ interface CasePoint {
   icon?: string;
   description?: string;
   photoUrl?: string;
+  sourceType?: 'case_event' | 'community_alert' | 'digital_twin';
+  severity?: 'critical' | 'high' | 'medium' | 'low';
+  profileLabel?: string;
+}
+
+interface DrawnZone {
+  id: string;
+  points: Array<[number, number]>;
+  createdAt: string;
 }
 
 interface LayerConfig {
@@ -67,6 +75,17 @@ export function GlobalSurveillanceMap() {
   });
   const [clickPrediction, setClickPrediction] = useState<ClickPrediction | null>(null);
   const [zoomLevel, setZoomLevel] = useState(4);
+  const [includeDigitalTwin, setIncludeDigitalTwin] = useState(true);
+  const [includeCommunityAlerts, setIncludeCommunityAlerts] = useState(true);
+  const [isDrawMode, setIsDrawMode] = useState(false);
+  const [drawnZones, setDrawnZones] = useState<DrawnZone[]>([]);
+  const [drawingPoints, setDrawingPoints] = useState<Array<[number, number]>>([]);
+  const isDrawModeRef = useRef(false);
+
+
+  useEffect(() => {
+    isDrawModeRef.current = isDrawMode;
+  }, [isDrawMode]);
 
   // Fetch case data + community alerts
   useEffect(() => {
@@ -89,36 +108,77 @@ export function GlobalSurveillanceMap() {
             lat: c.lat!,
             lng: c.lon!,
             disease: c.disease_code,
-            date: c.occurred_at
+            date: c.occurred_at,
+            sourceType: 'case_event',
+            severity: 'medium',
           }));
         }
 
-        // Fetch community alerts
-        try {
-          const { data: alerts, error: alertsErr } = await supabase
-            .from('community_alerts' as any)
-            .select('*')
-            .eq('status', 'pending')
-            .order('created_at', { ascending: false })
-            .limit(200);
+        if (includeCommunityAlerts) {
+          try {
+            const { data: alerts, error: alertsErr } = await supabase
+              .from('community_alerts' as any)
+              .select('*')
+              .in('status', ['pending', 'open'])
+              .order('created_at', { ascending: false })
+              .limit(300);
 
-          if (!alertsErr && alerts) {
-            const alertPoints: CasePoint[] = (alerts as any[]).map(a => ({
-              id: a.id,
-              lat: a.lat,
-              lng: a.lng,
-              disease: a.category || 'community_alert',
-              date: a.created_at,
-              riskScore: a.severity === 'critical' ? 90 : a.severity === 'high' ? 75 : a.severity === 'medium' ? 55 : 35,
-              isCommunityAlert: true,
-              icon: a.icon,
-              description: a.description,
-              photoUrl: a.photo_url,
-            }));
-            casePoints = [...alertPoints, ...casePoints];
+            if (!alertsErr && alerts) {
+              const alertPoints: CasePoint[] = (alerts as any[]).map(a => ({
+                id: a.id,
+                lat: a.lat,
+                lng: a.lng,
+                disease: a.category || 'community_alert',
+                date: a.created_at,
+                riskScore: a.severity === 'critical' ? 90 : a.severity === 'high' ? 75 : a.severity === 'medium' ? 55 : 35,
+                isCommunityAlert: true,
+                icon: a.icon,
+                description: a.description,
+                photoUrl: a.photo_url,
+                sourceType: 'community_alert',
+                severity: a.severity || 'medium',
+                profileLabel: 'Cảnh báo cộng đồng',
+              }));
+              casePoints = [...alertPoints, ...casePoints];
+            }
+          } catch (e) {
+            console.error('Error fetching community alerts:', e);
           }
-        } catch (e) {
-          console.error('Error fetching community alerts:', e);
+        }
+
+        if (includeDigitalTwin) {
+          try {
+            const { data: twinData, error: twinErr } = await supabase
+              .from('user_twin_data')
+              .select('id, user_id, current_lat, current_lng, location_updated_at, disease_risks, stroke_risk_score')
+              .not('current_lat', 'is', null)
+              .not('current_lng', 'is', null)
+              .order('location_updated_at', { ascending: false })
+              .limit(300);
+
+            if (!twinErr && twinData) {
+              const twinPoints: CasePoint[] = (twinData as any[]).map((u) => {
+                const topRisk = Array.isArray(u.disease_risks) && u.disease_risks.length > 0 ? u.disease_risks[0] : null;
+                const riskLevel = (topRisk?.riskLevel || 0) > 80 ? 'critical' : (topRisk?.riskLevel || 0) > 60 ? 'high' : (topRisk?.riskLevel || 0) > 40 ? 'medium' : 'low';
+                return {
+                  id: `twin-${u.id}`,
+                  lat: u.current_lat,
+                  lng: u.current_lng,
+                  disease: topRisk?.diseaseCode || 'ari',
+                  date: u.location_updated_at || new Date().toISOString(),
+                  riskScore: topRisk?.riskLevel || u.stroke_risk_score || 40,
+                  sourceType: 'digital_twin',
+                  severity: riskLevel,
+                  icon: '🧬',
+                  profileLabel: `Song sinh số #${String(u.user_id || '').slice(0, 6)}`,
+                  description: topRisk?.diseaseName || 'Dữ liệu cá nhân tổng hợp',
+                };
+              });
+              casePoints = [...twinPoints, ...casePoints];
+            }
+          } catch (e) {
+            console.error('Error fetching digital twin data:', e);
+          }
         }
 
         if (casePoints.length > 0) {
@@ -168,7 +228,7 @@ export function GlobalSurveillanceMap() {
         table: 'community_alerts'
       }, (payload) => {
         const a = payload.new as any;
-        if (a.lat && a.lng) {
+        if (includeCommunityAlerts && a.lat && a.lng) {
           const newPoint: CasePoint = {
             id: a.id,
             lat: a.lat,
@@ -191,7 +251,7 @@ export function GlobalSurveillanceMap() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [includeCommunityAlerts, includeDigitalTwin]);
 
   // Initialize map
   useEffect(() => {
@@ -240,18 +300,18 @@ export function GlobalSurveillanceMap() {
     if (map.current?.isStyleLoaded()) {
       updateMapLayers();
     }
-  }, [cases, showClustering, showHeatmap, layers]);
+  }, [cases, showClustering, showHeatmap, layers, drawnZones]);
 
   const updateMapLayers = useCallback(() => {
-    if (!map.current || cases.length === 0) return;
+    if (!map.current) return;
 
     // Remove existing layers
-    ['cases-cluster', 'cases-cluster-count', 'cases-unclustered', 'cases-heat', 'weather-layer'].forEach(id => {
+    ['cases-cluster', 'cases-cluster-count', 'cases-unclustered', 'cases-heat', 'case-icons', 'draw-zones-fill', 'draw-zones-line', 'weather-layer'].forEach(id => {
       if (map.current!.getLayer(id)) map.current!.removeLayer(id);
     });
 
     // Remove existing sources
-    ['cases', 'weather'].forEach(id => {
+    ['cases', 'weather', 'draw-zones'].forEach(id => {
       if (map.current!.getSource(id)) map.current!.removeSource(id);
     });
 
@@ -270,20 +330,25 @@ export function GlobalSurveillanceMap() {
         isCommunityAlert: c.isCommunityAlert || false,
         icon: c.icon || '',
         description: c.description || '',
-        photoUrl: c.photoUrl || ''
+        photoUrl: c.photoUrl || '',
+        sourceType: c.sourceType || 'case_event',
+        severity: c.severity || 'medium',
+        profileLabel: c.profileLabel || ''
       }
     }));
 
     // Add source with clustering
-    map.current!.addSource('cases', {
+    if (features.length > 0) {
+      map.current!.addSource('cases', {
       type: 'geojson',
       data: { type: 'FeatureCollection', features },
       cluster: showClustering,
       clusterMaxZoom: 14,
       clusterRadius: 50
-    });
+      });
+    }
 
-    if (layers.disease) {
+    if (layers.disease && features.length > 0) {
       if (showHeatmap) {
         // Heatmap layer
         map.current!.addLayer({
@@ -382,6 +447,23 @@ export function GlobalSurveillanceMap() {
           }
         });
 
+
+        map.current!.addLayer({
+          id: 'case-icons',
+          type: 'symbol',
+          source: 'cases',
+          filter: ['!', ['has', 'point_count']],
+          layout: {
+            'text-field': ['coalesce', ['get', 'icon'], '•'],
+            'text-size': 12,
+            'text-offset': [0, 0],
+            'text-allow-overlap': true,
+          },
+          paint: {
+            'text-color': '#111827'
+          }
+        });
+
         // Add click handler for community alert popups
         map.current!.on('click', 'cases-unclustered', (e: any) => {
           const feature = e.features?.[0];
@@ -409,6 +491,48 @@ export function GlobalSurveillanceMap() {
       }
     }
 
+    if (drawnZones.length > 0) {
+      map.current!.addSource('draw-zones', {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: drawnZones
+            .filter((zone) => zone.points.length >= 3)
+            .map((zone) => ({
+              type: 'Feature' as const,
+              geometry: {
+                type: 'Polygon' as const,
+                coordinates: [[...zone.points, zone.points[0]]],
+              },
+              properties: {
+                id: zone.id,
+                createdAt: zone.createdAt,
+              },
+            })),
+        },
+      });
+
+      map.current!.addLayer({
+        id: 'draw-zones-fill',
+        type: 'fill',
+        source: 'draw-zones',
+        paint: {
+          'fill-color': '#ef4444',
+          'fill-opacity': 0.12,
+        },
+      });
+
+      map.current!.addLayer({
+        id: 'draw-zones-line',
+        type: 'line',
+        source: 'draw-zones',
+        paint: {
+          'line-color': '#ef4444',
+          'line-width': 2,
+        },
+      });
+    }
+
     // Add weather layer if enabled
     if (layers.weather) {
       // Simulated weather data (in production, fetch from weather API)
@@ -433,11 +557,16 @@ export function GlobalSurveillanceMap() {
         new mapboxgl.Marker(el).setLngLat([wp.lng, wp.lat]).addTo(map.current!);
       });
     }
-  }, [cases, showClustering, showHeatmap, layers]);
+  }, [cases, showClustering, showHeatmap, layers, drawnZones]);
 
   const handleMapClick = async (e: mapboxgl.MapMouseEvent) => {
     const { lngLat } = e;
-    
+
+    if (isDrawModeRef.current) {
+      setDrawingPoints((prev) => [...prev, [lngLat.lng, lngLat.lat]]);
+      return;
+    }
+
     setClickPrediction({
       lat: lngLat.lat,
       lng: lngLat.lng,
@@ -501,6 +630,44 @@ export function GlobalSurveillanceMap() {
     }
   };
 
+
+  const startDrawMode = () => {
+    setIsDrawMode(true);
+    setDrawingPoints([]);
+    toast({
+      title: 'Chế độ vẽ cảnh báo dịch tễ',
+      description: 'Chạm lên bản đồ để đặt các điểm vùng cảnh báo, sau đó bấm Hoàn tất vùng.',
+    });
+  };
+
+  const completeDrawZone = () => {
+    if (drawingPoints.length < 3) {
+      toast({
+        title: 'Chưa đủ điểm',
+        description: 'Cần ít nhất 3 điểm để tạo một vùng cảnh báo.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setDrawnZones((prev) => [
+      {
+        id: `zone-${Date.now()}`,
+        points: drawingPoints,
+        createdAt: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
+    setDrawingPoints([]);
+    setIsDrawMode(false);
+  };
+
+  const clearDrawZones = () => {
+    setDrawnZones([]);
+    setDrawingPoints([]);
+    setIsDrawMode(false);
+  };
+
   const toggleLayer = (layer: keyof LayerConfig) => {
     setLayers(prev => ({ ...prev, [layer]: !prev[layer] }));
   };
@@ -552,6 +719,13 @@ export function GlobalSurveillanceMap() {
               <Activity className="h-3 w-3" />
               {cases.length} {t('maps.cases')}
             </Badge>
+
+            <Badge variant="outline" className="gap-1">
+              🧬 {includeDigitalTwin ? 'Twin ON' : 'Twin OFF'}
+            </Badge>
+            <Badge variant="outline" className="gap-1">
+              🚨 {includeCommunityAlerts ? 'Community ON' : 'Community OFF'}
+            </Badge>
           </div>
         </div>
       </CardHeader>
@@ -593,6 +767,35 @@ export function GlobalSurveillanceMap() {
                   <ThermometerSun className="h-3 w-3" />
                   {t('maps.layers.weather')}
                 </button>
+
+
+                <button
+                  onClick={() => setIncludeDigitalTwin((v) => !v)}
+                  className={`flex items-center gap-2 text-xs px-2 py-1 rounded ${includeDigitalTwin ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}
+                >
+                  <Users className="h-3 w-3" />
+                  Twin data
+                </button>
+
+                <button
+                  onClick={() => setIncludeCommunityAlerts((v) => !v)}
+                  className={`flex items-center gap-2 text-xs px-2 py-1 rounded ${includeCommunityAlerts ? 'bg-primary/10 text-primary' : 'text-muted-foreground'}`}
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  Community data
+                </button>
+
+                <div className="pt-2 border-t border-border/60 space-y-2">
+                  <Button size="sm" variant={isDrawMode ? 'destructive' : 'outline'} className="w-full h-7 text-xs" onClick={() => (isDrawMode ? setIsDrawMode(false) : startDrawMode())}>
+                    {isDrawMode ? 'Thoát vẽ' : 'Vẽ vùng cảnh báo'}
+                  </Button>
+                  <Button size="sm" variant="outline" className="w-full h-7 text-xs" onClick={completeDrawZone} disabled={!isDrawMode || drawingPoints.length < 3}>
+                    Hoàn tất vùng ({drawingPoints.length} điểm)
+                  </Button>
+                  <Button size="sm" variant="ghost" className="w-full h-7 text-xs" onClick={clearDrawZones}>
+                    Xóa vùng đã vẽ ({drawnZones.length})
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -602,7 +805,7 @@ export function GlobalSurveillanceMap() {
         <div className="absolute bottom-4 left-4 z-10">
           <Badge variant="secondary" className="gap-1 bg-card/90 backdrop-blur-sm">
             <MousePointerClick className="h-3 w-3" />
-            {t('maps.prediction.clickToPredict')}
+            {isDrawMode ? 'Đang vẽ vùng cảnh báo dịch tễ' : t('maps.prediction.clickToPredict')}
           </Badge>
         </div>
 

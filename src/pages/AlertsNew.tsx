@@ -164,7 +164,7 @@ export default function AlertsNew() {
       if (!error && dbAlerts && dbAlerts.length > 0) {
         const formattedAlerts = dbAlerts.map(a => ({
           ...a,
-          level: determineLevel(a.cases, a.avg7)
+          level: getLevelFromRule(a.rule) || determineLevel(a.cases, a.avg7)
         }))
         setAlerts(formattedAlerts)
       } else {
@@ -175,6 +175,12 @@ export default function AlertsNew() {
       console.error('Error fetching alerts:', error)
       setAlerts(generateMockAlerts())
     }
+  }
+
+  const getLevelFromRule = (rule?: string): 'critical' | 'high' | 'medium' | 'low' | null => {
+    if (!rule) return null
+    const match = rule.match(/\[severity:(critical|high|medium|low)\]/)
+    return (match?.[1] as 'critical' | 'high' | 'medium' | 'low' | undefined) || null
   }
 
   const determineLevel = (cases?: number, avg7?: number): 'critical' | 'high' | 'medium' | 'low' => {
@@ -375,11 +381,10 @@ export default function AlertsNew() {
   const stats = useMemo(() => {
     const open = alerts.filter(a => a.status === 'open')
     return {
-      total: alerts.length,
-      open: open.length,
       critical: open.filter(a => a.level === 'critical').length,
       high: open.filter(a => a.level === 'high').length,
-      medium: open.filter(a => a.level === 'medium').length
+      medium: open.filter(a => a.level === 'medium').length,
+      low: open.filter(a => a.level === 'low').length,
     }
   }, [alerts])
 
@@ -458,26 +463,12 @@ export default function AlertsNew() {
       />
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="rounded-2xl border-l-4 border-l-primary bg-gradient-to-r from-primary/5 to-transparent">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('alerts.total')}</p>
-                <p className="text-3xl font-bold text-foreground">{stats.total}</p>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <Bell className="h-6 w-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid gap-4 md:grid-cols-4"> 
         <Card className="rounded-2xl border-l-4 border-l-red-500 bg-gradient-to-r from-red-500/5 to-transparent">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">{t('alerts.critical')}</p>
+                <p className="text-sm text-muted-foreground">{t('alerts.level.critical')}</p>
                 <p className="text-3xl font-bold text-red-500">{stats.critical}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center">
@@ -491,7 +482,7 @@ export default function AlertsNew() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">{t('alerts.high')}</p>
+                <p className="text-sm text-muted-foreground">{t('alerts.level.high')}</p>
                 <p className="text-3xl font-bold text-orange-500">{stats.high}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-orange-500/10 flex items-center justify-center">
@@ -505,11 +496,25 @@ export default function AlertsNew() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">{t('alerts.open')}</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.open}</p>
+                <p className="text-sm text-muted-foreground">{t('alerts.level.medium')}</p>
+                <p className="text-3xl font-bold text-yellow-600">{stats.medium}</p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 flex items-center justify-center">
-                <Clock className="h-6 w-6 text-yellow-600" />
+                <Activity className="h-6 w-6 text-yellow-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-2xl border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-500/5 to-transparent">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">{t('alerts.level.low')}</p>
+                <p className="text-3xl font-bold text-blue-600">{stats.low}</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+                <Bell className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
