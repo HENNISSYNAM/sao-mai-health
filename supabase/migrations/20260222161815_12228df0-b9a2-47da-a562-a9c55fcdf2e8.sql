@@ -1,0 +1,1 @@
+DELETE FROM disease_hotspots WHERE center_lng < 100 OR center_lng > 110 OR center_lat < 8 OR center_lat > 24;

@@ -1,0 +1,583 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Stroke Alert System - Medical Emergency Theme */
+
+@layer base {
+  :root {
+    /* Medical Blue Theme - Healthcare palette */
+    --background: 210 40% 98%;
+    --foreground: 210 40% 11%;
+    
+    /* Primary - Medical Blue */
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Light surface */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 210 40% 11%;
+    
+    /* Status Colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+    
+    /* Risk Levels */
+    --risk-low: 142 76% 36%;
+    --risk-medium: 38 92% 50%;
+    --risk-high: 25 95% 53%;
+    --risk-critical: 0 84% 60%;
+    
+    /* Component Colors */
+    --muted: 210 40% 96%;
+    --muted-foreground: 210 20% 40%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 210 30% 88%;
+    --input: 210 40% 96%;
+    --ring: 199 89% 48%;
+    
+    /* Card & Popover */
+    --card: 0 0% 100%;
+    --card-foreground: 210 40% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 40% 11%;
+    
+    /* Chart colors */
+    --chart-1: 199 89% 48%;
+    --chart-2: 172 66% 50%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 142 76% 36%;
+    --chart-5: 262 83% 58%;
+    
+    /* Text colors */
+    --text-900: 210 40% 11%;
+    --text-700: 210 30% 25%;
+    --text-500: 210 20% 45%;
+    
+    /* Radius */
+    --radius: 0.75rem;
+    
+    /* Sidebar - Dark Blue Theme */
+    --sidebar-background: 210 50% 12%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 18%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 210 30% 20%;
+    --sidebar-ring: 199 89% 48%;
+  }
+
+  .dark {
+    /* Medical Blue Theme - Dark mode */
+    --background: 210 40% 8%;
+    --foreground: 210 40% 98%;
+    
+    /* Primary - Medical Blue */
+    --primary: 199 89% 48%;
+    --primary-foreground: 0 0% 100%;
+    
+    /* Secondary - Dark surface */
+    --secondary: 210 30% 15%;
+    --secondary-foreground: 210 40% 98%;
+    
+    /* Status Colors */
+    --success: 142 76% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 0%;
+    --danger: 0 84% 60%;
+    --danger-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+    
+    /* Risk Levels */
+    --risk-low: 142 76% 45%;
+    --risk-medium: 38 92% 50%;
+    --risk-high: 25 95% 53%;
+    --risk-critical: 0 84% 60%;
+    
+    /* Component Colors */
+    --muted: 210 30% 18%;
+    --muted-foreground: 210 20% 60%;
+    --accent: 199 89% 48%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 210 30% 22%;
+    --input: 210 30% 18%;
+    --ring: 199 89% 48%;
+    
+    /* Card & Popover */
+    --card: 210 30% 12%;
+    --card-foreground: 210 40% 98%;
+    --popover: 210 30% 12%;
+    --popover-foreground: 210 40% 98%;
+    
+    /* Chart colors */
+    --chart-1: 199 89% 48%;
+    --chart-2: 172 66% 50%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 142 76% 45%;
+    --chart-5: 262 83% 58%;
+    
+    /* Text colors */
+    --text-900: 210 40% 98%;
+    --text-700: 210 30% 85%;
+    --text-500: 210 20% 65%;
+    
+    /* Sidebar */
+    --sidebar-background: 210 40% 6%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 199 89% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 30% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 210 30% 18%;
+    --sidebar-ring: 199 89% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight font-bold;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    color: hsl(var(--text-900));
+  }
+}
+
+@layer components {
+  /* Glass Effect - Emergency Theme */
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-xl;
+  }
+
+  /* Alert Card */
+  .alert-card {
+    @apply relative overflow-hidden rounded-2xl border-2 bg-card p-6 transition-all duration-300;
+    @apply hover:shadow-2xl hover:-translate-y-1;
+  }
+
+  /* Status Indicators */
+  .status-online {
+    @apply bg-success;
+  }
+  
+  .status-offline {
+    @apply bg-muted;
+  }
+
+  /* Risk Level Badges - Enhanced */
+  .risk-low {
+    @apply bg-success/15 text-success border-success/40 font-semibold;
+  }
+  
+  .risk-medium {
+    @apply bg-warning/15 text-warning border-warning/40 font-semibold;
+  }
+  
+  .risk-high {
+    @apply bg-secondary/15 text-secondary border-secondary/40 font-semibold;
+  }
+  
+  .risk-critical {
+    @apply bg-primary text-primary-foreground font-bold shadow-lg;
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Metric Card - Alert Style */
+  .metric-card {
+    @apply flex flex-col items-center justify-center p-5 rounded-2xl bg-card border-2 border-border transition-all duration-300;
+    @apply hover:border-primary/30 hover:shadow-lg;
+  }
+
+  /* Stat Badge */
+  .stat-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold;
+  }
+
+  /* Emergency Glow */
+  .emergency-glow {
+    box-shadow: 0 0 30px hsl(var(--primary) / 0.3), 0 0 60px hsl(var(--primary) / 0.1);
+  }
+
+  /* Map Container */
+  .map-container {
+    @apply relative w-full h-full rounded-2xl overflow-hidden border-2 border-border;
+    box-shadow: inset 0 0 40px hsl(var(--primary) / 0.05);
+  }
+}
+
+/* Custom Animations - Medical Alert Theme */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+    opacity: 1;
+  }
+  50% { 
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.6);
+    opacity: 0.9;
+  }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.05); }
+  50% { transform: scale(1); }
+  75% { transform: scale(1.05); }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(800%); opacity: 0; }
+}
+@keyframes scan-line-h {
+  0% { transform: translateX(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(800%); opacity: 0; }
+}
+@keyframes body-scan {
+  0% { top: -5%; opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { top: 105%; opacity: 0; }
+}
+@keyframes body-scan-glow {
+  0% { top: -5%; opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { top: 105%; opacity: 0; }
+}
+
+/* ─── Digital Twin Layer Effects ─── */
+@keyframes twin-ambient {
+  0%, 100% { opacity: 0.15; transform: scale(1); }
+  50% { opacity: 0.25; transform: scale(1.05); }
+}
+@keyframes twin-ring {
+  0%, 100% { opacity: 0.08; transform: scale(1) rotate(0deg); }
+  50% { opacity: 0.15; transform: scale(1.1) rotate(3deg); }
+}
+@keyframes twin-hologram {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.1) saturate(1.15); }
+}
+@keyframes twin-xray {
+  0%, 100% { filter: brightness(1) contrast(1); }
+  33% { filter: brightness(1.15) contrast(1.1); }
+  66% { filter: brightness(0.95) contrast(1.05); }
+}
+@keyframes twin-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.008); }
+}
+@keyframes twin-heartbeat {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.012); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.008); }
+}
+@keyframes twin-spark {
+  0%, 100% { filter: brightness(1); opacity: 1; }
+  25% { filter: brightness(1.2); opacity: 0.95; }
+  75% { filter: brightness(0.95); opacity: 1; }
+}
+@keyframes twin-flex {
+  0%, 100% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.005); filter: brightness(1.08); }
+}
+@keyframes twin-corner {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.6; }
+}
+@keyframes twin-edge-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@keyframes twin-particle {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  20% { opacity: 0.5; }
+  80% { opacity: 0.3; }
+  100% { transform: translateY(-30px) scale(0.3); opacity: 0; }
+}
+
+.animate-twin-ambient { animation: twin-ambient 4s ease-in-out infinite; }
+.animate-twin-ring { animation: twin-ring 6s ease-in-out infinite; }
+.animate-twin-hologram { animation: twin-hologram 3s ease-in-out infinite; }
+.animate-twin-xray { animation: twin-xray 4s ease-in-out infinite; }
+.animate-twin-pulse { animation: twin-pulse 2.5s ease-in-out infinite; }
+.animate-twin-heartbeat { animation: twin-heartbeat 1.2s ease-in-out infinite; }
+.animate-twin-spark { animation: twin-spark 2s ease-in-out infinite; }
+.animate-twin-flex { animation: twin-flex 3s ease-in-out infinite; }
+.animate-twin-corner { animation: twin-corner 2s ease-in-out infinite; }
+.animate-twin-edge-glow { animation: twin-edge-glow 3s ease-in-out infinite; }
+.animate-twin-particle { animation: twin-particle 3s ease-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-twin-ambient, .animate-twin-ring, .animate-twin-hologram,
+  .animate-twin-xray, .animate-twin-pulse, .animate-twin-heartbeat,
+  .animate-twin-spark, .animate-twin-flex, .animate-twin-corner,
+  .animate-twin-edge-glow, .animate-twin-particle { animation: none; }
+}
+
+/* ─── Apple-style Landing Animations ─── */
+@keyframes logo-heartbeat {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px hsl(199 89% 48% / 0)); }
+  10% { transform: scale(1.12); filter: drop-shadow(0 0 20px hsl(199 89% 48% / 0.6)); }
+  20% { transform: scale(0.97); filter: drop-shadow(0 0 4px hsl(199 89% 48% / 0.2)); }
+  35% { transform: scale(1.08); filter: drop-shadow(0 0 16px hsl(199 89% 48% / 0.5)); }
+  50% { transform: scale(1); filter: drop-shadow(0 0 0px hsl(199 89% 48% / 0)); }
+}
+
+@keyframes logo-pulse-ring {
+  0% { transform: scale(0.85); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+@keyframes orbit {
+  0% { transform: rotate(0deg) translateX(120px) rotate(0deg); }
+  100% { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
+}
+
+@keyframes orbit-reverse {
+  0% { transform: rotate(0deg) translateX(90px) rotate(0deg); }
+  100% { transform: rotate(-360deg) translateX(90px) rotate(360deg); }
+}
+
+@keyframes morph-blob {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  50% { border-radius: 50% 60% 30% 60% / 30% 60% 70% 40%; }
+  75% { border-radius: 60% 40% 60% 30% / 70% 30% 50% 60%; }
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(60px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scale-reveal {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-logo-heartbeat {
+  animation: logo-heartbeat 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.animate-logo-pulse-ring {
+  animation: logo-pulse-ring 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-orbit {
+  animation: orbit 20s linear infinite;
+}
+
+.animate-orbit-reverse {
+  animation: orbit-reverse 15s linear infinite;
+}
+
+.animate-morph-blob {
+  animation: morph-blob 8s ease-in-out infinite;
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradient-shift 4s ease infinite;
+}
+
+.animate-reveal-up {
+  animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-reveal {
+  animation: scale-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+.animate-rotate-slow {
+  animation: rotate-slow 30s linear infinite;
+}
+
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-heartbeat {
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+/* Scrollbar Styling - Minimal */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted;
+}
+
+/* Focus States - High Visibility */
+*:focus-visible {
+  @apply outline-none ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+}
+
+/* Leaflet Map Overrides */
+.leaflet-container {
+  @apply bg-background rounded-2xl;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  @apply bg-card border border-border rounded-xl shadow-2xl;
+}
+
+.leaflet-popup-tip {
+  @apply bg-card;
+}
+
+/* Mobile Safe Area for Bottom Navigation */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide scrollbar on mobile bottom nav */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 4rem;
+  }
+}
+
+/* Smooth page transitions */
+.animate-page-enter {
+  animation: fade-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Marquee animation for landing */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* Counter animation */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: count-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better focus styles for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
