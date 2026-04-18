@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Activity, Brain, MapPin, Dna, AlertTriangle, BarChart3, Settings, HelpCircle, Menu } from "lucide-react";
+import { Activity, Brain, MapPin, Dna, AlertTriangle, BarChart3, Settings, HelpCircle, Menu, FlaskConical } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink, useLocation } from "react-router-dom";
 import { usePrefetch } from "@/hooks/usePrefetch";
@@ -84,6 +84,11 @@ export function AppSidebar() {
     title: t('nav.maps'),
     url: "/maps",
     icon: MapPin
+  }, {
+    titleKey: "nav.research",
+    title: t('nav.research', 'Nghiên cứu'),
+    url: "/research",
+    icon: FlaskConical
   }];
   const isActive = (path: string) => {
     if (path === '/dashboard') return currentPath === '/dashboard' || currentPath === '/';
