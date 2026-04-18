@@ -14,6 +14,7 @@ import { DiseaseIntelligenceSummary } from "@/components/dashboard/DiseaseIntell
 import { DiseaseAnalyticsSummary } from "@/components/dashboard/DiseaseAnalyticsSummary";
 import { HealthNewsFeed } from "@/components/dashboard/HealthNewsFeed";
 import { LivingAIChart } from "@/components/dashboard/LivingAIChart";
+import { MedicalBrainWidget } from "@/components/dashboard/MedicalBrainWidget";
 
 
 interface DailyCount {
@@ -159,6 +160,11 @@ export default function Dashboard() {
       {/* Environment Summary - Compact, always visible */}
       <div className="animate-fade-up" style={{ animationDelay: '80ms' }}>
         <DiseaseIntelligenceSummary />
+      </div>
+
+      {/* Medical Brain — Tri thức AI thế hệ mới (PubMed × Dịch tễ) */}
+      <div className="animate-fade-up" style={{ animationDelay: '100ms' }}>
+        <MedicalBrainWidget />
       </div>
 
       {/* Tabbed Detail Sections - Reduces visual overload */}
