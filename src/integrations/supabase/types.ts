@@ -2701,6 +2701,92 @@ export type Database = {
         }
         Relationships: []
       }
+      medical_intelligence_insights: {
+        Row: {
+          ai_model: string | null
+          clinician_summary: string
+          community_summary: string
+          confidence_score: number | null
+          created_at: string
+          disease_codes: string[] | null
+          evidence_count: number | null
+          expires_at: string | null
+          generated_at: string
+          id: string
+          insight_type: string
+          key_findings: Json | null
+          news_sources: Json | null
+          novelty_score: number | null
+          recommendations: Json | null
+          region: string | null
+          research_sources: Json | null
+          superseded_by: string | null
+          title_vi: string
+          topic_category: string
+          updated_at: string
+          urgency_level: string | null
+          view_count: number | null
+        }
+        Insert: {
+          ai_model?: string | null
+          clinician_summary: string
+          community_summary: string
+          confidence_score?: number | null
+          created_at?: string
+          disease_codes?: string[] | null
+          evidence_count?: number | null
+          expires_at?: string | null
+          generated_at?: string
+          id?: string
+          insight_type?: string
+          key_findings?: Json | null
+          news_sources?: Json | null
+          novelty_score?: number | null
+          recommendations?: Json | null
+          region?: string | null
+          research_sources?: Json | null
+          superseded_by?: string | null
+          title_vi: string
+          topic_category: string
+          updated_at?: string
+          urgency_level?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          ai_model?: string | null
+          clinician_summary?: string
+          community_summary?: string
+          confidence_score?: number | null
+          created_at?: string
+          disease_codes?: string[] | null
+          evidence_count?: number | null
+          expires_at?: string | null
+          generated_at?: string
+          id?: string
+          insight_type?: string
+          key_findings?: Json | null
+          news_sources?: Json | null
+          novelty_score?: number | null
+          recommendations?: Json | null
+          region?: string | null
+          research_sources?: Json | null
+          superseded_by?: string | null
+          title_vi?: string
+          topic_category?: string
+          updated_at?: string
+          urgency_level?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_intelligence_insights_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "medical_intelligence_insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_research_articles: {
         Row: {
           abstract: string | null
