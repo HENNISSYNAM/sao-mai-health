@@ -2701,6 +2701,72 @@ export type Database = {
         }
         Relationships: []
       }
+      medical_research_articles: {
+        Row: {
+          abstract: string | null
+          ai_clinical_relevance: string | null
+          ai_summary_vi: string | null
+          authors: string[] | null
+          citation_count: number | null
+          created_at: string
+          doi: string | null
+          fetched_at: string
+          id: string
+          journal: string | null
+          keywords: string[] | null
+          language: string | null
+          mesh_terms: string[] | null
+          pmid: string
+          publication_date: string | null
+          pubmed_url: string
+          relevance_score: number | null
+          title: string
+          topic_category: string
+        }
+        Insert: {
+          abstract?: string | null
+          ai_clinical_relevance?: string | null
+          ai_summary_vi?: string | null
+          authors?: string[] | null
+          citation_count?: number | null
+          created_at?: string
+          doi?: string | null
+          fetched_at?: string
+          id?: string
+          journal?: string | null
+          keywords?: string[] | null
+          language?: string | null
+          mesh_terms?: string[] | null
+          pmid: string
+          publication_date?: string | null
+          pubmed_url: string
+          relevance_score?: number | null
+          title: string
+          topic_category: string
+        }
+        Update: {
+          abstract?: string | null
+          ai_clinical_relevance?: string | null
+          ai_summary_vi?: string | null
+          authors?: string[] | null
+          citation_count?: number | null
+          created_at?: string
+          doi?: string | null
+          fetched_at?: string
+          id?: string
+          journal?: string | null
+          keywords?: string[] | null
+          language?: string | null
+          mesh_terms?: string[] | null
+          pmid?: string
+          publication_date?: string | null
+          pubmed_url?: string
+          relevance_score?: number | null
+          title?: string
+          topic_category?: string
+        }
+        Relationships: []
+      }
       observations: {
         Row: {
           geom: unknown
@@ -3572,6 +3638,38 @@ export type Database = {
           weight?: number | null
         }
         Relationships: []
+      }
+      research_bookmarks: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_bookmarks_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "medical_research_articles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reward_claims: {
         Row: {

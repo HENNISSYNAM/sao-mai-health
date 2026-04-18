@@ -36,6 +36,7 @@ import Pricing from "./pages/Pricing";
 import Careers from "./pages/Careers";
 import Legal from "./pages/Legal";
 import Landing from "./pages/Landing";
+import Research from "./pages/Research";
 import ConsentBanner from "./components/ConsentBanner";
 
 const queryClient = new QueryClient({
@@ -83,7 +84,8 @@ const queryClient = new QueryClient({
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/careers" element={<Careers />} />
             <Route path="/legal" element={<Legal />} />
-           <Route path="*" element={<NotFound />} />
+            <Route path="/research" element={<Research />} />
+            <Route path="*" element={<NotFound />} />
          </Routes>
          <EnhancedCommandPalette />
          <GlobalAIAssistant />
