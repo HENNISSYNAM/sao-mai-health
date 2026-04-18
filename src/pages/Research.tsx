@@ -50,7 +50,7 @@ export default function Research() {
       {/* Trust indicator */}
       <Card className="mb-4 border-primary/20 bg-primary/5">
         <CardContent className="py-3 px-4 flex items-start gap-3">
-          <div className="h-2 w-2 rounded-full bg-emerald-500 mt-2 animate-pulse flex-shrink-0" />
+          <div className="h-2 w-2 rounded-full bg-primary mt-2 animate-pulse flex-shrink-0" />
           <div className="text-xs sm:text-sm">
             <span className="font-semibold">Nguồn xác thực cao:</span>{' '}
             <span className="text-muted-foreground">
