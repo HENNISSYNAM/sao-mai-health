@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMedicalIntelligence, type MedicalInsight } from "@/hooks/useMedicalIntelligence";
 import { useMedicalResearch } from "@/hooks/useMedicalResearch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,8 +39,23 @@ export default function Research() {
 
   const { insights, isLoading: loadingInsights, isSynthesizing, triggerSynthesis } =
     useMedicalIntelligence(category, 30);
-  const { articles, isLoading: loadingArticles, isFetching, triggerFetch } =
+  const { articles, isLoading: loadingArticles, triggerFetch } =
     useMedicalResearch(category, 30);
+
+  // Auto-bootstrap: if DB empty after initial load, silently fetch in background
+  useEffect(() => {
+    if (!loadingArticles && articles.length === 0) {
+      triggerFetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingArticles]);
+
+  useEffect(() => {
+    if (!loadingInsights && insights.length === 0 && articles.length > 0 && !isSynthesizing) {
+      triggerSynthesis();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingInsights, articles.length]);
 
   return (
     <div className="container mx-auto px-2 sm:px-4 py-4 max-w-6xl">
