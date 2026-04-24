@@ -85,6 +85,7 @@ export function DiseaseAnalyticsSummary() {
       setHourly(data?.diseaseCases?.hourly || data?.strokeCases?.hourly || []);
       setByAge(data?.strokeCases?.byAge || []);
       setByDistrict(data?.strokeCases?.byDistrict || []);
+      setLastUpdate(new Date());
     } catch (err) {
       console.error('Error fetching disease analytics:', err);
     } finally {
