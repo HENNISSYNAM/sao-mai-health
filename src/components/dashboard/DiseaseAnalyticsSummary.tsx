@@ -125,30 +125,50 @@ export function DiseaseAnalyticsSummary() {
     );
   }
 
+  // Reconciled total: sum of the disease cards actually displayed (top 6)
+  // This guarantees: total = card1 + card2 + ... + cardN. No more "77 vs 300066" mismatch.
+  const visibleDiseases = diseases.slice(0, 6);
+  const reconciledTotal = visibleDiseases.reduce((sum, d) => sum + (d.today || 0), 0);
+  const updateLabel = formatUpdateTime(lastUpdate, isVi ? 'vi-VN' : 'en-US');
+  const totalTooltip = isVi
+    ? `Tổng ca xác nhận lâm sàng trong tuần (cộng dồn từ ${visibleDiseases.length} bệnh hiển thị bên dưới). Cập nhật lúc ${updateLabel}.`
+    : `Total confirmed clinical cases this week (sum of the ${visibleDiseases.length} diseases shown below). Updated at ${updateLabel}.`;
+
   return (
     <Card className="p-4 space-y-4 border-border">
       {/* Header */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-primary/10">
-            <Activity className="h-4 w-4 text-primary" />
+        <div className="flex items-center gap-2 min-w-0 flex-wrap">
+          <div className="p-1.5 rounded-lg bg-blue-500/10">
+            <Stethoscope className="h-4 w-4 text-blue-600" />
           </div>
           <h3 className="font-semibold text-sm">
             {isVi ? 'Phân tích Dịch tễ' : 'Disease Analytics'}
           </h3>
-          <Badge variant="outline" className="text-[10px]">
-            {totalToday} {isVi ? 'ca' : 'cases'}
+          <Badge
+            variant="outline"
+            className="text-[10px] gap-1 border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/5"
+          >
+            <Stethoscope className="h-3 w-3" />
+            {reconciledTotal.toLocaleString(isVi ? 'vi-VN' : 'en-US')} {isVi ? 'ca xác nhận' : 'confirmed'}
           </Badge>
+          <MetricInfoTooltip content={totalTooltip} />
+          <span className="text-[10px] text-muted-foreground hidden sm:inline">
+            {isVi ? 'Cập nhật:' : 'Updated:'} {updateLabel}
+          </span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-xs gap-1 text-primary"
-          onClick={() => navigate('/stroke-risk')}
-        >
-          {isVi ? 'Chi tiết' : 'Details'}
-          <ArrowRight className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <MetricLegend variant="icon" />
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-xs gap-1 text-primary"
+            onClick={() => navigate('/stroke-risk')}
+          >
+            {isVi ? 'Chi tiết' : 'Details'}
+            <ArrowRight className="h-3 w-3" />
+          </Button>
+        </div>
       </div>
 
       {/* Disease Filter */}
@@ -158,9 +178,9 @@ export function DiseaseAnalyticsSummary() {
           className="cursor-pointer text-[11px] px-2 py-0.5"
           onClick={() => setSelectedDisease(null)}
         >
-          {isVi ? 'Tất cả' : 'All'} ({totalToday})
+          {isVi ? 'Tất cả' : 'All'} ({reconciledTotal.toLocaleString(isVi ? 'vi-VN' : 'en-US')})
         </Badge>
-        {diseases.slice(0, 6).map(d => (
+        {visibleDiseases.map(d => (
           <Badge
             key={d.id}
             variant={selectedDisease === d.id ? "default" : "outline"}
@@ -179,39 +199,51 @@ export function DiseaseAnalyticsSummary() {
 
       {/* Disease KPI Cards */}
       <div className="flex gap-2.5 overflow-x-auto pb-1 -mx-1 px-1">
-        {(selectedDisease ? diseases.filter(d => d.id === selectedDisease) : diseases).slice(0, 6).map(d => (
-          <div
-            key={d.id}
-            className="min-w-[150px] flex-shrink-0 rounded-xl border bg-card p-3 space-y-1"
-          >
-            <div className="flex items-center gap-1.5">
-              <span style={{ color: d.color }}>{DISEASE_ICON_MAP[d.icon]}</span>
-              <span className="text-[11px] font-medium text-muted-foreground truncate">{d.name}</span>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "text-[9px] px-1 py-0 ml-auto",
-                  d.source === 'database'
-                    ? "text-success border-success/30"
-                    : "text-purple-500 border-purple-300"
-                )}
-              >
-                {d.source === 'database' ? 'DB' : 'AI'}
-              </Badge>
+        {(selectedDisease ? visibleDiseases.filter(d => d.id === selectedDisease) : visibleDiseases).map(d => {
+          const sourceLabel = d.source === 'database'
+            ? (isVi ? 'Bộ Y tế' : 'Ministry of Health')
+            : (isVi ? 'Tin tức + AI' : 'News + AI');
+          const cardTooltip = isVi
+            ? `${d.name}: ${d.today} ca trong tuần. Nguồn: ${sourceLabel}. Cập nhật ${updateLabel}.`
+            : `${d.name}: ${d.today} cases this week. Source: ${sourceLabel}. Updated ${updateLabel}.`;
+          return (
+            <div
+              key={d.id}
+              className="min-w-[170px] flex-shrink-0 rounded-xl border bg-card p-3 space-y-1"
+            >
+              <div className="flex items-center gap-1.5">
+                <span style={{ color: d.color }}>{DISEASE_ICON_MAP[d.icon]}</span>
+                <span className="text-[11px] font-medium text-muted-foreground truncate">{d.name}</span>
+                <MetricInfoTooltip content={cardTooltip} className="ml-0.5" />
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-[9px] px-1 py-0 ml-auto",
+                    d.source === 'database'
+                      ? "text-blue-600 border-blue-500/30 bg-blue-500/5"
+                      : "text-amber-600 border-amber-500/30 bg-amber-500/5"
+                  )}
+                >
+                  {d.source === 'database' ? (isVi ? 'Bộ Y tế' : 'MoH') : (isVi ? 'Tin tức+AI' : 'News+AI')}
+                </Badge>
+              </div>
+              <p className="text-xl font-bold" style={{ color: d.color }}>{d.today}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">{isVi ? 'Tuần' : 'Week'}: {d.week}</span>
+                <span className={cn(
+                  "flex items-center gap-0.5 text-[10px] font-medium",
+                  d.trend >= 0 ? "text-destructive" : "text-success"
+                )}>
+                  {d.trend >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
+                  {Math.abs(d.trend)}%
+                </span>
+              </div>
+              <p className="text-[9px] text-muted-foreground/80 truncate">
+                {isVi ? 'Cập nhật:' : 'Upd:'} {updateLabel}
+              </p>
             </div>
-            <p className="text-xl font-bold" style={{ color: d.color }}>{d.today}</p>
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground">{isVi ? 'Tuần' : 'Week'}: {d.week}</span>
-              <span className={cn(
-                "flex items-center gap-0.5 text-[10px] font-medium",
-                d.trend >= 0 ? "text-destructive" : "text-success"
-              )}>
-                {d.trend >= 0 ? <TrendingUp className="h-2.5 w-2.5" /> : <TrendingDown className="h-2.5 w-2.5" />}
-                {Math.abs(d.trend)}%
-              </span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Charts Row */}
