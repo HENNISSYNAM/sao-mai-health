@@ -11,7 +11,8 @@ import {
   Search, Filter, Download, Eye, Loader2, RefreshCw, Plus,
   Users, Activity, AlertTriangle, List, X, FileText,
   Layers, ChevronUp, Shield, MapPin, Crosshair, Printer, Share2,
-  Thermometer, Bug, Syringe, HeartPulse, Building2, Newspaper, ExternalLink
+  Thermometer, Bug, Syringe, HeartPulse, Building2, Newspaper, ExternalLink,
+  Stethoscope, Sparkles
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
