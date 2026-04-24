@@ -12,11 +12,14 @@ import {
 import {
   Activity, Clock, Users, MapPin, ArrowRight,
   TrendingUp, TrendingDown, Bug, Heart, Hand,
-  Thermometer, Shield, Circle, AlertTriangle, Wind, Database
+  Thermometer, Shield, Circle, AlertTriangle, Wind, Database, Stethoscope
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useGPS } from '@/hooks/useGPS';
+import { MetricInfoTooltip } from '@/components/metrics/MetricInfoTooltip';
+import { MetricLegend } from '@/components/metrics/MetricLegend';
+import { formatUpdateTime } from '@/lib/metricTypes';
 
 interface DiseaseCase {
   id: string;
