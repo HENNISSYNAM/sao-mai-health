@@ -1874,9 +1874,9 @@ export default function Surveillance() {
       {/* ====== BOTTOM BAR ====== */}
       <div className="absolute bottom-[4.5rem] md:bottom-3 left-2 md:left-3 right-2 md:right-3 z-10">
         <div className="flex items-center gap-1.5 md:gap-2 mb-2 overflow-x-auto pb-1 scrollbar-hide">
-          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-card/90 backdrop-blur-md shadow-lg border border-border/50 text-xs font-medium shrink-0 hover:bg-card transition-colors">
+          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-card/90 backdrop-blur-md shadow-lg border border-border/50 text-xs font-medium shrink-0 hover:bg-card transition-colors" title="Mở bảng tổng hợp dữ liệu">
             <Activity className="h-3.5 w-3.5 text-primary" />
-            <span>{totalCaseCount + newsCaseCount} ca</span>
+            <span>{totalCaseCount.toLocaleString('vi-VN')} ca xác nhận</span>
             <ChevronUp className={`h-3 w-3 transition-transform ${showStats ? 'rotate-180' : ''}`} />
           </button>
 
@@ -1885,15 +1885,21 @@ export default function Surveillance() {
             <span>Danh sách</span>
           </button>
 
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-destructive/10 backdrop-blur-md shadow-lg border border-destructive/20 text-xs font-medium shrink-0">
-            <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-            <span className="text-destructive">{stats.confirmed} xác nhận</span>
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-blue-500/10 backdrop-blur-md shadow-lg border border-blue-500/30 text-xs font-medium shrink-0" title="Ca bệnh đã xác nhận lâm sàng từ Bộ Y tế / HCDC">
+            <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
+            <span className="text-blue-600 dark:text-blue-400">{stats.confirmed.toLocaleString('vi-VN')} xác nhận lâm sàng</span>
           </div>
 
           {newsCaseCount > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary/10 backdrop-blur-md shadow-lg border border-primary/20 text-xs font-medium shrink-0">
-              <Newspaper className="h-3.5 w-3.5 text-primary" />
-              <span className="text-primary">{newsCaseCount.toLocaleString('vi-VN')} từ tin tức</span>
+            <div
+              className="flex flex-col items-start gap-0.5 px-3 py-1.5 rounded-2xl bg-amber-500/10 backdrop-blur-md shadow-lg border border-amber-500/30 text-xs font-medium shrink-0"
+              title="Tín hiệu thô trích xuất từ tin tức và mạng xã hội bằng AI — chưa qua xác minh lâm sàng"
+            >
+              <div className="flex items-center gap-1.5">
+                <Newspaper className="h-3.5 w-3.5 text-amber-600" />
+                <span className="text-amber-600 dark:text-amber-400 font-semibold">{newsCaseCount.toLocaleString('vi-VN')} tín hiệu</span>
+              </div>
+              <span className="text-[9px] text-amber-700/70 dark:text-amber-400/70 leading-tight">Tín hiệu thô từ tin tức, chưa xác minh</span>
             </div>
           )}
 
