@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ExternalLink, RefreshCw, BookOpen, FlaskConical, Brain, Activity, Globe2, Calendar,
+  ExternalLink, BookOpen, FlaskConical, Brain, Activity, Globe2, Calendar,
   Sparkles, Stethoscope, Users, Zap, Network, FileText, AlertTriangle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
