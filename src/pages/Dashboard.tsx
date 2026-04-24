@@ -15,6 +15,7 @@ import { DiseaseAnalyticsSummary } from "@/components/dashboard/DiseaseAnalytics
 import { HealthNewsFeed } from "@/components/dashboard/HealthNewsFeed";
 import { LivingAIChart } from "@/components/dashboard/LivingAIChart";
 import { MedicalBrainWidget } from "@/components/dashboard/MedicalBrainWidget";
+import { MetricLegend } from "@/components/metrics/MetricLegend";
 
 
 interface DailyCount {
@@ -214,6 +215,9 @@ export default function Dashboard() {
           <span>Agribank</span>
         </div>
       </Link>
+
+      {/* Floating data legend — accessible from anywhere on the dashboard */}
+      <MetricLegend variant="floating" />
     </div>
   );
 }

@@ -11,7 +11,8 @@ import {
   Search, Filter, Download, Eye, Loader2, RefreshCw, Plus,
   Users, Activity, AlertTriangle, List, X, FileText,
   Layers, ChevronUp, Shield, MapPin, Crosshair, Printer, Share2,
-  Thermometer, Bug, Syringe, HeartPulse, Building2, Newspaper, ExternalLink
+  Thermometer, Bug, Syringe, HeartPulse, Building2, Newspaper, ExternalLink,
+  Stethoscope, Sparkles
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -26,6 +27,8 @@ import { useGPS } from "@/hooks/useGPS";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MetricLegend } from "@/components/metrics/MetricLegend";
+import { MetricInfoTooltip } from "@/components/metrics/MetricInfoTooltip";
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
@@ -1874,9 +1877,9 @@ export default function Surveillance() {
       {/* ====== BOTTOM BAR ====== */}
       <div className="absolute bottom-[4.5rem] md:bottom-3 left-2 md:left-3 right-2 md:right-3 z-10">
         <div className="flex items-center gap-1.5 md:gap-2 mb-2 overflow-x-auto pb-1 scrollbar-hide">
-          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-card/90 backdrop-blur-md shadow-lg border border-border/50 text-xs font-medium shrink-0 hover:bg-card transition-colors">
+          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-card/90 backdrop-blur-md shadow-lg border border-border/50 text-xs font-medium shrink-0 hover:bg-card transition-colors" title="Mở bảng tổng hợp dữ liệu">
             <Activity className="h-3.5 w-3.5 text-primary" />
-            <span>{totalCaseCount + newsCaseCount} ca</span>
+            <span>{totalCaseCount.toLocaleString('vi-VN')} ca xác nhận</span>
             <ChevronUp className={`h-3 w-3 transition-transform ${showStats ? 'rotate-180' : ''}`} />
           </button>
 
@@ -1885,15 +1888,21 @@ export default function Surveillance() {
             <span>Danh sách</span>
           </button>
 
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-destructive/10 backdrop-blur-md shadow-lg border border-destructive/20 text-xs font-medium shrink-0">
-            <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-            <span className="text-destructive">{stats.confirmed} xác nhận</span>
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-blue-500/10 backdrop-blur-md shadow-lg border border-blue-500/30 text-xs font-medium shrink-0" title="Ca bệnh đã xác nhận lâm sàng từ Bộ Y tế / HCDC">
+            <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
+            <span className="text-blue-600 dark:text-blue-400">{stats.confirmed.toLocaleString('vi-VN')} xác nhận lâm sàng</span>
           </div>
 
           {newsCaseCount > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary/10 backdrop-blur-md shadow-lg border border-primary/20 text-xs font-medium shrink-0">
-              <Newspaper className="h-3.5 w-3.5 text-primary" />
-              <span className="text-primary">{newsCaseCount.toLocaleString('vi-VN')} từ tin tức</span>
+            <div
+              className="flex flex-col items-start gap-0.5 px-3 py-1.5 rounded-2xl bg-amber-500/10 backdrop-blur-md shadow-lg border border-amber-500/30 text-xs font-medium shrink-0"
+              title="Tín hiệu thô trích xuất từ tin tức và mạng xã hội bằng AI — chưa qua xác minh lâm sàng"
+            >
+              <div className="flex items-center gap-1.5">
+                <Newspaper className="h-3.5 w-3.5 text-amber-600" />
+                <span className="text-amber-600 dark:text-amber-400 font-semibold">{newsCaseCount.toLocaleString('vi-VN')} tín hiệu</span>
+              </div>
+              <span className="text-[9px] text-amber-700/70 dark:text-amber-400/70 leading-tight">Tín hiệu thô từ tin tức, chưa xác minh</span>
             </div>
           )}
 
@@ -1933,35 +1942,59 @@ export default function Surveillance() {
         </div>
 
         {showStats && (
-          <div className="bg-card/95 backdrop-blur-md rounded-2xl shadow-xl border border-border/50 p-4 animate-in slide-in-from-bottom-4 duration-300">
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary">{(totalCaseCount + newsCaseCount).toLocaleString('vi-VN')}</p>
-                <p className="text-[10px] text-muted-foreground">Tổng ca</p>
+          <div className="bg-card/95 backdrop-blur-md rounded-2xl shadow-xl border border-border/50 p-4 animate-in slide-in-from-bottom-4 duration-300 space-y-3">
+            {/* Header with legend trigger */}
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-foreground">Tổng hợp dữ liệu giám sát</p>
+              <MetricLegend variant="inline" />
+            </div>
+
+            {/* Group A: Confirmed clinical (blue) */}
+            <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
+                <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">Ca xác nhận lâm sàng</p>
+                <MetricInfoTooltip content="Ca bệnh đã được cơ sở y tế xác nhận và báo cáo. Nguồn: Bộ Y tế · HCDC." />
+                <span className="ml-auto text-[9px] text-muted-foreground">Cập nhật {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-foreground">{totalCaseCount.toLocaleString('vi-VN')}</p>
-                <p className="text-[10px] text-muted-foreground">Ca báo cáo</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-primary">{newsCaseCount.toLocaleString('vi-VN')}</p>
-                <p className="text-[10px] text-muted-foreground">Từ tin tức</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-destructive">{stats.confirmed}</p>
-                <p className="text-[10px] text-muted-foreground">Xác nhận</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-warning">{stats.suspected}</p>
-                <p className="text-[10px] text-muted-foreground">Nghi ngờ</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-success">{stats.todayCases}</p>
-                <p className="text-[10px] text-muted-foreground">Hôm nay</p>
+              <div className="grid grid-cols-4 gap-2">
+                <div className="text-center">
+                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{totalCaseCount.toLocaleString('vi-VN')}</p>
+                  <p className="text-[9px] text-muted-foreground">Tổng ca báo cáo</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{stats.confirmed.toLocaleString('vi-VN')}</p>
+                  <p className="text-[9px] text-muted-foreground">Xác nhận</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-warning">{stats.suspected.toLocaleString('vi-VN')}</p>
+                  <p className="text-[9px] text-muted-foreground">Nghi ngờ</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-success">{stats.todayCases.toLocaleString('vi-VN')}</p>
+                  <p className="text-[9px] text-muted-foreground">Hôm nay</p>
+                </div>
               </div>
             </div>
+
+            {/* Group B: News signals (amber) */}
+            {newsCaseCount > 0 && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+                <div className="flex items-center gap-1.5 mb-2">
+                  <Newspaper className="h-3.5 w-3.5 text-amber-600" />
+                  <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">Tín hiệu từ tin tức</p>
+                  <MetricInfoTooltip content="Tín hiệu thô được trích xuất từ tin tức và mạng xã hội bằng AI. Chưa qua xác minh lâm sàng — chỉ dùng để cảnh báo sớm." />
+                  <span className="ml-auto text-[9px] text-muted-foreground">Nguồn: Tin tức + AI</span>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{newsCaseCount.toLocaleString('vi-VN')}</p>
+                  <p className="text-[10px] text-muted-foreground">tín hiệu (chưa xác minh)</p>
+                </div>
+              </div>
+            )}
+
             {hotspotCaseCount > 0 && (
-              <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-center gap-4 text-xs text-muted-foreground">
+              <div className="pt-2 border-t border-border/50 flex items-center justify-center gap-4 text-xs text-muted-foreground">
                 <span>🔥 Điểm nóng: <strong className="text-warning">{hotspotCaseCount.toLocaleString('vi-VN')} ca</strong></span>
                 <span>📍 {allCaseEvents.length} có tọa độ GPS</span>
               </div>
