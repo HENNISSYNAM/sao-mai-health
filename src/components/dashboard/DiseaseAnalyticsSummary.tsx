@@ -62,6 +62,7 @@ export function DiseaseAnalyticsSummary() {
   const [byAge, setByAge] = useState<{ ageGroup: string; cases: number; percentage: number }[]>([]);
   const [byDistrict, setByDistrict] = useState<{ district: string; cases: number; change: number }[]>([]);
   const [selectedDisease, setSelectedDisease] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
 
   const fetchData = useCallback(async () => {
     try {
