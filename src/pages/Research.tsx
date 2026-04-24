@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMedicalIntelligence, type MedicalInsight } from "@/hooks/useMedicalIntelligence";
 import { useMedicalResearch } from "@/hooks/useMedicalResearch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  ExternalLink, RefreshCw, BookOpen, FlaskConical, Brain, Activity, Globe2, Calendar,
+  ExternalLink, BookOpen, FlaskConical, Brain, Activity, Globe2, Calendar,
   Sparkles, Stethoscope, Users, Zap, Network, FileText, AlertTriangle,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -39,8 +39,23 @@ export default function Research() {
 
   const { insights, isLoading: loadingInsights, isSynthesizing, triggerSynthesis } =
     useMedicalIntelligence(category, 30);
-  const { articles, isLoading: loadingArticles, isFetching, triggerFetch } =
+  const { articles, isLoading: loadingArticles, triggerFetch } =
     useMedicalResearch(category, 30);
+
+  // Auto-bootstrap: if DB empty after initial load, silently fetch in background
+  useEffect(() => {
+    if (!loadingArticles && articles.length === 0) {
+      triggerFetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingArticles]);
+
+  useEffect(() => {
+    if (!loadingInsights && insights.length === 0 && articles.length > 0 && !isSynthesizing) {
+      triggerSynthesis();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingInsights, articles.length]);
 
   return (
     <div className="container mx-auto px-2 sm:px-4 py-4 max-w-6xl">
@@ -159,23 +174,18 @@ export default function Research() {
 
         {/* TAB 1: Insights */}
         <TabsContent value="insights" className="mt-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <p>
               {insights.length} tri thức · chế độ{" "}
               <span className="font-semibold text-foreground">
                 {mode === "clinician" ? "Chuyên gia" : "Cộng đồng"}
               </span>
             </p>
-            <Button
-              onClick={triggerSynthesis}
-              disabled={isSynthesizing}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              <Sparkles className={cn("h-4 w-4", isSynthesizing && "animate-pulse")} />
-              {isSynthesizing ? "Đang tổng hợp…" : "Sinh tri thức"}
-            </Button>
+            {isSynthesizing && (
+              <span className="flex items-center gap-1.5 text-primary">
+                <Sparkles className="h-3.5 w-3.5 animate-pulse" /> AI đang tổng hợp…
+              </span>
+            )}
           </div>
 
           {loadingInsights ? (
@@ -192,12 +202,9 @@ export default function Research() {
           ) : insights.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center text-muted-foreground">
-                <Brain className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                <p className="font-medium">Bộ não chưa sinh tri thức nào</p>
-                <p className="text-xs mt-1">Cần thêm nghiên cứu PubMed và tin tức dịch tễ để AI đối chiếu.</p>
-                <Button onClick={triggerSynthesis} variant="link" className="mt-2">
-                  Kích hoạt tổng hợp ngay
-                </Button>
+                <Brain className="h-12 w-12 mx-auto mb-3 opacity-30 animate-pulse" />
+                <p className="font-medium">Bộ não đang khởi động…</p>
+                <p className="text-xs mt-1">AI tự thu thập nghiên cứu (PubMed, Europe PMC, medRxiv) và đối chiếu chéo. Vui lòng quay lại sau ít phút.</p>
               </CardContent>
             </Card>
           ) : (
@@ -205,17 +212,14 @@ export default function Research() {
           )}
         </TabsContent>
 
-        {/* TAB 2: Research (PubMed) */}
+        {/* TAB 2: Research (multi-source) */}
         <TabsContent value="research" className="mt-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">
-              {articles.length} bài · Nguồn: PubMed/NIH (NLM)
-            </p>
-            <Button onClick={triggerFetch} disabled={isFetching} variant="outline" size="sm" className="gap-2">
-              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-              {isFetching ? "Đang quét…" : "Cập nhật PubMed"}
-            </Button>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            {articles.length} bài · Nguồn:{" "}
+            <span className="font-medium text-foreground">PubMed/NIH</span>,{" "}
+            <span className="font-medium text-foreground">Europe PMC</span>,{" "}
+            <span className="font-medium text-foreground">medRxiv</span>
+          </p>
 
           {loadingArticles ? (
             Array.from({ length: 3 }).map((_, i) => (
