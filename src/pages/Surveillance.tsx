@@ -27,6 +27,8 @@ import { useGPS } from "@/hooks/useGPS";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { MetricLegend } from "@/components/metrics/MetricLegend";
+import { MetricInfoTooltip } from "@/components/metrics/MetricInfoTooltip";
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
