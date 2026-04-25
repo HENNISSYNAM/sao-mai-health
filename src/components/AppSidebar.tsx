@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import {
-  Activity, Brain, MapPin, Dna, AlertTriangle, BarChart3,
+  Activity, Brain, MapPin, AlertTriangle, BarChart3,
   Settings, HelpCircle, Menu, FlaskConical, ClipboardPlus,
   Users, Package, CalendarDays, Radio, Shield,
 } from "lucide-react";
@@ -76,7 +76,6 @@ export function AppSidebar() {
     { titleKey: "nav.patients",     title: t("nav.patients", "Bệnh nhân"),    url: "/patients",     icon: Users         },
     { titleKey: "nav.appointments", title: t("nav.appointments", "Lịch hẹn"), url: "/appointments", icon: CalendarDays  },
     { titleKey: "nav.strokeRisk",   title: t("nav.strokeRisk"),               url: "/stroke-risk",  icon: Brain         },
-    { titleKey: "nav.bioVault",     title: t("nav.bioVault", "BioVault"),      url: "/bio-vault",    icon: Dna           },
     { titleKey: "nav.maps",         title: t("nav.maps"),                     url: "/maps",         icon: MapPin        },
     { titleKey: "nav.stocks",       title: t("nav.stocks", "Kho vật tư"),      url: "/stocks",       icon: Package       },
   ];

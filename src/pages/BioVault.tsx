@@ -13,7 +13,6 @@ import {
   Plus, History, TrendingUp, Cpu, Share2, Lock
 } from 'lucide-react';
 import { DigitalTwin3D } from '@/components/biovault/DigitalTwin3D';
-import { Face3DHealthScanner, FacialHealthData } from '@/components/biovault/Face3DHealthScanner';
 import { BioVaultUploader } from '@/components/biovault/BioVaultUploader';
 import { HealthProfile } from '@/components/biovault/HealthProfile';
 import { PersonalRiskEngine } from '@/components/biovault/PersonalRiskEngine';
