@@ -1,0 +1,1 @@
+ALTER TABLE public.health_news_articles ADD COLUMN IF NOT EXISTS case_count integer DEFAULT NULL;
