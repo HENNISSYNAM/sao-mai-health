@@ -1,21 +1,38 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { Suspense, useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeDailyCounts, useRealtimeAlerts } from "@/hooks/useRealtimeHealth";
-import { Heart, Activity, Newspaper, Brain } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Heart, Activity, Newspaper, Brain, ClipboardPlus, BarChart3, FileText, Sparkles } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useGPS } from "@/hooks/useGPS";
+import { useDemoMode } from "@/hooks/useDemoMode";
+import { WeeklyReportModal } from "@/components/reports/WeeklyReportModal";
+import { invokeWithTimeout } from "@/lib/invokeWithTimeout";
 
-// Dashboard Sections
+// Always-visible sections — loaded eagerly
 import { VerifiedKpiSection } from "@/components/dashboard/VerifiedKpiSection";
 import { DiseaseIntelligenceSummary } from "@/components/dashboard/DiseaseIntelligenceSummary";
-import { DiseaseAnalyticsSummary } from "@/components/dashboard/DiseaseAnalyticsSummary";
-import { HealthNewsFeed } from "@/components/dashboard/HealthNewsFeed";
-import { LivingAIChart } from "@/components/dashboard/LivingAIChart";
-import { MedicalBrainWidget } from "@/components/dashboard/MedicalBrainWidget";
 import { MetricLegend } from "@/components/metrics/MetricLegend";
+
+// Tab content & below-fold sections — loaded on demand
+const LivingAIChart = React.lazy(() =>
+  import("@/components/dashboard/LivingAIChart").then(m => ({ default: m.LivingAIChart }))
+);
+const DiseaseAnalyticsSummary = React.lazy(() =>
+  import("@/components/dashboard/DiseaseAnalyticsSummary").then(m => ({ default: m.DiseaseAnalyticsSummary }))
+);
+const HealthNewsFeed = React.lazy(() =>
+  import("@/components/dashboard/HealthNewsFeed").then(m => ({ default: m.HealthNewsFeed }))
+);
+const MedicalBrainWidget = React.lazy(() =>
+  import("@/components/dashboard/MedicalBrainWidget").then(m => ({ default: m.MedicalBrainWidget }))
+);
+
+const TabFallback = () => <Skeleton className="h-[300px] rounded-xl" />;
 
 
 interface DailyCount {
@@ -39,10 +56,13 @@ interface Alert {
 
 export default function Dashboard() {
   const { i18n } = useTranslation();
+  const navigate = useNavigate();
   const [dailyCounts, setDailyCounts] = useState<DailyCount[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [loading, setLoading] = useState(true);
   const { gps: userGPS } = useGPS();
+  const { isDemo, demoDailyCounts, demoAlerts } = useDemoMode();
+  const [showReport, setShowReport] = useState(false);
 
   // Realtime subscriptions
   const { isConnected: countsConnected } = useRealtimeDailyCounts(() => {
@@ -57,14 +77,11 @@ export default function Dashboard() {
 
   const fetchInitialData = useCallback(async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-hcmc-data', {
-        body: { type: 'diseases' }
-      });
-
-      if (error) {
-        console.error('Error fetching HCMC disease data:', error);
-        return;
-      }
+      const data = await invokeWithTimeout<{ success: boolean; data: any[] }>('fetch-hcmc-data', {
+        body: { type: 'diseases' },
+        timeoutMs: 20_000,
+        retries: 1,
+      }).catch(err => { console.error('Error fetching HCMC disease data:', err); return null; });
 
       if (data?.success && data?.data) {
         const formattedData: DailyCount[] = data.data.map((item: any) => ({
@@ -84,14 +101,11 @@ export default function Dashboard() {
 
   const fetchAlerts = useCallback(async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-hcmc-data', {
-        body: { type: 'alerts' }
-      });
-
-      if (error) {
-        console.error('Error fetching HCMC alerts:', error);
-        return;
-      }
+      const data = await invokeWithTimeout<{ success: boolean; data: any[] }>('fetch-hcmc-data', {
+        body: { type: 'alerts' },
+        timeoutMs: 20_000,
+        retries: 1,
+      }).catch(err => { console.error('Error fetching HCMC alerts:', err); return null; });
 
       if (data?.success && data?.data) {
         const formattedAlerts: Alert[] = data.data.map((item: any) => ({
@@ -147,16 +161,84 @@ export default function Dashboard() {
 
   const isVi = i18n.language === 'vi';
 
+  // Use demo data when no real data yet or in demo mode
+  const displayCounts = dailyCounts.length > 0 ? dailyCounts : demoDailyCounts;
+  const displayAlerts = alerts.length > 0 ? alerts : demoAlerts;
+  const hasNoData = displayCounts.length === 0 && displayAlerts.length === 0;
+
+  if (hasNoData) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 space-y-4">
+        <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+          <BarChart3 className="h-10 w-10 text-primary/40 mx-auto" />
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            {isVi ? 'Chưa có dữ liệu dịch tễ' : 'No surveillance data yet'}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1 max-w-xs mx-auto">
+            {isVi
+              ? 'Bắt đầu bằng cách nhập ca bệnh đầu tiên để dashboard hiển thị thống kê.'
+              : 'Start by entering the first case to populate the dashboard.'}
+          </p>
+        </div>
+        <Button onClick={() => navigate('/case-intake')} className="gap-2">
+          <ClipboardPlus className="h-4 w-4" />
+          {isVi ? 'Nhập ca bệnh' : 'Enter a case'}
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-5 max-w-[1400px] mx-auto">
+      {/* Demo mode banner */}
+      {isDemo && dailyCounts.length === 0 && (
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800/50 animate-fade-up">
+          <Sparkles className="h-4 w-4 text-amber-600 flex-shrink-0" />
+          <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-300 flex-1">
+            <strong>Demo mode</strong> — dữ liệu tổng hợp TP.HCM Q1/2025. Đăng nhập để xem dữ liệu thực tế của đơn vị bạn.
+          </p>
+          <Button size="sm" variant="outline" className="h-7 text-xs border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300" onClick={() => navigate('/auth')}>
+            Đăng nhập
+          </Button>
+        </div>
+      )}
+
+      {/* Header row: title + export button */}
+      <div className="flex items-center justify-between animate-fade-up">
+        <div>
+          <h1 className="text-lg sm:text-xl font-bold text-foreground">
+            {isVi ? 'Tổng quan dịch tễ' : 'Surveillance Overview'}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {isVi ? 'Dữ liệu cập nhật theo thời gian thực' : 'Real-time data'}
+            {isDemo && dailyCounts.length === 0 && (
+              <Badge variant="secondary" className="ml-2 text-[10px] h-4 px-1.5">Demo</Badge>
+            )}
+          </p>
+        </div>
+        <Button size="sm" variant="outline" className="gap-2 h-8 text-xs" onClick={() => setShowReport(true)}>
+          <FileText className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Xuất báo cáo A1</span>
+          <span className="sm:hidden">Báo cáo</span>
+        </Button>
+      </div>
+
       {/* KPI Cards - Always visible */}
       <div className="animate-fade-up">
-        <VerifiedKpiSection 
-          dailyCounts={dailyCounts}
-          alerts={alerts}
+        <VerifiedKpiSection
+          dailyCounts={displayCounts}
+          alerts={displayAlerts}
           isConnected={isConnected}
         />
       </div>
+
+      <WeeklyReportModal
+        open={showReport}
+        onClose={() => setShowReport(false)}
+        dailyCounts={displayCounts}
+      />
 
       {/* Environment Summary - Compact, always visible */}
       <div className="animate-fade-up" style={{ animationDelay: '80ms' }}>
@@ -165,7 +247,9 @@ export default function Dashboard() {
 
       {/* Medical Brain — Tri thức AI thế hệ mới (PubMed × Dịch tễ) */}
       <div className="animate-fade-up" style={{ animationDelay: '100ms' }}>
-        <MedicalBrainWidget />
+        <Suspense fallback={<Skeleton className="h-32 rounded-xl" />}>
+          <MedicalBrainWidget />
+        </Suspense>
       </div>
 
       {/* Tabbed Detail Sections - Reduces visual overload */}
@@ -190,15 +274,21 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="forecast" className="mt-3 animate-fade-up">
-            <LivingAIChart />
+            <Suspense fallback={<TabFallback />}>
+              <LivingAIChart />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-3 animate-fade-up">
-            <DiseaseAnalyticsSummary />
+            <Suspense fallback={<TabFallback />}>
+              <DiseaseAnalyticsSummary />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="news" className="mt-3 animate-fade-up">
-            <HealthNewsFeed />
+            <Suspense fallback={<TabFallback />}>
+              <HealthNewsFeed />
+            </Suspense>
           </TabsContent>
         </Tabs>
       </div>

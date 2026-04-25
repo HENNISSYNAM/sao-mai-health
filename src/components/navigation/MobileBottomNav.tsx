@@ -1,17 +1,16 @@
-import React from 'react';
-import { useTranslation } from 'react-i18next';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { BarChart3, Brain, MapPin, User, LogOut, Settings, HelpCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/useAuth';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import React from "react";
+import { useTranslation } from "react-i18next";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { BarChart3, Brain, ClipboardPlus, AlertTriangle, User, LogOut, Settings, HelpCircle, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const MobileBottomNav: React.FC = () => {
   const { i18n } = useTranslation();
@@ -19,22 +18,24 @@ export const MobileBottomNav: React.FC = () => {
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const { user, isAuthenticated, signOut, getAvatarUrl, getDisplayName } = useAuth();
-  const isVi = i18n.language === 'vi';
+  const { label: roleLabel, isAdmin } = useRole();
+  const isVi = i18n.language === "vi";
 
   const menuItems = [
-    { label: isVi ? 'Tổng quan' : 'Home', url: '/dashboard', icon: BarChart3 },
-    { label: isVi ? 'Dịch tễ' : 'Intel', url: '/stroke-risk', icon: Brain },
-    { label: isVi ? 'Bản đồ' : 'Map', url: '/maps', icon: MapPin },
+    { label: isVi ? "Tổng quan"   : "Home",    url: "/dashboard",   icon: BarChart3      },
+    { label: isVi ? "Nhập ca"     : "Intake",  url: "/case-intake", icon: ClipboardPlus  },
+    { label: isVi ? "Bản đồ"      : "Map",     url: "/maps",        icon: MapPin         },
+    { label: isVi ? "Cảnh báo"    : "Alerts",  url: "/alerts",      icon: AlertTriangle  },
   ];
 
   const isActive = (path: string) => {
-    if (path === '/dashboard') return currentPath === '/dashboard' || currentPath === '/';
+    if (path === "/dashboard") return currentPath === "/dashboard" || currentPath === "/";
     return currentPath.startsWith(path);
   };
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate("/");
   };
 
   return (
@@ -46,28 +47,20 @@ export const MobileBottomNav: React.FC = () => {
             to={item.url}
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 transition-all duration-200",
-              isActive(item.url)
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
+              isActive(item.url) ? "text-primary" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <item.icon
-              className={cn(
-                "h-5 w-5 transition-transform duration-200",
-                isActive(item.url) && "scale-110"
-              )}
+              className={cn("h-5 w-5 transition-transform duration-200", isActive(item.url) && "scale-110")}
               strokeWidth={isActive(item.url) ? 2.5 : 1.5}
             />
-            <span className={cn(
-              "text-[10px] leading-tight",
-              isActive(item.url) ? "font-semibold" : "font-normal"
-            )}>
+            <span className={cn("text-[10px] leading-tight", isActive(item.url) ? "font-semibold" : "font-normal")}>
               {item.label}
             </span>
           </NavLink>
         ))}
 
-        {/* Profile/Login */}
+        {/* Profile / Login */}
         {isAuthenticated ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -79,11 +72,11 @@ export const MobileBottomNav: React.FC = () => {
                   </AvatarFallback>
                 </Avatar>
                 <span className="text-[10px] leading-tight font-normal truncate max-w-[48px]">
-                  {getDisplayName().split(' ')[0]}
+                  {getDisplayName().split(" ")[0]}
                 </span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="top" align="end" className="w-52 mb-2">
+            <DropdownMenuContent side="top" align="end" className="w-56 mb-2">
               <div className="flex items-center gap-2.5 p-2.5 border-b border-border">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={getAvatarUrl() || undefined} alt={getDisplayName()} />
@@ -93,28 +86,38 @@ export const MobileBottomNav: React.FC = () => {
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold truncate">{getDisplayName()}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Badge variant="secondary" className="text-[9px] h-3.5 px-1 py-0">{roleLabel}</Badge>
+                  </div>
                 </div>
               </div>
+              {isAdmin && (
+                <DropdownMenuItem asChild>
+                  <NavLink to="/surveillance" className="flex items-center gap-2.5 cursor-pointer text-sm">
+                    <BarChart3 className="h-4 w-4" />
+                    <span>{isVi ? "Giám sát dịch" : "Surveillance"}</span>
+                  </NavLink>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <NavLink to="/settings" className="flex items-center gap-2.5 cursor-pointer text-sm">
                   <Settings className="h-4 w-4" />
-                  <span>{isVi ? 'Cài đặt' : 'Settings'}</span>
+                  <span>{isVi ? "Cài đặt" : "Settings"}</span>
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <NavLink to="/help" className="flex items-center gap-2.5 cursor-pointer text-sm">
                   <HelpCircle className="h-4 w-4" />
-                  <span>{isVi ? 'Trợ giúp' : 'Help'}</span>
+                  <span>{isVi ? "Trợ giúp" : "Help"}</span>
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 className="flex items-center gap-2.5 cursor-pointer text-destructive text-sm"
                 onClick={handleSignOut}
               >
                 <LogOut className="h-4 w-4" />
-                <span>{isVi ? 'Đăng xuất' : 'Sign out'}</span>
+                <span>{isVi ? "Đăng xuất" : "Sign out"}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -123,24 +126,14 @@ export const MobileBottomNav: React.FC = () => {
             to="/auth"
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 transition-all duration-200",
-              currentPath === '/auth'
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
+              currentPath === "/auth" ? "text-primary" : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <div className={cn(
-              "h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all",
-              currentPath === '/auth'
-                ? "border-primary bg-primary/10"
-                : "border-muted-foreground/40"
-            )}>
+            <div className={cn("h-6 w-6 rounded-full border-2 flex items-center justify-center", currentPath === "/auth" ? "border-primary bg-primary/10" : "border-muted-foreground/40")}>
               <User className="h-3.5 w-3.5" strokeWidth={1.5} />
             </div>
-            <span className={cn(
-              "text-[10px] leading-tight",
-              currentPath === '/auth' ? "font-semibold" : "font-normal"
-            )}>
-              {isVi ? 'Đăng nhập' : 'Login'}
+            <span className={cn("text-[10px] leading-tight", currentPath === "/auth" ? "font-semibold" : "font-normal")}>
+              {isVi ? "Đăng nhập" : "Login"}
             </span>
           </NavLink>
         )}

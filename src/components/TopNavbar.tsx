@@ -3,12 +3,16 @@ import { useTranslation } from 'react-i18next';
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
   AlertTriangle,
   Bell,
   Activity,
   ChevronRight,
   Heart,
+  LogOut,
+  Settings,
+  User,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -16,12 +20,17 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useUserAlerts } from "@/hooks/useUserAlerts";
+import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
+import { useOrg } from "@/hooks/useOrg";
+import { useNavigate } from "react-router-dom";
 
 interface RealtimeStatus {
   connected: boolean;
@@ -30,11 +39,16 @@ interface RealtimeStatus {
 
 export function TopNavbar() {
   const { t, i18n } = useTranslation();
+  const { user, isAuthenticated, signOut } = useAuth();
+  const { label: roleLabel, isAdmin } = useRole();
+  const { orgName } = useOrg();
+  const navigate = useNavigate();
   const [realtimeStatus, setRealtimeStatus] = useState<RealtimeStatus>({ connected: false });
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    // 30s is plenty for a clock display; 1s causes unnecessary re-renders
+    const timer = setInterval(() => setCurrentTime(new Date()), 30000);
     return () => clearInterval(timer);
   }, []);
 
@@ -64,11 +78,7 @@ export function TopNavbar() {
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString(locale, { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    return date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   };
 
   const formatDate = (date: Date) => {
@@ -82,6 +92,11 @@ export function TopNavbar() {
 
   const { alerts, unreadCount } = useUserAlerts();
   const isVi = i18n.language === 'vi';
+
+  const userInitials = user?.email
+    ? user.email.slice(0, 2).toUpperCase()
+    : "?";
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Người dùng";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
@@ -135,11 +150,11 @@ export function TopNavbar() {
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative rounded-lg h-8 w-8">
+              <Button variant="ghost" size="icon" className="relative rounded-lg h-8 w-8" aria-label="Thông báo">
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-destructive text-destructive-foreground text-[8px] font-bold flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                    {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </Button>
@@ -191,6 +206,54 @@ export function TopNavbar() {
                   <ChevronRight className="h-3 w-3 ml-1" />
                 </Button>
               </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {/* User avatar / auth */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-1.5 rounded-lg px-1.5 py-1 hover:bg-accent transition-colors">
+                <Avatar className="h-7 w-7">
+                  <AvatarFallback className="text-[10px] font-bold bg-primary/10 text-primary">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                {isAuthenticated && (
+                  <span className="hidden sm:block text-xs font-medium text-foreground max-w-[80px] truncate">{displayName}</span>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 rounded-xl">
+              {isAuthenticated ? (
+                <>
+                  <DropdownMenuLabel className="pb-1">
+                    <p className="text-sm font-semibold">{displayName}</p>
+                    <p className="text-[10px] text-muted-foreground font-normal truncate">{user?.email}</p>
+                    <div className="flex items-center gap-1 mt-1 flex-wrap">
+                      <Badge variant="secondary" className="text-[9px] h-3.5 px-1.5 py-0">{roleLabel}</Badge>
+                      <Badge variant="outline" className="text-[9px] h-3.5 px-1.5 py-0 max-w-[110px] truncate">{orgName}</Badge>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => navigate("/settings")}>
+                    <Settings className="h-4 w-4" />
+                    <span>{isVi ? "Cài đặt" : "Settings"}</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="gap-2 cursor-pointer text-destructive focus:text-destructive" onClick={() => signOut()}>
+                    <LogOut className="h-4 w-4" />
+                    <span>{isVi ? "Đăng xuất" : "Sign out"}</span>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Chưa đăng nhập — chế độ xem demo</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => navigate("/auth")}>
+                    <User className="h-4 w-4" />
+                    <span>{isVi ? "Đăng nhập" : "Sign in"}</span>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

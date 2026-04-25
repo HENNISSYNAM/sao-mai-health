@@ -267,7 +267,8 @@ const Landing = () => {
               <Button variant="ghost" size="sm" onClick={() => navigate("/auth")} className={`hidden sm:inline-flex ${c.btnGhost} text-[13px]`}>
                 {t("landing.login")}
               </Button>
-              <Button size="sm" onClick={() => navigate("/dashboard")} className="hidden sm:inline-flex bg-primary hover:bg-primary/90 rounded-full px-5 text-[13px] text-white">
+              <Button size="sm" onClick={() => navigate("/dashboard?demo=true")} className="hidden sm:inline-flex bg-primary hover:bg-primary/90 rounded-full px-5 text-[13px] text-white gap-1.5">
+                <Play className="h-3 w-3 fill-white" />
                 {t("landing.startFree")}
               </Button>
               <Button variant="ghost" size="icon" className={`md:hidden ${c.btnGhost}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>

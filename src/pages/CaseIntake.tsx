@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Scan, Save, User, MapPin, Calendar, Activity } from "lucide-react"
 import { useOfflineStorage } from "@/hooks/useOfflineStorage"
+import { supabase } from "@/integrations/supabase/client"
+import { CCIDScanner } from "@/components/CCIDScanner"
 
 const caseSchema = z.object({
   citizenId: z.string().min(9, "CCCD phải có ít nhất 9 ký tự"),
@@ -39,6 +41,7 @@ const diseaseOptions = [
 
 export default function CaseIntake() {
   const [isScanning, setIsScanning] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const { queueRecord, isOnline } = useOfflineStorage()
@@ -104,34 +107,41 @@ export default function CaseIntake() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [form])
 
-  const scanCitizenId = async () => {
-    setIsScanning(true)
-    
-    // Simulate CCCD scanning - replace with actual scanner integration
-    setTimeout(() => {
-      // Mock data from CCCD scan
-      const mockData = {
-        citizenId: "001234567890",
-        fullName: "Nguyễn Văn An",
-        dateOfBirth: "1985-06-15",
-        address: "123 Nguyễn Thái Học, Phường 1, Quận 1, TP.HCM"
-      }
-      
-      form.setValue('citizenId', mockData.citizenId)
-      form.setValue('fullName', mockData.fullName)
-      form.setValue('dateOfBirth', mockData.dateOfBirth)
-      form.setValue('address', mockData.address)
-      
-      setIsScanning(false)
-      toast.success("Đã quét thành công thông tin từ CCCD")
-    }, 2000)
+  const scanCitizenId = () => {
+    setShowScanner(true)
+  }
+
+  const handleCCIDScanned = (data: { citizenId: string; fullName: string; dateOfBirth: string; gender: "male" | "female" | "other"; address: string }) => {
+    form.setValue('citizenId', data.citizenId)
+    form.setValue('fullName', data.fullName)
+    form.setValue('dateOfBirth', data.dateOfBirth)
+    form.setValue('gender', data.gender)
+    form.setValue('address', data.address)
+    setShowScanner(false)
   }
 
   const onSubmit = async (data: CaseFormData) => {
     try {
       if (isOnline) {
-        // TODO: Call Supabase RPC fn_cases_intake_fast
-        console.log('Submitting case online:', data)
+        const { error } = await supabase.rpc('intake_case_fast', {
+          p_full_name: data.fullName,
+          p_gender: data.gender,
+          p_birth_year: parseInt(data.dateOfBirth.split('-')[0]),
+          p_disease_code: data.disease,
+          p_facility_id: data.facilityId,
+          p_ward_id: data.wardId,
+          p_district_id: '',
+          p_onset_date: data.onsetDate,
+          p_report_date: new Date().toISOString().split('T')[0],
+          p_status: data.status,
+          p_symptoms: { text: data.symptoms || '', severity: data.severity },
+          p_lat: 0,
+          p_lng: 0,
+          p_mpi_hash: btoa(data.citizenId).slice(0, 32),
+          p_address_hash: btoa(unescape(encodeURIComponent(data.address))).slice(0, 32),
+          p_phone_hash: data.phone ? btoa(data.phone).slice(0, 32) : '',
+        })
+        if (error) throw error
         toast.success("Đã nhập ca bệnh thành công")
       } else {
         // Queue for offline sync
@@ -167,9 +177,9 @@ export default function CaseIntake() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={scanCitizenId} disabled={isScanning} variant="outline">
+          <Button onClick={scanCitizenId} variant="outline">
             <Scan className="h-4 w-4 mr-2" />
-            {isScanning ? "Đang quét..." : "Quét CCCD"}
+            Quét CCCD
           </Button>
           <Button type="submit" form="case-form">
             <Save className="h-4 w-4 mr-2" />
@@ -444,6 +454,12 @@ export default function CaseIntake() {
           </Form>
         </CardContent>
       </Card>
+
+      <CCIDScanner
+        open={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScan={handleCCIDScanned}
+      />
     </div>
   )
 }

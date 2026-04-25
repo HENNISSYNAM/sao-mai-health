@@ -4,6 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Bot, Send, Loader2, X, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { invokeWithTimeout } from '@/lib/invokeWithTimeout';
 import { useToast } from '@/hooks/use-toast';
 
 interface Message {
@@ -89,18 +90,18 @@ export const GlobalAIAssistant = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('surveillance-ai', {
-        body: { 
+      const data = await invokeWithTimeout<{ response: string }>('surveillance-ai', {
+        body: {
           query: input || "Phân tích ảnh y tế này như một bác sĩ giàu kinh nghiệm. Giải thích bằng ngôn ngữ đơn giản, dễ hiểu để trẻ con cũng hiểu được.",
-          image: imageToSend 
-        }
+          image: imageToSend,
+        },
+        timeoutMs: 28_000,
+        retries: 1,
       });
 
-      if (error) throw error;
-
-      const assistantMessage: Message = { 
-        role: 'assistant', 
-        content: data.response 
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: data.response,
       };
       setMessages(prev => [...prev, assistantMessage]);
 
