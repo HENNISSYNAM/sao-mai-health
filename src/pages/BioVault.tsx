@@ -360,15 +360,7 @@ const BioVault: React.FC = () => {
       {/* ── Digital Twin Hero ──────────────────────────── */}
       <DigitalTwin3D profile={null} sensorData={deviceSensors} />
 
-      {/* ── Face Scanner Modal ─────────────────────────── */}
-      {showFaceScanner && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Face3DHealthScanner
-            onScanComplete={handleFacialScanComplete}
-            onCancel={() => setShowFaceScanner(false)}
-          />
-        </div>
-      )}
+      {/* Face scanner removed for compliance */}
 
       {/* ── Main Content Tabs ──────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
