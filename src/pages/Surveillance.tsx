@@ -1535,7 +1535,7 @@ export default function Surveillance() {
       <img
         src={staticMapUrl}
         alt="Vietnam surveillance basemap"
-        className={`absolute inset-0 z-0 h-full w-full object-cover transition-opacity duration-300 ${showMapFallback ? 'opacity-100' : 'opacity-0'}`}
+        className={`pointer-events-none absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${showMapFallback ? 'z-[1] opacity-100' : 'z-0 opacity-0'}`}
         draggable={false}
       />
       <div ref={mapContainer} className="absolute inset-0 z-0" />
