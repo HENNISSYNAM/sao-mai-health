@@ -314,8 +314,10 @@ const BioVault: React.FC = () => {
         heartRate: data?.inferredHealth?.estimatedHeartRate,
         oxygenLevel: data?.inferredHealth?.estimatedOxygenLevel,
       },
-      recommendations: data?.recommendations,
-      confidence: data?.confidence,
+      facial_metrics: {},
+      inferred_health: {},
+      recommendations: data?.recommendations ?? [],
+      confidence: data?.confidence ?? 0,
     });
 
     if (encounter) {
