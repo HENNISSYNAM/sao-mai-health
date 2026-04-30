@@ -23,13 +23,10 @@ export async function invokeWithTimeout<T = unknown>(
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const invokePromise = supabase.functions.invoke(functionName, { body });
-      const abortPromise = new Promise<never>((_, reject) => {
-        controller.signal.addEventListener('abort', () =>
-          reject(new DOMException('Aborted', 'AbortError'))
-        );
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body,
+        signal: controller.signal,
       });
-      const { data, error } = await Promise.race([invokePromise, abortPromise]) as Awaited<typeof invokePromise>;
 
       clearTimeout(timer);
 

@@ -18,9 +18,7 @@ import { getICD11Display } from '@/lib/icd11';
 import { getNearestRegion, getRegionDisplayName } from '@/lib/geography';
 import { useUserRiskScorer, type UserMapDot } from '@/hooks/useUserRiskScorer';
 
-mapboxgl.accessToken =
-  import.meta.env.VITE_MAPBOX_TOKEN ||
-  'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
+mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
 interface CasePoint {
   id: string;

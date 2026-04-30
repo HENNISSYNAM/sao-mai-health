@@ -305,19 +305,32 @@ const BioVault: React.FC = () => {
   }, [encounters, selectedEncounter]);
 
   // Handle face scan → create encounter
-  const handleFacialScanComplete = async (data: any) => {
+  const handleFacialScanComplete = async (data: FacialHealthData) => {
     setShowFaceScanner(false);
 
     const encounter = await createEncounter({
       scan_type: 'face_scan',
       vital_signs: {
-        heartRate: data?.inferredHealth?.estimatedHeartRate,
-        oxygenLevel: data?.inferredHealth?.estimatedOxygenLevel,
+        heartRate: data.inferredHealth.estimatedHeartRate,
+        oxygenLevel: data.inferredHealth.estimatedOxygenLevel,
+        stressLevel: data.facialMetrics.stressIndicators,
+        hydration: data.facialMetrics.hydrationLevel,
       },
-      facial_metrics: {},
-      inferred_health: {},
-      recommendations: data?.recommendations ?? [],
-      confidence: data?.confidence ?? 0,
+      facial_metrics: {
+        skinTone: data.facialMetrics.skinTone,
+        skinHealth: data.facialMetrics.skinHealth,
+        stressIndicators: data.facialMetrics.stressIndicators,
+        fatigueSigns: data.facialMetrics.fatigueSigns,
+        symmetryScore: data.facialSymmetry.score,
+      },
+      inferred_health: {
+        bloodPressureRisk: data.inferredHealth.bloodPressureRisk,
+        anemiaSigns: data.inferredHealth.anemiaSigns,
+        jaundiceIndicators: data.inferredHealth.jaundiceIndicators,
+        dehydrationLevel: data.inferredHealth.dehydrationLevel,
+      },
+      recommendations: data.recommendations,
+      confidence: data.confidence,
     });
 
     if (encounter) {
@@ -360,7 +373,15 @@ const BioVault: React.FC = () => {
       {/* ── Digital Twin Hero ──────────────────────────── */}
       <DigitalTwin3D profile={null} sensorData={deviceSensors} />
 
-      {/* Face scanner removed for compliance */}
+      {/* ── Face Scanner Modal ─────────────────────────── */}
+      {showFaceScanner && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Face3DHealthScanner
+            onScanComplete={handleFacialScanComplete}
+            onCancel={() => setShowFaceScanner(false)}
+          />
+        </div>
+      )}
 
       {/* ── Main Content Tabs ──────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
