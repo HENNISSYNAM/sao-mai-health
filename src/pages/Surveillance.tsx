@@ -147,22 +147,6 @@ export default function Surveillance() {
     return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${viewport}/1280x720@2x?access_token=${mapboxgl.accessToken}&logo=false&attribution=false`;
   }, [mapMode]);
 
-  const hasRenderedMapPixels = useCallback(() => {
-    const canvas = map.current?.getCanvas();
-    if (!canvas || canvas.width === 0 || canvas.height === 0) return false;
-
-    try {
-      const gl = (canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
-      if (!gl) return false;
-      const pixel = new Uint8Array(4);
-      gl.readPixels(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-      const [r, g, b, a] = pixel;
-      return a > 0 && !(r > 238 && g > 238 && b > 238);
-    } catch {
-      return false;
-    }
-  }, []);
-
   // ======= LOAD ALL CASE EVENTS FOR MAP + STATS =======
   useEffect(() => {
     const loadAllCases = async () => {
