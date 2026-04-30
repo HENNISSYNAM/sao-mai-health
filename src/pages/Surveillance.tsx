@@ -346,15 +346,11 @@ export default function Surveillance() {
 
     const revealMap = () => {
       setMapLoaded(true);
-      requestAnimationFrame(() => {
-        map.current?.resize();
-        window.setTimeout(() => setShowMapFallback(!hasRenderedMapPixels()), 350);
-      });
+      requestAnimationFrame(() => map.current?.resize());
     };
 
     map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
     map.current.on('load', revealMap);
-    map.current.once('idle', () => setShowMapFallback(!hasRenderedMapPixels()));
     map.current.on('error', () => setShowMapFallback(true));
 
     // Track map interactions for collapsing suggestions
@@ -366,7 +362,7 @@ export default function Surveillance() {
     map.current.on('zoomend', onInteractEnd);
 
     return () => { map.current?.remove(); map.current = null; };
-  }, [hasRenderedMapPixels]);
+  }, []);
 
   // ======= Memoize GeoJSON features =======
   const caseFeaturesGeoJSON = React.useMemo(() => {
