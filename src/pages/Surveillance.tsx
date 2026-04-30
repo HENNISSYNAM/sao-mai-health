@@ -82,6 +82,7 @@ export default function Surveillance() {
 
   // Map state
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [showMapFallback, setShowMapFallback] = useState(true);
   const [showUserDots, setShowUserDots] = useState(true);
   const [showCaseDots, setShowCaseDots] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -138,6 +139,13 @@ export default function Surveillance() {
   const { mapUsers, myRisk, fetchMapUsers } = useUserRiskScorer();
   const { gps } = useGPS();
   const { user } = useAuth();
+
+  const staticMapUrl = React.useMemo(() => {
+    const viewport = mapMode === 'regional' || mapMode === 'crossborder'
+      ? '108,14,3.7,0'
+      : '106.5,16,5.3,0';
+    return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${viewport}/1280x720@2x?access_token=${mapboxgl.accessToken}&logo=false&attribution=false`;
+  }, [mapMode]);
 
   // ======= LOAD ALL CASE EVENTS FOR MAP + STATS =======
   useEffect(() => {
@@ -336,8 +344,14 @@ export default function Surveillance() {
       minZoom: 2,
     });
 
+    const revealMap = () => {
+      setMapLoaded(true);
+      requestAnimationFrame(() => map.current?.resize());
+    };
+
     map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
-    map.current.on('load', () => setMapLoaded(true));
+    map.current.on('load', revealMap);
+    map.current.on('error', () => setShowMapFallback(true));
 
     // Track map interactions for collapsing suggestions
     const onInteractStart = () => setMapInteracting(true);
@@ -379,6 +393,7 @@ export default function Surveillance() {
   // ======= CLUSTER SOURCE + LAYERS (setup once) =======
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
+    if (!map.current.isStyleLoaded()) return;
     // Only set up once
     if (layersInitRef.current) return;
     if (map.current.getSource('cases-cluster')) return;
@@ -1082,6 +1097,7 @@ export default function Surveillance() {
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
     const m = map.current;
+    if (!m.isStyleLoaded()) return;
 
     // Clean up existing hotspot layers
     const layerIds = [
@@ -1496,6 +1512,12 @@ export default function Surveillance() {
 
   return (
     <div className="fixed inset-0 z-[5] top-16 md:left-[3rem]">
+      <img
+        src={staticMapUrl}
+        alt="Vietnam surveillance basemap"
+        className="pointer-events-none absolute inset-0 z-[1] h-full w-full object-cover opacity-100"
+        draggable={false}
+      />
       <div ref={mapContainer} className="absolute inset-0 z-0" />
 
       <style>{`
