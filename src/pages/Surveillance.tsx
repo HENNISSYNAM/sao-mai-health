@@ -370,7 +370,7 @@ export default function Surveillance() {
 
     map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
     map.current.on('load', revealMap);
-    map.current.on('idle', () => setShowMapFallback(!hasRenderedMapPixels()));
+    map.current.once('idle', () => setShowMapFallback(!hasRenderedMapPixels()));
     map.current.on('error', () => setShowMapFallback(true));
 
     // Track map interactions for collapsing suggestions
@@ -413,6 +413,7 @@ export default function Surveillance() {
   // ======= CLUSTER SOURCE + LAYERS (setup once) =======
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
+    if (!map.current.isStyleLoaded()) return;
     // Only set up once
     if (layersInitRef.current) return;
     if (map.current.getSource('cases-cluster')) return;
@@ -1116,6 +1117,7 @@ export default function Surveillance() {
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
     const m = map.current;
+    if (!m.isStyleLoaded()) return;
 
     // Clean up existing hotspot layers
     const layerIds = [
