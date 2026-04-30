@@ -12,8 +12,9 @@ import {
   Users, Activity, AlertTriangle, List, X, FileText,
   Layers, ChevronUp, Shield, MapPin, Crosshair, Printer, Share2,
   Thermometer, Bug, Syringe, HeartPulse, Building2, Newspaper, ExternalLink,
-  Stethoscope, Sparkles
+  Stethoscope, Sparkles, Wind, ThermometerSun, Cloud
 } from "lucide-react";
+import { useEnvironmentData } from "@/hooks/useEnvironmentData";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -30,7 +31,9 @@ import { toast } from "sonner";
 import { MetricLegend } from "@/components/metrics/MetricLegend";
 import { MetricInfoTooltip } from "@/components/metrics/MetricInfoTooltip";
 
-mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
+mapboxgl.accessToken =
+  import.meta.env.VITE_MAPBOX_TOKEN ||
+  'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
 // Vietnam regions for click-to-report
 const vietnamRegions = [
@@ -351,7 +354,11 @@ export default function Surveillance() {
 
     map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
     map.current.on('load', revealMap);
-    map.current.on('error', () => setShowMapFallback(true));
+    map.current.on('error', (e) => {
+      console.error('[Mapbox] error:', e.error);
+      setShowMapFallback(true);
+      toast.error('Không tải được bản đồ. Kiểm tra VITE_MAPBOX_TOKEN hoặc kết nối mạng.');
+    });
 
     // Track map interactions for collapsing suggestions
     const onInteractStart = () => setMapInteracting(true);
@@ -1510,6 +1517,35 @@ export default function Surveillance() {
     dengue: 'bg-destructive', tcm: 'bg-warning', covid19: 'bg-primary', ari: 'bg-success',
   };
 
+  // ======= CLIMATE RISK (Climate Ventures integration) =======
+  const { data: envData, healthImpact: envImpact, loading: envLoading, fetchEnvironmentData } = useEnvironmentData();
+  const [showClimate, setShowClimate] = useState(false);
+
+  // Auto-fetch climate data for HCMC when map loads
+  useEffect(() => {
+    if (mapLoaded) fetchEnvironmentData({ lat: 10.762622, lng: 106.660172 });
+  }, [mapLoaded]);
+
+  const climateRiskColor = (level?: string) => {
+    if (level === 'critical') return 'text-red-500 bg-red-500/10 border-red-500/30';
+    if (level === 'high') return 'text-orange-500 bg-orange-500/10 border-orange-500/30';
+    if (level === 'medium') return 'text-yellow-500 bg-yellow-500/10 border-yellow-500/30';
+    return 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30';
+  };
+
+  // Map climate + disease risk correlation label
+  const climateDiseaseTip = () => {
+    if (!envData) return null;
+    const temp = envData.weather?.temperature ?? 0;
+    const aqi = envData.airQuality?.aqi ?? 0;
+    const hum = envData.weather?.humidity ?? 0;
+    if (temp >= 35 && hum >= 70) return '⚠️ Nóng ẩm → Nguy cơ sốt xuất huyết tăng 40%';
+    if (aqi >= 100) return '⚠️ AQI cao → Nguy cơ viêm hô hấp ở trẻ em tăng cao';
+    if (temp >= 35) return '🌡️ Nhiệt độ cực cao → Nguy cơ đột quỵ nhiệt tăng';
+    if (hum >= 80) return '💧 Độ ẩm cao → Môi trường thuận lợi cho muỗi Aedes';
+    return '✅ Điều kiện khí hậu bình thường';
+  };
+
   return (
     <div className="fixed inset-0 z-[5] top-16 md:left-[3rem]">
       <img
@@ -1682,6 +1718,19 @@ export default function Surveillance() {
         <Button size="icon" variant="secondary" className={`h-9 w-9 md:h-10 md:w-10 rounded-full shadow-lg bg-card/90 backdrop-blur-md ${showNewsPanel ? 'ring-2 ring-primary' : ''}`} onClick={() => { setShowNewsPanel(!showNewsPanel); if (!showNewsPanel && newsArticles.length === 0) loadNewsArticles(); }}>
           <Newspaper className="h-4 w-4" />
         </Button>
+        {/* Climate Risk button */}
+        <Button
+          size="icon"
+          variant="secondary"
+          className={`h-9 w-9 md:h-10 md:w-10 rounded-full shadow-lg bg-card/90 backdrop-blur-md relative ${showClimate ? 'ring-2 ring-orange-400' : ''}`}
+          onClick={() => setShowClimate(v => !v)}
+          title="Rủi ro khí hậu"
+        >
+          <ThermometerSun className="h-4 w-4" />
+          {envImpact && (envImpact.overallRisk === 'critical' || envImpact.overallRisk === 'high') && (
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-orange-500 border-2 border-card animate-pulse" />
+          )}
+        </Button>
       </div>
 
       {/* ====== LAYERS PANEL (enhanced) ====== */}
@@ -1745,6 +1794,87 @@ export default function Surveillance() {
                 Zoom &lt;6: Tỉnh • 6-9: Clusters • &gt;9: Nodes
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ====== CLIMATE RISK PANEL (Climate Ventures: Fields 2+3) ====== */}
+      {showClimate && (
+        <div className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 z-10 w-52 md:w-60">
+          <div className="bg-card/95 backdrop-blur-md rounded-2xl shadow-xl border border-border/50 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ThermometerSun className="h-4 w-4 text-orange-400" />
+                <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Khí hậu & Sức khỏe</span>
+              </div>
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setShowClimate(false)}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+
+            {envLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : envData ? (
+              <>
+                {/* Overall risk badge */}
+                {envImpact && (
+                  <div className={`rounded-xl border px-3 py-2 text-center ${climateRiskColor(envImpact.overallRisk)}`}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider opacity-70">Rủi ro môi trường</p>
+                    <p className="text-lg font-bold capitalize">
+                      {envImpact.overallRisk === 'critical' ? 'Nguy hiểm' :
+                       envImpact.overallRisk === 'high' ? 'Cao' :
+                       envImpact.overallRisk === 'medium' ? 'Trung bình' : 'Thấp'}
+                    </p>
+                    <p className="text-xs opacity-60">Điểm rủi ro: {envImpact.riskScore}/100</p>
+                  </div>
+                )}
+
+                {/* Key metrics */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-muted/50 p-2 text-center">
+                    <Thermometer className="h-3 w-3 mx-auto text-orange-400 mb-0.5" />
+                    <p className="text-sm font-bold">{envData.weather?.temperature?.toFixed(1) ?? '--'}°C</p>
+                    <p className="text-[9px] text-muted-foreground">Nhiệt độ</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 p-2 text-center">
+                    <Wind className="h-3 w-3 mx-auto text-blue-400 mb-0.5" />
+                    <p className="text-sm font-bold">{envData.airQuality?.aqi?.toFixed(0) ?? '--'}</p>
+                    <p className="text-[9px] text-muted-foreground">AQI</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 p-2 text-center">
+                    <Cloud className="h-3 w-3 mx-auto text-sky-400 mb-0.5" />
+                    <p className="text-sm font-bold">{envData.weather?.humidity?.toFixed(0) ?? '--'}%</p>
+                    <p className="text-[9px] text-muted-foreground">Độ ẩm</p>
+                  </div>
+                  <div className="rounded-lg bg-muted/50 p-2 text-center">
+                    <Sparkles className="h-3 w-3 mx-auto text-purple-400 mb-0.5" />
+                    <p className="text-sm font-bold">{envData.airQuality?.pm25?.toFixed(0) ?? '--'}</p>
+                    <p className="text-[9px] text-muted-foreground">PM2.5 µg/m³</p>
+                  </div>
+                </div>
+
+                {/* Disease correlation tip */}
+                {climateDiseaseTip() && (
+                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 leading-snug">{climateDiseaseTip()}</p>
+                  </div>
+                )}
+
+                {/* Source & timestamp */}
+                <p className="text-[9px] text-muted-foreground/50 text-center">
+                  TP.HCM · {new Date(envData.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </>
+            ) : (
+              <div className="text-center py-3">
+                <p className="text-xs text-muted-foreground">Không có dữ liệu</p>
+                <Button size="sm" variant="outline" className="mt-2 text-xs h-7" onClick={() => fetchEnvironmentData({ lat: 10.762622, lng: 106.660172 })}>
+                  Thử lại
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
