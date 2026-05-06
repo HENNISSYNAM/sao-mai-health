@@ -108,7 +108,14 @@ const SEARCH_QUERIES = [
   'Vietnam dengue HFMD measles outbreak cases deaths 2026',
   'Bộ Y tế cảnh báo dịch bệnh COVID cúm số ca tăng',
   'Ho Chi Minh Hanoi disease cases hospital outbreak alert',
-  'WHO ASEAN Vietnam public health surveillance epidemic',
+  // WHO official sources
+  'site:who.int Vietnam disease outbreak surveillance 2026',
+  'WHO Western Pacific Vietnam epidemic alert dengue measles',
+  'site:who.int "Disease Outbreak News" Vietnam Southeast Asia',
+  // Facebook public health pages
+  'site:facebook.com "Bộ Y tế" OR "Sở Y tế" dịch bệnh ca mắc',
+  'site:facebook.com HCDC Vietnam sốt xuất huyết tay chân miệng',
+  'facebook.com/WHOVietnam OR facebook.com/BoYTe cảnh báo dịch',
 ];
 
 async function firecrawlSearch(query: string): Promise<any[]> {
