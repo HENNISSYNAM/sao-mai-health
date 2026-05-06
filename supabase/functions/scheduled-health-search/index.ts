@@ -158,9 +158,9 @@ function sanitizeClassification(val?: string): 'confirmed' | 'emerging' | 'predi
 }
 
 async function performWebSearch(): Promise<RawArticle[]> {
-  console.log('🔍 Starting Firecrawl web search (4 queries in parallel)...');
+  console.log(`🔍 Starting Firecrawl web search (${SEARCH_QUERIES.length} queries: news + WHO + Facebook)...`);
 
-  // Run all 4 queries in parallel for speed
+  // Run all queries in parallel for speed
   const batchResults = await Promise.allSettled(
     SEARCH_QUERIES.map(q => firecrawlSearch(q))
   );
