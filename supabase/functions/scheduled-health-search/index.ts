@@ -108,7 +108,14 @@ const SEARCH_QUERIES = [
   'Vietnam dengue HFMD measles outbreak cases deaths 2026',
   'Bộ Y tế cảnh báo dịch bệnh COVID cúm số ca tăng',
   'Ho Chi Minh Hanoi disease cases hospital outbreak alert',
-  'WHO ASEAN Vietnam public health surveillance epidemic',
+  // WHO official sources
+  'site:who.int Vietnam disease outbreak surveillance 2026',
+  'WHO Western Pacific Vietnam epidemic alert dengue measles',
+  'site:who.int "Disease Outbreak News" Vietnam Southeast Asia',
+  // Facebook public health pages
+  'site:facebook.com "Bộ Y tế" OR "Sở Y tế" dịch bệnh ca mắc',
+  'site:facebook.com HCDC Vietnam sốt xuất huyết tay chân miệng',
+  'facebook.com/WHOVietnam OR facebook.com/BoYTe cảnh báo dịch',
 ];
 
 async function firecrawlSearch(query: string): Promise<any[]> {
@@ -151,9 +158,9 @@ function sanitizeClassification(val?: string): 'confirmed' | 'emerging' | 'predi
 }
 
 async function performWebSearch(): Promise<RawArticle[]> {
-  console.log('🔍 Starting Firecrawl web search (4 queries in parallel)...');
+  console.log(`🔍 Starting Firecrawl web search (${SEARCH_QUERIES.length} queries: news + WHO + Facebook)...`);
 
-  // Run all 4 queries in parallel for speed
+  // Run all queries in parallel for speed
   const batchResults = await Promise.allSettled(
     SEARCH_QUERIES.map(q => firecrawlSearch(q))
   );
