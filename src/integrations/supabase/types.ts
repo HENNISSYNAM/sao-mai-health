@@ -1484,6 +1484,90 @@ export type Database = {
         }
         Relationships: []
       }
+      environment_daily_log: {
+        Row: {
+          air_quality_source: string | null
+          aqi: number | null
+          co: number | null
+          created_at: string
+          humidity: number | null
+          id: string
+          lat: number | null
+          lon: number | null
+          main_pollutant: string | null
+          no2: number | null
+          o3: number | null
+          overall_risk: string | null
+          pm10: number | null
+          pm25: number | null
+          pressure: number | null
+          raw: Json | null
+          recorded_at: string
+          recorded_date: string
+          risk_score: number | null
+          so2: number | null
+          temperature: number | null
+          user_id: string | null
+          uv_index: number | null
+          weather_source: string | null
+          wind_speed: number | null
+        }
+        Insert: {
+          air_quality_source?: string | null
+          aqi?: number | null
+          co?: number | null
+          created_at?: string
+          humidity?: number | null
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          main_pollutant?: string | null
+          no2?: number | null
+          o3?: number | null
+          overall_risk?: string | null
+          pm10?: number | null
+          pm25?: number | null
+          pressure?: number | null
+          raw?: Json | null
+          recorded_at?: string
+          recorded_date?: string
+          risk_score?: number | null
+          so2?: number | null
+          temperature?: number | null
+          user_id?: string | null
+          uv_index?: number | null
+          weather_source?: string | null
+          wind_speed?: number | null
+        }
+        Update: {
+          air_quality_source?: string | null
+          aqi?: number | null
+          co?: number | null
+          created_at?: string
+          humidity?: number | null
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          main_pollutant?: string | null
+          no2?: number | null
+          o3?: number | null
+          overall_risk?: string | null
+          pm10?: number | null
+          pm25?: number | null
+          pressure?: number | null
+          raw?: Json | null
+          recorded_at?: string
+          recorded_date?: string
+          risk_score?: number | null
+          so2?: number | null
+          temperature?: number | null
+          user_id?: string | null
+          uv_index?: number | null
+          weather_source?: string | null
+          wind_speed?: number | null
+        }
+        Relationships: []
+      }
       esg_initiatives: {
         Row: {
           category: string
