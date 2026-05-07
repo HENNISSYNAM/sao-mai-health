@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { Scan, Save, User, MapPin, Calendar, Activity } from "lucide-react"
+import { Scan, Save, User, MapPin, Calendar, Activity, Printer } from "lucide-react"
 import { useOfflineStorage } from "@/hooks/useOfflineStorage"
 import { supabase } from "@/integrations/supabase/client"
 import { CCIDScanner } from "@/components/CCIDScanner"
@@ -111,6 +111,10 @@ export default function CaseIntake() {
     setShowScanner(true)
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
   const handleCCIDScanned = (data: { citizenId: string; fullName: string; dateOfBirth: string; gender: "male" | "female" | "other"; address: string }) => {
     form.setValue('citizenId', data.citizenId)
     form.setValue('fullName', data.fullName)
@@ -176,10 +180,14 @@ export default function CaseIntake() {
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 print:hidden">
           <Button onClick={scanCitizenId} variant="outline">
             <Scan className="h-4 w-4 mr-2" />
             Quét CCCD
+          </Button>
+          <Button onClick={handlePrint} variant="outline">
+            <Printer className="h-4 w-4 mr-2" />
+            In hồ sơ
           </Button>
           <Button type="submit" form="case-form">
             <Save className="h-4 w-4 mr-2" />
