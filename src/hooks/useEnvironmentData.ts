@@ -327,6 +327,39 @@ export function useEnvironmentData() {
       const impact = calculateEnvironmentHealthImpact(envData, userProfile);
       setHealthImpact(impact);
 
+      // Silent persistence to environment_daily_log (fire-and-forget)
+      (async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          const env = envData as EnvironmentData;
+          await supabase.from('environment_daily_log' as any).insert({
+            user_id: user?.id ?? null,
+            lat: env?.location?.lat ?? null,
+            lon: env?.location?.lon ?? null,
+            temperature: env?.weather?.temperature ?? null,
+            humidity: env?.weather?.humidity ?? null,
+            pressure: env?.weather?.pressure ?? null,
+            wind_speed: env?.weather?.windSpeed ?? null,
+            uv_index: env?.weather?.uvIndex ?? null,
+            aqi: env?.airQuality?.aqi ?? null,
+            pm25: env?.airQuality?.pm25 ?? null,
+            pm10: env?.airQuality?.pm10 ?? null,
+            no2: env?.airQuality?.no2 ?? null,
+            so2: env?.airQuality?.so2 ?? null,
+            co: env?.airQuality?.co ?? null,
+            o3: env?.airQuality?.o3 ?? null,
+            main_pollutant: env?.airQuality?.mainPollutant ?? null,
+            weather_source: env?.sources?.weather ?? null,
+            air_quality_source: env?.sources?.airQuality ?? null,
+            risk_score: impact?.riskScore ?? null,
+            overall_risk: impact?.overallRisk ?? null,
+            raw: env as any,
+          });
+        } catch (e) {
+          console.warn('[env-log] silent persist failed', e);
+        }
+      })();
+
       return { environment: envData, impact };
     } catch (err: any) {
       console.error('Error fetching environment data:', err);
