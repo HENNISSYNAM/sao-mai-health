@@ -111,6 +111,10 @@ export default function CaseIntake() {
     setShowScanner(true)
   }
 
+  const handlePrint = () => {
+    window.print()
+  }
+
   const handleCCIDScanned = (data: { citizenId: string; fullName: string; dateOfBirth: string; gender: "male" | "female" | "other"; address: string }) => {
     form.setValue('citizenId', data.citizenId)
     form.setValue('fullName', data.fullName)
