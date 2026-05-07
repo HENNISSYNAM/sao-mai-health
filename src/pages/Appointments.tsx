@@ -66,28 +66,30 @@ export default function Appointments() {
   const statuses = ['scheduled', 'confirmed', 'cancelled', 'completed', 'no_show'];
 
   useEffect(() => {
-    fetchAppointments();
-    
-    // Set up real-time subscription
-    const channel = supabase
-      .channel('appointments-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'appointments',
-          filter: `created_by=eq.${supabase.auth.getUser()}`
-        },
-        (payload) => {
-          console.log('Realtime update:', payload);
-          handleRealtimeUpdate(payload);
-        }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    (async () => {
+      await fetchAppointments();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      channel = supabase
+        .channel('appointments-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'appointments',
+            filter: `created_by=eq.${user.id}`,
+          },
+          (payload) => handleRealtimeUpdate(payload),
+        )
+        .subscribe();
+    })();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 

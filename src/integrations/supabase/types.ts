@@ -178,6 +178,7 @@ export type Database = {
           appointment_date: string
           appointment_time: string
           created_at: string
+          created_by: string | null
           doctor: string | null
           facility: string
           id: string
@@ -192,6 +193,7 @@ export type Database = {
           appointment_date: string
           appointment_time: string
           created_at?: string
+          created_by?: string | null
           doctor?: string | null
           facility: string
           id?: string
@@ -206,6 +208,7 @@ export type Database = {
           appointment_date?: string
           appointment_time?: string
           created_at?: string
+          created_by?: string | null
           doctor?: string | null
           facility?: string
           id?: string
