@@ -176,10 +176,14 @@ export default function CaseIntake() {
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 print:hidden">
           <Button onClick={scanCitizenId} variant="outline">
             <Scan className="h-4 w-4 mr-2" />
             Quét CCCD
+          </Button>
+          <Button onClick={handlePrint} variant="outline">
+            <Printer className="h-4 w-4 mr-2" />
+            In hồ sơ
           </Button>
           <Button type="submit" form="case-form">
             <Save className="h-4 w-4 mr-2" />
