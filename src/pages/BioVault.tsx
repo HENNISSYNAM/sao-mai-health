@@ -304,40 +304,9 @@ const BioVault: React.FC = () => {
     }
   }, [encounters, selectedEncounter]);
 
-  // Handle face scan → create encounter
-  const handleFacialScanComplete = async (data: FacialHealthData) => {
+  // Face scan feature removed (legal liability) — placeholder no-op
+  const handleFacialScanComplete = async (_data: any) => {
     setShowFaceScanner(false);
-
-    const encounter = await createEncounter({
-      scan_type: 'face_scan',
-      vital_signs: {
-        heartRate: data.inferredHealth.estimatedHeartRate,
-        oxygenLevel: data.inferredHealth.estimatedOxygenLevel,
-        stressLevel: data.facialMetrics.stressIndicators,
-        hydration: data.facialMetrics.hydrationLevel,
-      },
-      facial_metrics: {
-        skinTone: data.facialMetrics.skinTone,
-        skinHealth: data.facialMetrics.skinHealth,
-        stressIndicators: data.facialMetrics.stressIndicators,
-        fatigueSigns: data.facialMetrics.fatigueSigns,
-        symmetryScore: data.facialSymmetry.score,
-      },
-      inferred_health: {
-        bloodPressureRisk: data.inferredHealth.bloodPressureRisk,
-        anemiaSigns: data.inferredHealth.anemiaSigns,
-        jaundiceIndicators: data.inferredHealth.jaundiceIndicators,
-        dehydrationLevel: data.inferredHealth.dehydrationLevel,
-      },
-      recommendations: data.recommendations,
-      confidence: data.confidence,
-    });
-
-    if (encounter) {
-      setSelectedEncounter(encounter);
-      setActiveTab('records');
-      toast.success(`Phiên khám ${encounter.encounter_code} đã được tạo!`);
-    }
   };
 
   return (
