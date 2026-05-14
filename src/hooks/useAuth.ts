@@ -27,6 +27,29 @@ export function useAuth() {
             avatar_url: session.user.user_metadata?.avatar_url,
             logged_in_at: new Date().toISOString(),
           });
+
+          // Record login event (only on actual sign-in, not token refresh)
+          if (event === 'SIGNED_IN') {
+            setTimeout(() => {
+              try {
+                supabase.from('user_logins').insert({
+                  user_id: session.user.id,
+                  email: session.user.email ?? null,
+                  provider: (session.user.app_metadata as any)?.provider ?? null,
+                  user_agent: navigator.userAgent,
+                  language: navigator.language,
+                  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                  platform: (navigator as any).platform ?? null,
+                  screen_size: `${window.screen.width}x${window.screen.height}`,
+                  referrer: document.referrer || null,
+                }).then(({ error }) => {
+                  if (error) console.warn('Login log failed:', error.message);
+                });
+              } catch (e) {
+                console.warn('Login log error:', e);
+              }
+            }, 0);
+          }
         } else if (event === 'SIGNED_OUT') {
           localStorage.removeItem('supabase_user_id');
           await clearSessionCache();

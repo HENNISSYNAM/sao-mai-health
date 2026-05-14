@@ -5197,6 +5197,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_logins: {
+        Row: {
+          email: string | null
+          id: string
+          language: string | null
+          logged_in_at: string
+          platform: string | null
+          provider: string | null
+          referrer: string | null
+          screen_size: string | null
+          timezone: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          email?: string | null
+          id?: string
+          language?: string | null
+          logged_in_at?: string
+          platform?: string | null
+          provider?: string | null
+          referrer?: string | null
+          screen_size?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          email?: string | null
+          id?: string
+          language?: string | null
+          logged_in_at?: string
+          platform?: string | null
+          provider?: string | null
+          referrer?: string | null
+          screen_size?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_map_presence: {
         Row: {
           accuracy: number | null
