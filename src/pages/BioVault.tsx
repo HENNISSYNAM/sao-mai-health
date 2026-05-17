@@ -305,9 +305,29 @@ const BioVault: React.FC = () => {
     }
   }, [encounters, selectedEncounter]);
 
-  // Face scan feature removed (legal liability) — placeholder no-op
-  const handleFacialScanComplete = async (_data: any) => {
+  // Face scan (rPPG) → tạo phiên khám với chỉ số sinh tồn ước tính
+  const handleFacialScanComplete = async (data: { heartRate: number | null; spo2: number | null; hrv: number | null; confidence: number }) => {
     setShowFaceScanner(false);
+    if (!data.heartRate) {
+      toast.warning('Không trích xuất được tín hiệu đủ rõ. Hãy thử lại với ánh sáng tốt hơn.');
+      return;
+    }
+    try {
+      await createEncounter({
+        vital_signs: {
+          heart_rate: data.heartRate,
+          spo2: data.spo2,
+          hrv: data.hrv,
+          source: 'face_rppg',
+          confidence: data.confidence,
+        },
+        status: 'completed',
+      } as any);
+      toast.success(`Đã lưu phiên khám: ${data.heartRate} bpm`);
+      refreshEncounters();
+    } catch (e: any) {
+      toast.error('Lưu phiên khám thất bại: ' + (e?.message || 'unknown'));
+    }
   };
 
   return (
