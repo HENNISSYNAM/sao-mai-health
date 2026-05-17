@@ -314,15 +314,23 @@ const BioVault: React.FC = () => {
     }
     try {
       await createEncounter({
+        scan_type: 'face_rppg',
         vital_signs: {
           heart_rate: data.heartRate,
           spo2: data.spo2,
           hrv: data.hrv,
-          source: 'face_rppg',
-          confidence: data.confidence,
         },
-        status: 'completed',
-      } as any);
+        facial_metrics: {},
+        inferred_health: { source: 'face_rppg_camera' },
+        recommendations: [
+          'Kết quả từ camera là ước tính, không thay thế thiết bị y tế.',
+          data.heartRate && (data.heartRate < 50 || data.heartRate > 110)
+            ? 'Nhịp tim ngoài ngưỡng nghỉ thông thường — nên đo lại bằng thiết bị y tế.'
+            : 'Tiếp tục theo dõi định kỳ.',
+        ].filter(Boolean) as string[],
+        confidence: data.confidence / 100,
+        notes: 'Quét rPPG từ camera trước',
+      });
       toast.success(`Đã lưu phiên khám: ${data.heartRate} bpm`);
       refreshEncounters();
     } catch (e: any) {
