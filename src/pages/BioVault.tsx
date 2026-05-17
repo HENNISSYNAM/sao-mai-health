@@ -23,6 +23,7 @@ import { TwinPrivacyToggle } from '@/components/biovault/TwinPrivacyToggle';
 import { TwinSharingHub } from '@/components/biovault/TwinSharingHub';
 import { TwinLocationMap } from '@/components/biovault/TwinLocationMap';
 import { ExternalHealthConnector } from '@/components/biovault/ExternalHealthConnector';
+import { FaceScanModal } from '@/components/biovault/FaceScanModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useHealthRecords, HealthEncounter } from '@/hooks/useHealthRecords';
 import { useDeviceSensors } from '@/hooks/useDeviceSensors';
