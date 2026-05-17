@@ -23,6 +23,7 @@ import { TwinPrivacyToggle } from '@/components/biovault/TwinPrivacyToggle';
 import { TwinSharingHub } from '@/components/biovault/TwinSharingHub';
 import { TwinLocationMap } from '@/components/biovault/TwinLocationMap';
 import { ExternalHealthConnector } from '@/components/biovault/ExternalHealthConnector';
+import { FaceScanModal } from '@/components/biovault/FaceScanModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useHealthRecords, HealthEncounter } from '@/hooks/useHealthRecords';
 import { useDeviceSensors } from '@/hooks/useDeviceSensors';
@@ -304,9 +305,37 @@ const BioVault: React.FC = () => {
     }
   }, [encounters, selectedEncounter]);
 
-  // Face scan feature removed (legal liability) — placeholder no-op
-  const handleFacialScanComplete = async (_data: any) => {
+  // Face scan (rPPG) → tạo phiên khám với chỉ số sinh tồn ước tính
+  const handleFacialScanComplete = async (data: { heartRate: number | null; spo2: number | null; hrv: number | null; confidence: number }) => {
     setShowFaceScanner(false);
+    if (!data.heartRate) {
+      toast.warning('Không trích xuất được tín hiệu đủ rõ. Hãy thử lại với ánh sáng tốt hơn.');
+      return;
+    }
+    try {
+      await createEncounter({
+        scan_type: 'face_rppg',
+        vital_signs: {
+          heart_rate: data.heartRate,
+          spo2: data.spo2,
+          hrv: data.hrv,
+        },
+        facial_metrics: {},
+        inferred_health: { source: 'face_rppg_camera' },
+        recommendations: [
+          'Kết quả từ camera là ước tính, không thay thế thiết bị y tế.',
+          data.heartRate && (data.heartRate < 50 || data.heartRate > 110)
+            ? 'Nhịp tim ngoài ngưỡng nghỉ thông thường — nên đo lại bằng thiết bị y tế.'
+            : 'Tiếp tục theo dõi định kỳ.',
+        ].filter(Boolean) as string[],
+        confidence: data.confidence / 100,
+        notes: 'Quét rPPG từ camera trước',
+      });
+      toast.success(`Đã lưu phiên khám: ${data.heartRate} bpm`);
+      refreshEncounters();
+    } catch (e: any) {
+      toast.error('Lưu phiên khám thất bại: ' + (e?.message || 'unknown'));
+    }
   };
 
   return (
@@ -342,7 +371,12 @@ const BioVault: React.FC = () => {
       {/* ── Digital Twin Hero ──────────────────────────── */}
       <DigitalTwin3D profile={null} sensorData={deviceSensors} />
 
-      {/* Face Scanner removed — feature deprecated */}
+      {/* Face Scanner */}
+      <FaceScanModal
+        open={showFaceScanner}
+        onClose={() => setShowFaceScanner(false)}
+        onComplete={handleFacialScanComplete}
+      />
 
       {/* ── Main Content Tabs ──────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
