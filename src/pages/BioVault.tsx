@@ -363,7 +363,12 @@ const BioVault: React.FC = () => {
       {/* ── Digital Twin Hero ──────────────────────────── */}
       <DigitalTwin3D profile={null} sensorData={deviceSensors} />
 
-      {/* Face Scanner removed — feature deprecated */}
+      {/* Face Scanner */}
+      <FaceScanModal
+        open={showFaceScanner}
+        onClose={() => setShowFaceScanner(false)}
+        onComplete={handleFacialScanComplete}
+      />
 
       {/* ── Main Content Tabs ──────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
