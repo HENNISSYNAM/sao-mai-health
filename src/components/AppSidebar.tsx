@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import {
   Activity, Brain, MapPin, AlertTriangle, BarChart3,
   Settings, HelpCircle, Menu, FlaskConical, ClipboardPlus,
-  Users, Package, CalendarDays, Radio, Shield,
+  Users, Package, CalendarDays, Radio, Shield, Boxes,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink, useLocation } from "react-router-dom";
