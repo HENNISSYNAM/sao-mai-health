@@ -83,8 +83,12 @@ const queryClient = new QueryClient({
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/careers" element={<Careers />} />
             <Route path="/legal" element={<Legal />} />
-            <Route path="/research" element={<Research />} />
-            <Route path="*" element={<NotFound />} />
+             <Route path="/research" element={<Research />} />
+             <Route path="/chain" element={<ChainOverview />} />
+             <Route path="/chain/emr" element={<ChainEMR />} />
+             <Route path="/chain/smart-clinic" element={<ChainSmartClinic />} />
+             <Route path="/chain/healthcoin" element={<ChainHealthCoin />} />
+             <Route path="*" element={<NotFound />} />
          </Routes>
          <EnhancedCommandPalette />
          <GlobalAIAssistant />
