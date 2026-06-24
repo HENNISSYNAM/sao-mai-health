@@ -33,6 +33,10 @@ import Careers from "./pages/Careers";
 import Legal from "./pages/Legal";
 import Landing from "./pages/Landing";
 import Research from "./pages/Research";
+import ChainOverview from "./pages/ChainOverview";
+import ChainEMR from "./pages/ChainEMR";
+import ChainSmartClinic from "./pages/ChainSmartClinic";
+import ChainHealthCoin from "./pages/ChainHealthCoin";
 import ConsentBanner from "./components/ConsentBanner";
 
 const queryClient = new QueryClient({
