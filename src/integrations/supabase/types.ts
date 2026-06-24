@@ -2352,6 +2352,120 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_nfts: {
+        Row: {
+          block_height: number
+          created_at: string
+          diagnosis: string | null
+          doctor_name: string
+          doctor_signature: string | null
+          facility: string
+          icd10: string
+          id: string
+          ipfs_hash: string
+          lab_results: Json | null
+          minted_at: string
+          patient_hash: string
+          patient_name: string
+          prescription: Json | null
+          status: string
+          token_id: string
+          tx_hash: string
+          updated_at: string
+          user_id: string
+          visit_date: string
+        }
+        Insert: {
+          block_height: number
+          created_at?: string
+          diagnosis?: string | null
+          doctor_name: string
+          doctor_signature?: string | null
+          facility: string
+          icd10: string
+          id?: string
+          ipfs_hash: string
+          lab_results?: Json | null
+          minted_at?: string
+          patient_hash: string
+          patient_name: string
+          prescription?: Json | null
+          status?: string
+          token_id: string
+          tx_hash: string
+          updated_at?: string
+          user_id: string
+          visit_date: string
+        }
+        Update: {
+          block_height?: number
+          created_at?: string
+          diagnosis?: string | null
+          doctor_name?: string
+          doctor_signature?: string | null
+          facility?: string
+          icd10?: string
+          id?: string
+          ipfs_hash?: string
+          lab_results?: Json | null
+          minted_at?: string
+          patient_hash?: string
+          patient_name?: string
+          prescription?: Json | null
+          status?: string
+          token_id?: string
+          tx_hash?: string
+          updated_at?: string
+          user_id?: string
+          visit_date?: string
+        }
+        Relationships: []
+      }
+      htc_transactions: {
+        Row: {
+          amount_htc: number
+          amount_vnd: number
+          block_height: number
+          counterparty: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          tx_hash: string
+          tx_type: string
+          user_id: string
+        }
+        Insert: {
+          amount_htc: number
+          amount_vnd: number
+          block_height: number
+          counterparty?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          tx_hash: string
+          tx_type: string
+          user_id: string
+        }
+        Update: {
+          amount_htc?: number
+          amount_vnd?: number
+          block_height?: number
+          counterparty?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          tx_hash?: string
+          tx_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       icd_codes: {
         Row: {
           category: string | null
