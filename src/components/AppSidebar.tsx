@@ -78,6 +78,7 @@ export function AppSidebar() {
     { titleKey: "nav.strokeRisk",   title: t("nav.strokeRisk"),               url: "/stroke-risk",  icon: Brain         },
     { titleKey: "nav.maps",         title: t("nav.maps"),                     url: "/maps",         icon: MapPin        },
     { titleKey: "nav.stocks",       title: t("nav.stocks", "Kho vật tư"),      url: "/stocks",       icon: Package       },
+    { titleKey: "nav.chain",        title: t("nav.chain", "Sao Mai Chain"),    url: "/chain",        icon: Boxes         },
   ];
 
   const isActive = (path: string) => {
