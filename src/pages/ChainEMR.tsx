@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { ChainShell } from "@/components/chain/ChainShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { FileCheck2, QrCode, Share2, Copy, Hospital, Stethoscope, ScrollText, FlaskConical, ShieldCheck, Loader2, Sparkles } from "lucide-react";
+import { FileCheck2, QrCode, Share2, Copy, Hospital, Stethoscope, ScrollText, FlaskConical, ShieldCheck, Loader2, Sparkles, ExternalLink } from "lucide-react";
 import { mockIpfsHash, mockTxHash, shortHash } from "@/hooks/useMockChain";
 import QRCode from "qrcode";
 
@@ -259,10 +260,14 @@ export default function ChainEMR() {
                   </div>
                 </Card>
 
-                <div className="flex gap-2">
-                  <Button onClick={() => openShare(selected)} className="flex-1"><Share2 className="w-4 h-4 mr-1" /> Chia sẻ QR</Button>
-                  <Button variant="destructive" className="flex-1">Thu hồi quyền</Button>
+                <div className="flex gap-2 flex-wrap">
+                  <Button onClick={() => openShare(selected)} className="flex-1 min-w-[140px]"><Share2 className="w-4 h-4 mr-1" /> Chia sẻ QR</Button>
+                  <Button variant="outline" asChild className="flex-1 min-w-[140px]">
+                    <Link to="/biovault"><ExternalLink className="w-4 h-4 mr-1" /> Mở trong BioVault</Link>
+                  </Button>
+                  <Button variant="destructive" className="flex-1 min-w-[140px]">Thu hồi quyền</Button>
                 </div>
+
               </div>
             </>
           )}
