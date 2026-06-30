@@ -168,7 +168,7 @@ export const GlobalAIAssistant = () => {
   if (!isOpen) {
     return (
       <Button
-        onClick={() => setIsOpen(true)}
+        onClick={() => open('general')}
         className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-2xl z-50 bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 hover:scale-110 group"
         size="icon"
       >
@@ -178,28 +178,39 @@ export const GlobalAIAssistant = () => {
     );
   }
 
+  const ActiveIcon = SKILL_LABELS[skill].icon;
+
   return (
     <Card className="fixed bottom-6 right-6 w-[420px] h-[650px] shadow-2xl z-50 flex flex-col border-2 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground rounded-t-lg">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Bot className="h-6 w-6" />
-            <Sparkles className="h-3 w-3 absolute -top-1 -right-1 text-yellow-300" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-lg">Trợ lý AI Y tế</h3>
-            <p className="text-xs text-primary-foreground/80">Powered by Gemini</p>
+      <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground rounded-t-lg gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <ActiveIcon className="h-5 w-5 shrink-0" />
+          <div className="min-w-0">
+            <h3 className="font-semibold text-sm truncate">{SKILL_LABELS[skill].label}</h3>
+            <p className="text-[10px] text-primary-foreground/80">Powered by Gemini</p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsOpen(false)}
-          className="text-primary-foreground hover:bg-primary-foreground/20"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {(Object.keys(SKILL_LABELS) as AssistantSkill[]).map((s) => {
+            const Icon = SKILL_LABELS[s].icon;
+            const active = s === skill;
+            return (
+              <button
+                key={s}
+                onClick={() => { setSkill(s); setShownGreetingFor(null); }}
+                title={SKILL_LABELS[s].label}
+                className={`p-1.5 rounded-md transition ${active ? 'bg-primary-foreground/25' : 'hover:bg-primary-foreground/15 opacity-70'}`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+              </button>
+            );
+          })}
+          <Button variant="ghost" size="icon" onClick={close} className="text-primary-foreground hover:bg-primary-foreground/20 h-8 w-8">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-background to-muted/10">
         {messages.map((msg, idx) => (
