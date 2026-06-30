@@ -15,6 +15,7 @@ import {
 import { DigitalTwin3D } from '@/components/biovault/DigitalTwin3D';
 import { BioVaultUploader } from '@/components/biovault/BioVaultUploader';
 import { HealthProfile } from '@/components/biovault/HealthProfile';
+import { BioVaultEMRBridge } from '@/components/biovault/BioVaultEMRBridge';
 import { PersonalRiskEngine } from '@/components/biovault/PersonalRiskEngine';
 import { TwinEngineStatus } from '@/components/biovault/TwinEngineStatus';
 import { TwinRealtimeInsights } from '@/components/biovault/TwinRealtimeInsights';
@@ -466,10 +467,14 @@ const BioVault: React.FC = () => {
 
           {/* Risk Engine + Health Profile below encounters */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <HealthProfile profile={null} />
+            <div className="space-y-4">
+              <HealthProfile profile={null} />
+              <BioVaultEMRBridge />
+            </div>
             <PersonalRiskEngine profile={null} showFullDashboard environmentData={environmentData} />
           </div>
         </TabsContent>
+
 
         {/* ── Engine Tab ────────────────────────────── */}
         <TabsContent value="engine" className="space-y-4">
