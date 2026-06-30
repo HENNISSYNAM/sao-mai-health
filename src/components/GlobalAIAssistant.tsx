@@ -119,37 +119,42 @@ export const GlobalAIAssistant = () => {
     setIsLoading(true);
 
     try {
-      const data = await invokeWithTimeout<{ response: string }>('surveillance-ai', {
-        body: {
-          query: input || "Phân tích ảnh y tế này như một bác sĩ giàu kinh nghiệm. Giải thích bằng ngôn ngữ đơn giản, dễ hiểu để trẻ con cũng hiểu được.",
-          image: imageToSend,
-        },
-        timeoutMs: 28_000,
-        retries: 1,
-      });
+      let assistantContent = '';
 
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.response,
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+      if (skill === 'triage') {
+        const { data, error } = await supabase.functions.invoke('ai-triage', {
+          body: { mode: 'triage', symptoms: input },
+        });
+        if (error) throw error;
+        assistantContent = formatTriage(data?.result);
+      } else if (skill === 'doctor') {
+        const { data, error } = await supabase.functions.invoke('ai-triage', {
+          body: { mode: 'doctor', patient_summary: MOCK_PATIENT_SUMMARY, question: input },
+        });
+        if (error) throw error;
+        assistantContent = formatDoctor(data?.result);
+      } else {
+        const data = await invokeWithTimeout<{ response: string }>('surveillance-ai', {
+          body: {
+            query: input || 'Phân tích ảnh y tế này như một bác sĩ giàu kinh nghiệm. Giải thích dễ hiểu.',
+            image: imageToSend,
+          },
+          timeoutMs: 28_000,
+          retries: 1,
+        });
+        assistantContent = data.response;
+      }
 
+      setMessages(prev => [...prev, { role: 'assistant', content: assistantContent }]);
     } catch (error: any) {
       console.error('AI error:', error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể kết nối với AI. Vui lòng thử lại.",
-        variant: "destructive",
-      });
-      
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Xin lỗi, tôi gặp sự cố kỹ thuật. Vui lòng thử lại sau.'
-      }]);
+      toast({ title: 'Lỗi', description: error.message || 'Không thể kết nối với AI.', variant: 'destructive' });
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Xin lỗi, tôi gặp sự cố kỹ thuật. Vui lòng thử lại sau.' }]);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const quickQuestions = [
     "📊 Tình hình dịch bệnh hiện tại như thế nào?",
