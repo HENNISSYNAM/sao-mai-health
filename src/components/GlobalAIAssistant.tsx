@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Bot, Send, Loader2, X, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { Bot, Send, Loader2, X, Sparkles, Image as ImageIcon, Stethoscope, Pill } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithTimeout } from '@/lib/invokeWithTimeout';
 import { useToast } from '@/hooks/use-toast';
+import { useAssistantSkill, type AssistantSkill } from '@/store/useAssistantSkill';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -13,47 +14,75 @@ interface Message {
   image?: string;
 }
 
-const INITIAL_GREETING = `Xin chào! 👋
+const GREETINGS: Record<AssistantSkill, string> = {
+  general: `Xin chào! 👋
 
 Tôi là trợ lý AI của hệ thống giám sát y tế TP.HCM. Tôi có thể giúp bạn:
 
-📊 **Phân tích dữ liệu:**
-• Xu hướng dịch bệnh và ca nhiễm
-• So sánh giữa các quận/huyện
-• Thống kê theo thời gian
+📊 **Phân tích dữ liệu:** xu hướng dịch bệnh, so sánh quận/huyện, thống kê theo thời gian
+💡 **Khuyến nghị:** biện pháp phòng chống, ưu tiên can thiệp, phân bổ nguồn lực
+🔍 **Giải thích:** các chỉ số, tình hình dịch bệnh, dữ liệu giám sát
 
-💡 **Đưa ra khuyến nghị:**
-• Biện pháp phòng chống dịch
-• Ưu tiên can thiệp y tế
-• Phân bổ nguồn lực
+Bạn muốn tìm hiểu về điều gì?`,
+  triage: `🩺 **AI Pre-screening — Phân loại cấp cứu (ESI)**
 
-🔍 **Trả lời câu hỏi:**
-• Giải thích các chỉ số
-• Tình hình dịch bệnh
-• Dữ liệu giám sát
+Mô tả triệu chứng của bệnh nhân. Tôi sẽ phân loại mức ưu tiên 1-5, chuyên khoa phù hợp và các dấu hiệu cảnh báo cần để ý.
 
-Bạn muốn tìm hiểu về điều gì?`;
+_Ví dụ: "Nam 47 tuổi, đau ngực trái lan ra cánh tay 30 phút, vã mồ hôi, khó thở."_`,
+  doctor: `🤖 **AI Doctor Assistant**
+
+Đặt câu hỏi lâm sàng cho bệnh nhân hiện tại. Tôi gợi ý chẩn đoán phân biệt, xét nghiệm cần làm và cảnh báo tương tác thuốc.
+
+_Ví dụ: "Bệnh nhân hen + tiểu đường, HA 138/86, mới đau ngực — cần xét nghiệm gì?"_`,
+};
+
+const SKILL_LABELS: Record<AssistantSkill, { label: string; icon: typeof Bot }> = {
+  general: { label: 'Trợ lý chung', icon: Bot },
+  triage: { label: 'AI Triage', icon: Stethoscope },
+  doctor: { label: 'AI Doctor', icon: Pill },
+};
+
+const MOCK_PATIENT_SUMMARY = `Nguyễn Văn A · 47 tuổi · Nam
+Tiền sử: Hen phế quản · Tiểu đường type 2 (HbA1c 7.2%) · Tăng huyết áp
+Thuốc: Metformin 500mg, Amlodipine 5mg, Salbutamol khi cần
+Sinh tồn: HA 138/86 · M 78 · SpO₂ 97%`;
+
+function formatTriage(r: any): string {
+  if (!r) return 'Không có kết quả.';
+  const flags = r.red_flags?.length ? `\n\n⚠️ **Cảnh báo:** ${r.red_flags.join('; ')}` : '';
+  return `**Mức ESI: ${r.triage_level}** — ${r.specialty}\n⏱ ~${r.estimated_wait_minutes} phút chờ\n\n${r.reasoning || ''}${flags}`;
+}
+
+function formatDoctor(r: any): string {
+  if (!r) return 'Không có kết quả.';
+  const dx = r.differential_diagnosis?.length
+    ? '\n\n**Chẩn đoán phân biệt:**\n' + r.differential_diagnosis.map((d: any) => `• ${d.name} (${d.icd10}) — ${d.probability}`).join('\n')
+    : '';
+  const tests = r.recommended_tests?.length ? '\n\n**Xét nghiệm:** ' + r.recommended_tests.join(', ') : '';
+  const drug = r.drug_interactions?.length ? '\n\n💊 **Tương tác thuốc:** ' + r.drug_interactions.join('; ') : '';
+  const notes = r.notes ? `\n\n_${r.notes}_` : '';
+  return `${dx}${tests}${drug}${notes}`.trim() || 'Không có gợi ý.';
+}
 
 export const GlobalAIAssistant = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isOpen, skill, open, close, setSkill, consumePrefill } = useAssistantSkill();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [hasShownGreeting, setHasShownGreeting] = useState(false);
+  const [shownGreetingFor, setShownGreetingFor] = useState<AssistantSkill | null>(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Show greeting when opened
+  // Reset greeting when skill changes or opened
   useEffect(() => {
-    if (isOpen && !hasShownGreeting) {
-      setMessages([{
-        role: 'assistant',
-        content: INITIAL_GREETING
-      }]);
-      setHasShownGreeting(true);
+    if (isOpen && shownGreetingFor !== skill) {
+      setMessages([{ role: 'assistant', content: GREETINGS[skill] }]);
+      setShownGreetingFor(skill);
+      const pre = consumePrefill();
+      if (pre) setInput(pre);
     }
-  }, [isOpen, hasShownGreeting]);
+  }, [isOpen, skill, shownGreetingFor, consumePrefill]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -90,37 +119,42 @@ export const GlobalAIAssistant = () => {
     setIsLoading(true);
 
     try {
-      const data = await invokeWithTimeout<{ response: string }>('surveillance-ai', {
-        body: {
-          query: input || "Phân tích ảnh y tế này như một bác sĩ giàu kinh nghiệm. Giải thích bằng ngôn ngữ đơn giản, dễ hiểu để trẻ con cũng hiểu được.",
-          image: imageToSend,
-        },
-        timeoutMs: 28_000,
-        retries: 1,
-      });
+      let assistantContent = '';
 
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: data.response,
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+      if (skill === 'triage') {
+        const { data, error } = await supabase.functions.invoke('ai-triage', {
+          body: { mode: 'triage', symptoms: input },
+        });
+        if (error) throw error;
+        assistantContent = formatTriage(data?.result);
+      } else if (skill === 'doctor') {
+        const { data, error } = await supabase.functions.invoke('ai-triage', {
+          body: { mode: 'doctor', patient_summary: MOCK_PATIENT_SUMMARY, question: input },
+        });
+        if (error) throw error;
+        assistantContent = formatDoctor(data?.result);
+      } else {
+        const data = await invokeWithTimeout<{ response: string }>('surveillance-ai', {
+          body: {
+            query: input || 'Phân tích ảnh y tế này như một bác sĩ giàu kinh nghiệm. Giải thích dễ hiểu.',
+            image: imageToSend,
+          },
+          timeoutMs: 28_000,
+          retries: 1,
+        });
+        assistantContent = data.response;
+      }
 
+      setMessages(prev => [...prev, { role: 'assistant', content: assistantContent }]);
     } catch (error: any) {
       console.error('AI error:', error);
-      toast({
-        title: "Lỗi",
-        description: error.message || "Không thể kết nối với AI. Vui lòng thử lại.",
-        variant: "destructive",
-      });
-      
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Xin lỗi, tôi gặp sự cố kỹ thuật. Vui lòng thử lại sau.'
-      }]);
+      toast({ title: 'Lỗi', description: error.message || 'Không thể kết nối với AI.', variant: 'destructive' });
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Xin lỗi, tôi gặp sự cố kỹ thuật. Vui lòng thử lại sau.' }]);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const quickQuestions = [
     "📊 Tình hình dịch bệnh hiện tại như thế nào?",
@@ -134,7 +168,7 @@ export const GlobalAIAssistant = () => {
   if (!isOpen) {
     return (
       <Button
-        onClick={() => setIsOpen(true)}
+        onClick={() => open('general')}
         className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-2xl z-50 bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 hover:scale-110 group"
         size="icon"
       >
@@ -144,28 +178,39 @@ export const GlobalAIAssistant = () => {
     );
   }
 
+  const ActiveIcon = SKILL_LABELS[skill].icon;
+
   return (
     <Card className="fixed bottom-6 right-6 w-[420px] h-[650px] shadow-2xl z-50 flex flex-col border-2 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground rounded-t-lg">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Bot className="h-6 w-6" />
-            <Sparkles className="h-3 w-3 absolute -top-1 -right-1 text-yellow-300" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-lg">Trợ lý AI Y tế</h3>
-            <p className="text-xs text-primary-foreground/80">Powered by Gemini</p>
+      <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground rounded-t-lg gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <ActiveIcon className="h-5 w-5 shrink-0" />
+          <div className="min-w-0">
+            <h3 className="font-semibold text-sm truncate">{SKILL_LABELS[skill].label}</h3>
+            <p className="text-[10px] text-primary-foreground/80">Powered by Gemini</p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsOpen(false)}
-          className="text-primary-foreground hover:bg-primary-foreground/20"
-        >
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {(Object.keys(SKILL_LABELS) as AssistantSkill[]).map((s) => {
+            const Icon = SKILL_LABELS[s].icon;
+            const active = s === skill;
+            return (
+              <button
+                key={s}
+                onClick={() => { setSkill(s); setShownGreetingFor(null); }}
+                title={SKILL_LABELS[s].label}
+                className={`p-1.5 rounded-md transition ${active ? 'bg-primary-foreground/25' : 'hover:bg-primary-foreground/15 opacity-70'}`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+              </button>
+            );
+          })}
+          <Button variant="ghost" size="icon" onClick={close} className="text-primary-foreground hover:bg-primary-foreground/20 h-8 w-8">
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-background to-muted/10">
         {messages.map((msg, idx) => (
