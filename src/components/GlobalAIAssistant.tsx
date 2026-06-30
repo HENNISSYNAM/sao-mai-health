@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Bot, Send, Loader2, X, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { Bot, Send, Loader2, X, Sparkles, Image as ImageIcon, Stethoscope, Pill } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { invokeWithTimeout } from '@/lib/invokeWithTimeout';
 import { useToast } from '@/hooks/use-toast';
+import { useAssistantSkill, type AssistantSkill } from '@/store/useAssistantSkill';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -13,47 +14,75 @@ interface Message {
   image?: string;
 }
 
-const INITIAL_GREETING = `Xin chào! 👋
+const GREETINGS: Record<AssistantSkill, string> = {
+  general: `Xin chào! 👋
 
 Tôi là trợ lý AI của hệ thống giám sát y tế TP.HCM. Tôi có thể giúp bạn:
 
-📊 **Phân tích dữ liệu:**
-• Xu hướng dịch bệnh và ca nhiễm
-• So sánh giữa các quận/huyện
-• Thống kê theo thời gian
+📊 **Phân tích dữ liệu:** xu hướng dịch bệnh, so sánh quận/huyện, thống kê theo thời gian
+💡 **Khuyến nghị:** biện pháp phòng chống, ưu tiên can thiệp, phân bổ nguồn lực
+🔍 **Giải thích:** các chỉ số, tình hình dịch bệnh, dữ liệu giám sát
 
-💡 **Đưa ra khuyến nghị:**
-• Biện pháp phòng chống dịch
-• Ưu tiên can thiệp y tế
-• Phân bổ nguồn lực
+Bạn muốn tìm hiểu về điều gì?`,
+  triage: `🩺 **AI Pre-screening — Phân loại cấp cứu (ESI)**
 
-🔍 **Trả lời câu hỏi:**
-• Giải thích các chỉ số
-• Tình hình dịch bệnh
-• Dữ liệu giám sát
+Mô tả triệu chứng của bệnh nhân. Tôi sẽ phân loại mức ưu tiên 1-5, chuyên khoa phù hợp và các dấu hiệu cảnh báo cần để ý.
 
-Bạn muốn tìm hiểu về điều gì?`;
+_Ví dụ: "Nam 47 tuổi, đau ngực trái lan ra cánh tay 30 phút, vã mồ hôi, khó thở."_`,
+  doctor: `🤖 **AI Doctor Assistant**
+
+Đặt câu hỏi lâm sàng cho bệnh nhân hiện tại. Tôi gợi ý chẩn đoán phân biệt, xét nghiệm cần làm và cảnh báo tương tác thuốc.
+
+_Ví dụ: "Bệnh nhân hen + tiểu đường, HA 138/86, mới đau ngực — cần xét nghiệm gì?"_`,
+};
+
+const SKILL_LABELS: Record<AssistantSkill, { label: string; icon: typeof Bot }> = {
+  general: { label: 'Trợ lý chung', icon: Bot },
+  triage: { label: 'AI Triage', icon: Stethoscope },
+  doctor: { label: 'AI Doctor', icon: Pill },
+};
+
+const MOCK_PATIENT_SUMMARY = `Nguyễn Văn A · 47 tuổi · Nam
+Tiền sử: Hen phế quản · Tiểu đường type 2 (HbA1c 7.2%) · Tăng huyết áp
+Thuốc: Metformin 500mg, Amlodipine 5mg, Salbutamol khi cần
+Sinh tồn: HA 138/86 · M 78 · SpO₂ 97%`;
+
+function formatTriage(r: any): string {
+  if (!r) return 'Không có kết quả.';
+  const flags = r.red_flags?.length ? `\n\n⚠️ **Cảnh báo:** ${r.red_flags.join('; ')}` : '';
+  return `**Mức ESI: ${r.triage_level}** — ${r.specialty}\n⏱ ~${r.estimated_wait_minutes} phút chờ\n\n${r.reasoning || ''}${flags}`;
+}
+
+function formatDoctor(r: any): string {
+  if (!r) return 'Không có kết quả.';
+  const dx = r.differential_diagnosis?.length
+    ? '\n\n**Chẩn đoán phân biệt:**\n' + r.differential_diagnosis.map((d: any) => `• ${d.name} (${d.icd10}) — ${d.probability}`).join('\n')
+    : '';
+  const tests = r.recommended_tests?.length ? '\n\n**Xét nghiệm:** ' + r.recommended_tests.join(', ') : '';
+  const drug = r.drug_interactions?.length ? '\n\n💊 **Tương tác thuốc:** ' + r.drug_interactions.join('; ') : '';
+  const notes = r.notes ? `\n\n_${r.notes}_` : '';
+  return `${dx}${tests}${drug}${notes}`.trim() || 'Không có gợi ý.';
+}
 
 export const GlobalAIAssistant = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const { isOpen, skill, open, close, setSkill, consumePrefill } = useAssistantSkill();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [hasShownGreeting, setHasShownGreeting] = useState(false);
+  const [shownGreetingFor, setShownGreetingFor] = useState<AssistantSkill | null>(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Show greeting when opened
+  // Reset greeting when skill changes or opened
   useEffect(() => {
-    if (isOpen && !hasShownGreeting) {
-      setMessages([{
-        role: 'assistant',
-        content: INITIAL_GREETING
-      }]);
-      setHasShownGreeting(true);
+    if (isOpen && shownGreetingFor !== skill) {
+      setMessages([{ role: 'assistant', content: GREETINGS[skill] }]);
+      setShownGreetingFor(skill);
+      const pre = consumePrefill();
+      if (pre) setInput(pre);
     }
-  }, [isOpen, hasShownGreeting]);
+  }, [isOpen, skill, shownGreetingFor, consumePrefill]);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
