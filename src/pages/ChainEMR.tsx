@@ -8,9 +8,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { FileCheck2, QrCode, Share2, Copy, Hospital, Stethoscope, ScrollText, FlaskConical, ShieldCheck, Loader2, Sparkles, ExternalLink } from "lucide-react";
+import { FileCheck2, QrCode, Share2, Copy, Hospital, Stethoscope, ScrollText, FlaskConical, ShieldCheck, Loader2, Sparkles, ExternalLink, Brain } from "lucide-react";
 import { mockIpfsHash, mockTxHash, shortHash } from "@/hooks/useMockChain";
 import QRCode from "qrcode";
+import { ClinicalNlpPanel } from "@/components/shared/ClinicalNlpPanel";
 
 interface HRNFT {
   id: string;
@@ -46,6 +47,12 @@ const CLAIMS = [
   { case: "HRN-000142 · Hen phế quản", payout: 1_120_000, time: "14s", insurer: "Bảo Việt Health" },
 ];
 
+function buildNftNarrative(n: HRNFT): string {
+  const rx = Array.isArray(n.prescription) ? n.prescription.map((p: any) => `${p.drug} ${p.dose}`).join("; ") : "";
+  const labs = Array.isArray(n.lab_results) ? n.lab_results.map((l: any) => `${l.test} ${l.value} (ref ${l.ref})`).join("; ") : "";
+  return `Bệnh nhân ${n.patient_name}, khám tại ${n.facility} ngày ${new Date(n.visit_date).toLocaleDateString("vi-VN")}, BS ${n.doctor_name}. Chẩn đoán: ${n.icd10} — ${n.diagnosis ?? ""}. Đơn thuốc: ${rx || "không"}. Xét nghiệm: ${labs || "không"}.`;
+}
+
 export default function ChainEMR() {
   const [nfts, setNfts] = useState<HRNFT[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +60,7 @@ export default function ChainEMR() {
   const [selected, setSelected] = useState<HRNFT | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [qrUrl, setQrUrl] = useState<string>("");
+  const [nlpOpen, setNlpOpen] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -205,7 +213,7 @@ export default function ChainEMR() {
       </Card>
 
       {/* Detail drawer */}
-      <Sheet open={!!selected && !shareOpen} onOpenChange={(o) => !o && setSelected(null)}>
+      <Sheet open={!!selected && !shareOpen} onOpenChange={(o) => { if (!o) { setSelected(null); setNlpOpen(false); } }}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           {selected && (
             <>
@@ -262,11 +270,28 @@ export default function ChainEMR() {
 
                 <div className="flex gap-2 flex-wrap">
                   <Button onClick={() => openShare(selected)} className="flex-1 min-w-[140px]"><Share2 className="w-4 h-4 mr-1" /> Chia sẻ QR</Button>
+                  <Button variant="outline" onClick={() => setNlpOpen(true)} className="flex-1 min-w-[140px]">
+                    <Brain className="w-4 h-4 mr-1" /> Phân tích NLP
+                  </Button>
                   <Button variant="outline" asChild className="flex-1 min-w-[140px]">
                     <Link to="/biovault"><ExternalLink className="w-4 h-4 mr-1" /> Mở trong BioVault</Link>
                   </Button>
                   <Button variant="destructive" className="flex-1 min-w-[140px]">Thu hồi quyền</Button>
                 </div>
+
+                {nlpOpen && (
+                  <Card className="p-3 border-primary/30">
+                    <div className="text-xs font-semibold mb-2 flex items-center gap-1.5">
+                      <Brain className="w-4 h-4 text-primary" /> Chuẩn hoá bệnh án theo ICD-10 / RxNorm
+                    </div>
+                    <ClinicalNlpPanel
+                      initialText={buildNftNarrative(selected)}
+                      source="chain_emr"
+                      docId={selected.token_id}
+                      compact
+                    />
+                  </Card>
+                )}
 
               </div>
             </>

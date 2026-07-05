@@ -25,6 +25,7 @@ import { TwinSharingHub } from '@/components/biovault/TwinSharingHub';
 import { TwinLocationMap } from '@/components/biovault/TwinLocationMap';
 import { ExternalHealthConnector } from '@/components/biovault/ExternalHealthConnector';
 import { FaceScanModal } from '@/components/biovault/FaceScanModal';
+import { ClinicalNlpPanel } from '@/components/shared/ClinicalNlpPanel';
 import { useAuth } from '@/hooks/useAuth';
 import { useHealthRecords, HealthEncounter } from '@/hooks/useHealthRecords';
 import { useDeviceSensors } from '@/hooks/useDeviceSensors';
@@ -507,6 +508,14 @@ const BioVault: React.FC = () => {
         {/* ── Documents Tab ─────────────────────────── */}
         <TabsContent value="documents" className="space-y-4">
           <BioVaultUploader onDocumentUploaded={() => {}} onMetricExtracted={() => {}} />
+          <Card className="border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Trích xuất khái niệm y khoa từ văn bản</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ClinicalNlpPanel source="biovault_doc" />
+            </CardContent>
+          </Card>
           <ExternalHealthConnector onDataImport={() => {}} />
         </TabsContent>
 
