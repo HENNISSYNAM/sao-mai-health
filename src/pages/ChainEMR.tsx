@@ -213,7 +213,7 @@ export default function ChainEMR() {
       </Card>
 
       {/* Detail drawer */}
-      <Sheet open={!!selected && !shareOpen} onOpenChange={(o) => !o && setSelected(null)}>
+      <Sheet open={!!selected && !shareOpen} onOpenChange={(o) => { if (!o) { setSelected(null); setNlpOpen(false); } }}>
         <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
           {selected && (
             <>
