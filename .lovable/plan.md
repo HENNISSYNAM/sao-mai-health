@@ -1,62 +1,104 @@
-# Kế hoạch: Lồng các tính năng bị trùng
 
-Mục tiêu: loại bỏ trùng lặp UI/logic, dùng chung 1 nguồn cho mỗi tính năng. Chỉ chỉnh frontend — không đụng schema, không đụng business logic backend.
+# Kế hoạch: Vietnamese Clinical NLP theo chuẩn đề bài
 
----
+## Mục tiêu
+Nâng cấp module clinical-nlp hiện có để output đúng schema đề bài (nhãn Vietnamese uppercase, position char-offset, assertions, candidates ICD-10/RxNorm chuẩn), và thêm **batch runner** để chạy 100 file test.zip → xuất folder .json nộp bài.
 
-## 1. QR Check-in (gộp Campaigns ↔ Smart Clinic)
+## Kiến trúc
 
-**Trùng:** `src/components/QRCheckIn.tsx` (Campaigns: scan camera, manual, offline queue, generate QR) và khối "QR Check-in 60s" mock trong `src/pages/ChainSmartClinic.tsx` (chỉ animation giả).
+```text
+┌─ UI ────────────────────────────────────────────────────────────┐
+│ /clinical-nlp-batch  ──► upload test.zip / nhiều .txt           │
+│   │                                                              │
+│   ├─ ClinicalNlpPanel (single)  ── nâng cấp schema mới          │
+│   └─ Bảng tiến độ + tải kết quả .zip (100 file .json)           │
+└──────────────────┬───────────────────────────────────────────────┘
+                   │ supabase.functions.invoke
+                   ▼
+┌─ Edge Function: clinical-nlp (nâng cấp) ────────────────────────┐
+│ 1. Gemini 2.5 Flash extract entities theo schema đề bài          │
+│    (TRIỆU_CHỨNG / TÊN_XÉT_NGHIỆM / KẾT_QUẢ_XÉT_NGHIỆM /          │
+│     CHẨN_ĐOÁN / THUỐC) + position + assertions                   │
+│ 2. Verify candidates:                                            │
+│    - THUỐC → RxNav /approximateTerm.json (NIH, không cần key)   │
+│    - CHẨN_ĐOÁN → WHO ICD-10 API /icd/release/10 (public)         │
+│ 3. Trả JSON đúng schema đề bài                                   │
+└──────────────────────────────────────────────────────────────────┘
+```
 
-**Cách gộp:**
-- Trích phần lõi của `QRCheckIn.tsx` thành component dùng chung `src/components/shared/QRCheckInPanel.tsx` với prop `mode: "campaign" | "clinic"`.
-  - `campaign`: giữ nguyên — chọn campaign, lưu vào `campaign_checkins`, offline queue.
-  - `clinic`: chế độ mock — không cần chọn campaign, sau khi scan/manual sẽ tạo 1 "phiếu khám" hiển thị tại chỗ (mock token, không ghi DB), kèm `mockTxHash` để khớp narrative blockchain.
-- `Campaigns` page: thay `<QRCheckIn />` cũ bằng `<QRCheckInPanel mode="campaign" />`.
-- `ChainSmartClinic`: thay khối mock cũ bằng `<QRCheckInPanel mode="clinic" />`.
-- Component cũ `QRCheckIn.tsx` xoá sau khi đã thay ở mọi nơi.
+## Schema output (khớp đề bài)
 
-## 2. Trợ lý AI (gộp Smart Clinic ↔ GlobalAIAssistant)
+```json
+[
+  {
+    "text": "bệnh trào ngược dạ dày - thực quản",
+    "position": [88, 122],
+    "type": "CHẨN_ĐOÁN",
+    "assertions": [],
+    "candidates": ["K21.0", "K21.9"]
+  },
+  {
+    "text": "Chlorpheniramine 0.4 MG/ML",
+    "position": [150, 176],
+    "type": "THUỐC",
+    "assertions": ["isHistorical"],
+    "candidates": ["360047"]
+  },
+  { "text": "ho đờm xanh", "position": [45, 56], "type": "TRIỆU_CHỨNG", "assertions": [], "candidates": [] },
+  { "text": "WBC", "position": [200, 203], "type": "TÊN_XÉT_NGHIỆM", "assertions": [], "candidates": [] },
+  { "text": "14,43", "position": [204, 209], "type": "KẾT_QUẢ_XÉT_NGHIỆM", "assertions": [], "candidates": [] }
+]
+```
 
-**Trùng:** `GlobalAIAssistant` (nổi mọi trang, chat tổng quát) và 2 panel trong `ChainSmartClinic` ("AI Triage" + "AI Doctor Assistant" gọi edge `ai-triage`).
+## Thay đổi cụ thể
 
-**Cách gộp:**
-- Mở rộng `GlobalAIAssistant` để hỗ trợ "skills" (chế độ chuyên biệt): `general | triage | doctor`. Mỗi skill có system prompt + endpoint riêng (`ai-triage` cho triage/doctor, giữ flow hiện tại cho general).
-- Trong `ChainSmartClinic`, bỏ 2 card chat dài; thay bằng 2 nút gọn "Khởi động AI Triage" / "Mở Doctor Assistant" — bấm sẽ mở `GlobalAIAssistant` với skill tương ứng (qua custom event hoặc Zustand store nhỏ `useAssistantSkill`).
-- Giữ phần "Queue Board" và "QR Check-in" của Smart Clinic; chỉ phần chat AI là gộp.
-- Lợi ích: 1 cửa sổ chat duy nhất, lịch sử thống nhất, đỡ tải trang.
+### 1. Edge function `clinical-nlp` — rewrite output contract
+- System prompt Gemini yêu cầu output theo đúng nhãn Vietnamese uppercase với dấu gạch dưới.
+- Prompt yêu cầu trả `char_start`, `char_end` cho mỗi entity; server verify bằng `text.indexOf` để fix drift.
+- Tách logic verify 2 pha:
+  - **Pha 1 (LLM)**: Gemini đề xuất `candidates_raw` (tên tiếng Anh chuẩn hoá + mã dự đoán).
+  - **Pha 2 (API)**:
+    - Drug: `GET https://rxnav.nlm.nih.gov/REST/approximateTerm.json?term=<tên EN>&maxEntries=5` → lấy `rxcui`.
+    - Disease: `GET https://icd.who.int/browse10/2019/en/JsonGetChildrenConcepts?ConceptId=<code>` hoặc search endpoint để confirm mã tồn tại; fallback giữ mã Gemini nếu API down.
+- Fallback: nếu verify fail, giữ candidates từ LLM (không để rỗng).
+- Trả về `{ entities: [...] }` đúng shape trên (bỏ `relations`, `summary` cho endpoint scoring; giữ optional trong response cho UI).
 
-## 3. EMR / Health Records (liên kết ChainEMR ↔ BioVault)
+### 2. Component `ClinicalNlpPanel.tsx` — cập nhật render
+- Bảng entities dùng nhãn mới, hiển thị `position`, `assertions` (badge: Phủ định / Người nhà / Tiền sử), `candidates`.
+- Highlight inline dùng `position` char-offset thay vì regex match text.
 
-**Trùng:** `ChainEMR` (HR-NFT gallery — mock token mã hoá hồ sơ) và `BioVault HealthProfile/HealthRecords` (hồ sơ thật của user).
+### 3. Trang mới `/clinical-nlp-batch` (`src/pages/ClinicalNlpBatch.tsx`)
+- Dropzone nhận `.zip` (dùng `jszip` đã có trong deps? nếu chưa → `bun add jszip file-saver`) HOẶC multi-select `.txt`.
+- Với mỗi file: đọc text → invoke `clinical-nlp` → lưu vào Map `{ "1.json": [...] }`.
+- Concurrency limit 4 (tránh rate-limit Gemini 429).
+- Bảng tiến độ: pending / running / done / error, có retry per-file.
+- Nút **"Tải xuống submission.zip"** đóng gói tất cả `.json` (giữ tên `<n>.json` theo file input).
+- Thêm route trong `App.tsx` + link trong sidebar (mục "Clinical NLP" trong nhóm hiện có).
 
-**Cách gộp (không trộn dữ liệu thật vs mock):**
-- Trong `BioVault > HealthProfile`, mỗi health record thêm nút **"Mint as HR-NFT"** → mở modal mock (dùng `useMockChain` để tạo `tx_hash`, `ipfs_hash`) → ghi vào `hr_nfts` với `user_id` hiện tại.
-- Trong `ChainEMR`, mỗi HR-NFT thêm liên kết **"Xem hồ sơ gốc"** → điều hướng về `BioVault` filter theo `record_id` (lưu trong `hr_nfts.metadata` hoặc cột mới nếu cần — nhưng kế hoạch này KHÔNG đổi schema, sẽ dùng `patient_name_hash` + `icd10` để khớp hiển thị).
-- Thêm thẻ "EMR trên blockchain" tóm tắt (số HR-NFT đã mint) trong `BioVault` overview, click → `/chain/emr`.
-- Không xoá trang nào — chỉ tạo 1 cây cầu 2 chiều để user hiểu cùng 1 dữ liệu, 2 góc nhìn.
+### 4. Đồng bộ tích hợp cũ
+- `BioVault.tsx` + `ChainEMR.tsx` đang gọi `clinical-nlp` — cập nhật render dùng schema mới (nhãn Vietnamese, assertions badges). Vẫn giữ nút "Trích xuất khái niệm" như cũ.
 
----
+## Files thay đổi
 
-## Files dự kiến chạm
+**Created**
+- `src/pages/ClinicalNlpBatch.tsx` — batch runner UI
+- `src/lib/nlpBatch.ts` — helper concurrency + zip pack/unpack
 
-**Tạo mới:**
-- `src/components/shared/QRCheckInPanel.tsx`
-- `src/store/useAssistantSkill.ts` (Zustand nhỏ)
-- `src/components/biovault/MintHrNftModal.tsx`
+**Edited**
+- `supabase/functions/clinical-nlp/index.ts` — schema đề bài + RxNav/WHO verify
+- `src/components/shared/ClinicalNlpPanel.tsx` — render schema mới
+- `src/App.tsx` — thêm route `/clinical-nlp-batch`
+- `src/components/AppSidebar.tsx` — thêm link
+- `src/pages/BioVault.tsx`, `src/pages/ChainEMR.tsx` — adapt schema mới
 
-**Sửa:**
-- `src/pages/Campaigns.tsx` — đổi import QRCheckIn
-- `src/pages/ChainSmartClinic.tsx` — bỏ panel chat AI, dùng QRCheckInPanel, thêm nút mở Assistant
-- `src/components/GlobalAIAssistant.tsx` — thêm skill switching + đọc `useAssistantSkill`
-- `src/components/biovault/HealthProfile.tsx` (hoặc HealthRecords) — thêm nút Mint HR-NFT + thẻ tóm tắt
-- `src/pages/ChainEMR.tsx` — thêm link "Xem hồ sơ gốc"
+**Dependencies**: `bun add jszip file-saver @types/file-saver` (nếu chưa có).
 
-**Xoá (sau khi thay xong):**
-- `src/components/QRCheckIn.tsx`
+## Verify trước khi bàn giao
+1. Test 1 văn bản ví dụ trong đề bài → output JSON đúng nhãn, đúng position, có ICD K21.x và RxNorm 360047/1660761.
+2. Test batch với 3 file .txt giả → nhận zip 3 file .json.
+3. Kiểm console không lỗi CORS/429.
 
-## Ngoài phạm vi
-- Không đổi schema Supabase (`hr_nfts`, `htc_transactions`, `campaign_checkins` giữ nguyên).
-- Không sửa edge function `ai-triage`.
-- Không đụng mobile bottom nav, sidebar, routing.
-- Không gộp `FaceScanModal` lần này (user chưa chọn).
+## Không làm trong scope này
+- Fine-tune model hoặc train local NER (đề bài cho phép nhưng vượt scope Lovable).
+- Lưu DB `clinical_notes` (user đã chốt "tích hợp vào BioVault/EMR sẵn có" — không cần bảng mới).
+- Xử lý PDF/hình ảnh input (đề bài chỉ .txt).
