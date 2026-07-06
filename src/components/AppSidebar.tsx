@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import {
   Activity, Brain, MapPin, AlertTriangle, BarChart3,
   Settings, HelpCircle, Menu, FlaskConical, ClipboardPlus,
-  Users, Package, CalendarDays, Radio, Shield, Boxes,
+  Users, Package, CalendarDays, Radio, Shield, Boxes, Sparkles,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink, useLocation } from "react-router-dom";
@@ -78,6 +78,7 @@ export function AppSidebar() {
     { titleKey: "nav.strokeRisk",   title: t("nav.strokeRisk"),               url: "/stroke-risk",  icon: Brain         },
     { titleKey: "nav.maps",         title: t("nav.maps"),                     url: "/maps",         icon: MapPin        },
     { titleKey: "nav.stocks",       title: t("nav.stocks", "Kho vật tư"),      url: "/stocks",       icon: Package       },
+    { titleKey: "nav.clinicalNlp",  title: t("nav.clinicalNlp", "Clinical NLP"), url: "/clinical-nlp", icon: Sparkles     },
     { titleKey: "nav.chain",        title: t("nav.chain", "Sao Mai Chain"),    url: "/chain",        icon: Boxes         },
   ];
 
