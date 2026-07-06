@@ -37,6 +37,7 @@ import ChainOverview from "./pages/ChainOverview";
 import ChainEMR from "./pages/ChainEMR";
 import ChainSmartClinic from "./pages/ChainSmartClinic";
 import ChainHealthCoin from "./pages/ChainHealthCoin";
+import ClinicalNlpBatch from "./pages/ClinicalNlpBatch";
 import ConsentBanner from "./components/ConsentBanner";
 
 const queryClient = new QueryClient({
@@ -88,6 +89,7 @@ const queryClient = new QueryClient({
              <Route path="/chain/emr" element={<ChainEMR />} />
              <Route path="/chain/smart-clinic" element={<ChainSmartClinic />} />
              <Route path="/chain/healthcoin" element={<ChainHealthCoin />} />
+             <Route path="/clinical-nlp" element={<ClinicalNlpBatch />} />
              <Route path="*" element={<NotFound />} />
          </Routes>
          <EnhancedCommandPalette />
