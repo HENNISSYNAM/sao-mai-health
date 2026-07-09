@@ -73,11 +73,10 @@ export default function ClinicalNlpBatch() {
       setItems((prev) => prev.map((i) => (i.status === "done" ? i : { ...i, status: "pending", error: undefined })));
     }
     try {
-      // Use latest state via functional update inside runBatch's onUpdate
-      const snapshot = items.map((i) =>
-        (i.status === "done" || resumeOnly && i.status === "done")
+      const snapshot: BatchItem[] = items.map((i) =>
+        i.status === "done"
           ? i
-          : { ...i, status: "pending" as const, error: undefined }
+          : { ...i, status: "pending", error: undefined }
       );
       await runBatch(
         snapshot,
