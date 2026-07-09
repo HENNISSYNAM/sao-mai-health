@@ -132,18 +132,26 @@ async function lookupRxNorm(term: string): Promise<string[]> {
   }
 }
 
-// Very small in-memory cache per request
-async function verifyCandidates(raw: RawEntity): Promise<string[]> {
+// Per-request cache to dedupe identical term lookups
+async function verifyCandidates(
+  raw: RawEntity,
+  cache: Map<string, string[]>,
+): Promise<string[]> {
   const guesses = Array.isArray(raw.candidates_guess) ? raw.candidates_guess.filter(Boolean) : [];
-  const term = raw.normalized_en || raw.text;
+  const term = (raw.normalized_en || raw.text || '').trim().toLowerCase();
+  if (!term) return guesses.slice(0, 5);
+
   if (raw.type === 'CHẨN_ĐOÁN') {
-    const api = await lookupIcd10(term);
-    // Merge guess + api, dedupe, prefer api first if present
+    const key = `icd:${term}`;
+    let api = cache.get(key);
+    if (!api) { api = await lookupIcd10(term); cache.set(key, api); }
     const merged = api.length ? [...api, ...guesses] : guesses;
     return Array.from(new Set(merged)).slice(0, 5);
   }
   if (raw.type === 'THUỐC') {
-    const api = await lookupRxNorm(term);
+    const key = `rx:${term}`;
+    let api = cache.get(key);
+    if (!api) { api = await lookupRxNorm(term); cache.set(key, api); }
     const merged = api.length ? [...api, ...guesses] : guesses;
     return Array.from(new Set(merged)).slice(0, 5);
   }
