@@ -132,18 +132,26 @@ async function lookupRxNorm(term: string): Promise<string[]> {
   }
 }
 
-// Very small in-memory cache per request
-async function verifyCandidates(raw: RawEntity): Promise<string[]> {
+// Per-request cache to dedupe identical term lookups
+async function verifyCandidates(
+  raw: RawEntity,
+  cache: Map<string, string[]>,
+): Promise<string[]> {
   const guesses = Array.isArray(raw.candidates_guess) ? raw.candidates_guess.filter(Boolean) : [];
-  const term = raw.normalized_en || raw.text;
+  const term = (raw.normalized_en || raw.text || '').trim().toLowerCase();
+  if (!term) return guesses.slice(0, 5);
+
   if (raw.type === 'CHẨN_ĐOÁN') {
-    const api = await lookupIcd10(term);
-    // Merge guess + api, dedupe, prefer api first if present
+    const key = `icd:${term}`;
+    let api = cache.get(key);
+    if (!api) { api = await lookupIcd10(term); cache.set(key, api); }
     const merged = api.length ? [...api, ...guesses] : guesses;
     return Array.from(new Set(merged)).slice(0, 5);
   }
   if (raw.type === 'THUỐC') {
-    const api = await lookupRxNorm(term);
+    const key = `rx:${term}`;
+    let api = cache.get(key);
+    if (!api) { api = await lookupRxNorm(term); cache.set(key, api); }
     const merged = api.length ? [...api, ...guesses] : guesses;
     return Array.from(new Set(merged)).slice(0, 5);
   }
@@ -210,8 +218,16 @@ Deno.serve(async (req) => {
 
     const rawEntities: RawEntity[] = Array.isArray(parsed?.entities) ? parsed.entities : [];
 
-    // Normalize + fix positions + verify candidates
-    const entities: OutputEntity[] = [];
+    // Phase 1: normalize + fix positions (sequential to keep cursor monotonic)
+    interface Staged {
+      cleanText: string;
+      type: string;
+      assertions: string[];
+      position: [number, number];
+      candidates_guess: string[];
+      normalized_en: string | null;
+    }
+    const staged: Staged[] = [];
     let cursor = 0;
     for (const raw of rawEntities) {
       const cleanText = String(raw?.text ?? '').trim();
@@ -219,11 +235,10 @@ Deno.serve(async (req) => {
       const type = String(raw?.type ?? '');
       if (!ALLOWED_TYPES.has(type)) continue;
 
-      // Assertions filter — only for the three allowed types
       const allowAssert = type === 'TRIỆU_CHỨNG' || type === 'CHẨN_ĐOÁN' || type === 'THUỐC';
       const rawAss = Array.isArray(raw?.assertions) ? raw.assertions : [];
       const assertions = allowAssert
-        ? Array.from(new Set(rawAss.filter((a: any) => ALLOWED_ASSERTIONS.has(a))))
+        ? Array.from(new Set(rawAss.filter((a: any) => ALLOWED_ASSERTIONS.has(a)))) as string[]
         : [];
 
       const [start, end] = fixPosition(text, {
@@ -234,30 +249,37 @@ Deno.serve(async (req) => {
       } as RawEntity, cursor);
       if (start >= 0) cursor = end;
 
+      staged.push({
+        cleanText, type, assertions,
+        position: [start, end],
+        candidates_guess: Array.isArray(raw?.candidates_guess) ? raw.candidates_guess.map(String) : [],
+        normalized_en: raw?.normalized_en ?? null,
+      });
+    }
+
+    // Phase 2: verify candidates in parallel (per-request cache dedupes identical terms)
+    const cache = new Map<string, string[]>();
+    const entities: OutputEntity[] = await Promise.all(staged.map(async (s) => {
       let candidates: string[] = [];
       if (verify) {
         candidates = await verifyCandidates({
-          ...raw,
-          text: cleanText,
-          type,
-          candidates_guess: Array.isArray(raw?.candidates_guess) ? raw.candidates_guess.map(String) : [],
-          normalized_en: raw?.normalized_en ?? null,
-        } as RawEntity);
+          text: s.cleanText, type: s.type,
+          candidates_guess: s.candidates_guess,
+          normalized_en: s.normalized_en,
+          char_start: s.position[0], char_end: s.position[1],
+          assertions: s.assertions,
+        } as RawEntity, cache);
       } else {
-        candidates = (Array.isArray(raw?.candidates_guess) ? raw.candidates_guess : [])
-          .map((c: any) => String(c))
-          .filter(Boolean)
-          .slice(0, 5);
+        candidates = s.candidates_guess.filter(Boolean).slice(0, 5);
       }
-
-      entities.push({
-        text: cleanText,
-        position: [start, end],
-        type,
-        assertions,
+      return {
+        text: s.cleanText,
+        position: s.position,
+        type: s.type,
+        assertions: s.assertions,
         candidates,
-      });
-    }
+      };
+    }));
 
     return new Response(JSON.stringify({ entities, source, doc_id }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
