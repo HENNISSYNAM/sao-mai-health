@@ -1,6 +1,8 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { lookupDiseaseVi, lookupDrugVi, extractIngredient } from './vi_medical_lexicon.ts';
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
 
 /**
  * Vietnamese Clinical NLP — output schema đúng theo đề bài.
