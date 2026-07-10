@@ -146,18 +146,8 @@ async function lookupRxNormDrugs(ingredient: string): Promise<string[]> {
   } catch { return []; }
 }
 
-// Simple Levenshtein-like similarity via char overlap ratio (fast, good enough)
-function similarity(a: string, b: string): number {
-  const A = a.toLowerCase(), B = b.toLowerCase();
-  if (!A || !B) return 0;
-  if (A === B) return 1;
-  if (B.includes(A) || A.includes(B)) return 0.85;
-  const setA = new Set(A.split(/\s+/));
-  const setB = new Set(B.split(/\s+/));
-  let overlap = 0;
-  for (const w of setA) if (setB.has(w)) overlap++;
-  return overlap / Math.max(setA.size, setB.size);
-}
+
+
 
 async function verifyCandidates(
   raw: RawEntity,
