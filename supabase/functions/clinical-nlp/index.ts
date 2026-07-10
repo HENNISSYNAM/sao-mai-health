@@ -1,6 +1,8 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { lookupDiseaseVi, lookupDrugVi, extractIngredient } from './vi_medical_lexicon.ts';
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+
 
 /**
  * Vietnamese Clinical NLP — output schema đúng theo đề bài.
@@ -98,65 +100,108 @@ function fixPosition(input: string, e: RawEntity, searchFrom: number): [number, 
   return [cpStart, cpStart + targetArr.length];
 }
 
-// ---------- NIH ClinicalTables lookups (free, no auth) ----------
+// ---------- NIH ClinicalTables + RxNav lookups (free, no auth) ----------
 async function lookupIcd10(term: string): Promise<string[]> {
   if (!term) return [];
   try {
-    const url = `https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search?sf=code,name&maxList=5&terms=${encodeURIComponent(term)}`;
+    const url = `https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search?sf=code,name&maxList=8&terms=${encodeURIComponent(term)}`;
     const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!r.ok) return [];
     const j = await r.json();
-    // Format: [count, codes[], null, [[code, name], ...]]
     const codes: string[] = Array.isArray(j?.[1]) ? j[1] : [];
-    return codes.slice(0, 5);
-  } catch {
-    return [];
-  }
+    return codes.slice(0, 8);
+  } catch { return []; }
 }
 
-async function lookupRxNorm(term: string): Promise<string[]> {
+async function lookupRxNormApprox(term: string): Promise<string[]> {
   if (!term) return [];
   try {
-    // Approximate term lookup returns best RxCUI matches
-    const url = `https://rxnav.nlm.nih.gov/REST/approximateTerm.json?term=${encodeURIComponent(term)}&maxEntries=5`;
+    const url = `https://rxnav.nlm.nih.gov/REST/approximateTerm.json?term=${encodeURIComponent(term)}&maxEntries=8`;
     const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
     if (!r.ok) return [];
     const j = await r.json();
     const cands = j?.approximateGroup?.candidate ?? [];
-    const rxcuis = cands
-      .map((c: any) => String(c?.rxcui ?? ''))
-      .filter((x: string) => x && x !== '0');
-    return Array.from(new Set(rxcuis)).slice(0, 5);
-  } catch {
-    return [];
-  }
+    return cands.map((c: any) => String(c?.rxcui ?? '')).filter((x: string) => x && x !== '0');
+  } catch { return []; }
 }
 
-// Per-request cache to dedupe identical term lookups
+/** RxNav getDrugs by ingredient name → returns SCD/SBD RxCUIs matching strength+form. */
+async function lookupRxNormDrugs(ingredient: string): Promise<string[]> {
+  if (!ingredient) return [];
+  try {
+    const url = `https://rxnav.nlm.nih.gov/REST/drugs.json?name=${encodeURIComponent(ingredient)}`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(4000) });
+    if (!r.ok) return [];
+    const j = await r.json();
+    const groups = j?.drugGroup?.conceptGroup ?? [];
+    const cuis: string[] = [];
+    for (const g of groups) {
+      // Prefer SCD (Semantic Clinical Drug) & IN (Ingredient)
+      if (!['SCD', 'SBD', 'IN'].includes(g?.tty)) continue;
+      for (const c of g?.conceptProperties ?? []) {
+        if (c?.rxcui) cuis.push(String(c.rxcui));
+      }
+    }
+    return cuis;
+  } catch { return []; }
+}
+
+
+
+
 async function verifyCandidates(
   raw: RawEntity,
   cache: Map<string, string[]>,
 ): Promise<string[]> {
   const guesses = Array.isArray(raw.candidates_guess) ? raw.candidates_guess.filter(Boolean) : [];
-  const term = (raw.normalized_en || raw.text || '').trim().toLowerCase();
-  if (!term) return guesses.slice(0, 5);
+  const rawText = (raw.text || '').trim();
+  const enName = (raw.normalized_en || '').trim();
 
   if (raw.type === 'CHẨN_ĐOÁN') {
-    const key = `icd:${term}`;
-    let api = cache.get(key);
-    if (!api) { api = await lookupIcd10(term); cache.set(key, api); }
-    const merged = api.length ? [...api, ...guesses] : guesses;
-    return Array.from(new Set(merged)).slice(0, 5);
+    // Layer 1: VI lexicon
+    const lex = lookupDiseaseVi(rawText);
+    const lexCodes = lex?.codes ?? [];
+    const searchTerms = Array.from(new Set([lex?.en, enName, rawText].filter(Boolean))) as string[];
+
+    // Layer 2: parallel NIH lookups on each candidate term
+    const apiResults = await Promise.all(
+      searchTerms.map(async (t) => {
+        const key = `icd:${t.toLowerCase()}`;
+        if (cache.has(key)) return cache.get(key)!;
+        const res = await lookupIcd10(t);
+        cache.set(key, res);
+        return res;
+      })
+    );
+    const apiCodes = apiResults.flat();
+
+    // Merge: lexicon (highest trust) → API → LLM guesses
+    const merged = Array.from(new Set([...lexCodes, ...apiCodes, ...guesses]));
+    return merged.slice(0, 5);
   }
+
   if (raw.type === 'THUỐC') {
-    const key = `rx:${term}`;
-    let api = cache.get(key);
-    if (!api) { api = await lookupRxNorm(term); cache.set(key, api); }
-    const merged = api.length ? [...api, ...guesses] : guesses;
-    return Array.from(new Set(merged)).slice(0, 5);
+    const lex = lookupDrugVi(rawText);
+    const ingredient = lex?.en || extractIngredient(rawText) || enName;
+    const fullTerm = enName || rawText;
+
+    // Parallel: approxTerm on full string (catches strength+form) + drugs by ingredient
+    const key1 = `rx-approx:${fullTerm.toLowerCase()}`;
+    const key2 = `rx-drugs:${ingredient.toLowerCase()}`;
+    const [approx, drugs] = await Promise.all([
+      cache.has(key1) ? Promise.resolve(cache.get(key1)!) : lookupRxNormApprox(fullTerm).then((r) => { cache.set(key1, r); return r; }),
+      cache.has(key2) ? Promise.resolve(cache.get(key2)!) : lookupRxNormDrugs(ingredient).then((r) => { cache.set(key2, r); return r; }),
+    ]);
+
+    // approxTerm results are already ranked by similarity; prefer them first
+    // Then drugs (SCD matches) → lexicon ingredient → LLM guesses
+    const lexCodes = lex?.codes ?? [];
+    const merged = Array.from(new Set([...approx, ...drugs, ...lexCodes, ...guesses]));
+    return merged.slice(0, 5);
   }
   return [];
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });

@@ -1,104 +1,67 @@
 
-# Kế hoạch: Vietnamese Clinical NLP theo chuẩn đề bài
+# Kế hoạch: Tăng độ chính xác candidates ICD-10 & RxNorm
 
 ## Mục tiêu
-Nâng cấp module clinical-nlp hiện có để output đúng schema đề bài (nhãn Vietnamese uppercase, position char-offset, assertions, candidates ICD-10/RxNorm chuẩn), và thêm **batch runner** để chạy 100 file test.zip → xuất folder .json nộp bài.
+Giảm sai/thiếu mã ICD-10 (bệnh) và RxNorm (thuốc) trong output `clinical-nlp` bằng cách chuẩn hoá thuật ngữ VI→EN trước khi tra cứu, mở rộng nguồn tra cứu, và thêm bước re-rank bằng Gemini pass 2.
 
-## Kiến trúc
+## Chiến lược 3 lớp
 
-```text
-┌─ UI ────────────────────────────────────────────────────────────┐
-│ /clinical-nlp-batch  ──► upload test.zip / nhiều .txt           │
-│   │                                                              │
-│   ├─ ClinicalNlpPanel (single)  ── nâng cấp schema mới          │
-│   └─ Bảng tiến độ + tải kết quả .zip (100 file .json)           │
-└──────────────────┬───────────────────────────────────────────────┘
-                   │ supabase.functions.invoke
-                   ▼
-┌─ Edge Function: clinical-nlp (nâng cấp) ────────────────────────┐
-│ 1. Gemini 2.5 Flash extract entities theo schema đề bài          │
-│    (TRIỆU_CHỨNG / TÊN_XÉT_NGHIỆM / KẾT_QUẢ_XÉT_NGHIỆM /          │
-│     CHẨN_ĐOÁN / THUỐC) + position + assertions                   │
-│ 2. Verify candidates:                                            │
-│    - THUỐC → RxNav /approximateTerm.json (NIH, không cần key)   │
-│    - CHẨN_ĐOÁN → WHO ICD-10 API /icd/release/10 (public)         │
-│ 3. Trả JSON đúng schema đề bài                                   │
-└──────────────────────────────────────────────────────────────────┘
-```
+### Lớp 1 — Chuẩn hoá thuật ngữ VI→EN (deterministic)
+- Thêm `supabase/functions/clinical-nlp/vi_medical_lexicon.ts`: bảng ánh xạ ~200 thuật ngữ VI phổ biến → tên EN chuẩn (WHO/UMLS).
+  - VD: "trào ngược dạ dày - thực quản" → "gastroesophageal reflux disease", "tăng huyết áp" → "essential hypertension", "tiểu đường type 2" → "type 2 diabetes mellitus".
+  - Thuốc: xử lý dạng "Tên hoạt chất + hàm lượng + đơn vị" (`Chlorpheniramine 0.4 MG/ML`) — tách hoạt chất, chuẩn hoá dose form.
+- Fallback: nếu không có trong lexicon → dùng Gemini pass 1 dịch/chuẩn hoá thành tên EN chính thức (đã có `english_name` field).
 
-## Schema output (khớp đề bài)
+### Lớp 2 — Mở rộng & song song hoá candidate lookup
+Cho mỗi CHẨN_ĐOÁN: gọi **song song** 3 nguồn, gộp + dedupe theo mã:
+1. **NIH ClinicalTables ICD-10-CM** (đang có) — `sf=code,name&terms=<EN>`
+2. **BioPortal ICD-10** search — cover các mã ICD-10 quốc tế WHO không có trong CM
+3. **UMLS Metathesaurus** via `rxnav.nlm.nih.gov/REST/umlsconcept` — cross-walk khi 2 nguồn trên miss
 
-```json
-[
-  {
-    "text": "bệnh trào ngược dạ dày - thực quản",
-    "position": [88, 122],
-    "type": "CHẨN_ĐOÁN",
-    "assertions": [],
-    "candidates": ["K21.0", "K21.9"]
-  },
-  {
-    "text": "Chlorpheniramine 0.4 MG/ML",
-    "position": [150, 176],
-    "type": "THUỐC",
-    "assertions": ["isHistorical"],
-    "candidates": ["360047"]
-  },
-  { "text": "ho đờm xanh", "position": [45, 56], "type": "TRIỆU_CHỨNG", "assertions": [], "candidates": [] },
-  { "text": "WBC", "position": [200, 203], "type": "TÊN_XÉT_NGHIỆM", "assertions": [], "candidates": [] },
-  { "text": "14,43", "position": [204, 209], "type": "KẾT_QUẢ_XÉT_NGHIỆM", "assertions": [], "candidates": [] }
-]
-```
+Cho mỗi THUỐC: gọi **song song**:
+1. **RxNav `approximateTerm`** (đang có) — `term=<name+strength>&maxEntries=10`
+2. **RxNav `getDrugs`** — theo tên hoạt chất (bỏ liều) để lấy ingredient RxCUI
+3. **RxNav `getAllRelatedInfo`** — lấy cả SCD (Semantic Clinical Drug) và IN (Ingredient) RxCUI
 
-## Thay đổi cụ thể
+Kết quả: `candidates` trả về top-5 đã re-rank theo độ trùng tên (Levenshtein trên tên chuẩn hoá).
 
-### 1. Edge function `clinical-nlp` — rewrite output contract
-- System prompt Gemini yêu cầu output theo đúng nhãn Vietnamese uppercase với dấu gạch dưới.
-- Prompt yêu cầu trả `char_start`, `char_end` cho mỗi entity; server verify bằng `text.indexOf` để fix drift.
-- Tách logic verify 2 pha:
-  - **Pha 1 (LLM)**: Gemini đề xuất `candidates_raw` (tên tiếng Anh chuẩn hoá + mã dự đoán).
-  - **Pha 2 (API)**:
-    - Drug: `GET https://rxnav.nlm.nih.gov/REST/approximateTerm.json?term=<tên EN>&maxEntries=5` → lấy `rxcui`.
-    - Disease: `GET https://icd.who.int/browse10/2019/en/JsonGetChildrenConcepts?ConceptId=<code>` hoặc search endpoint để confirm mã tồn tại; fallback giữ mã Gemini nếu API down.
-- Fallback: nếu verify fail, giữ candidates từ LLM (không để rỗng).
-- Trả về `{ entities: [...] }` đúng shape trên (bỏ `relations`, `summary` cho endpoint scoring; giữ optional trong response cho UI).
-
-### 2. Component `ClinicalNlpPanel.tsx` — cập nhật render
-- Bảng entities dùng nhãn mới, hiển thị `position`, `assertions` (badge: Phủ định / Người nhà / Tiền sử), `candidates`.
-- Highlight inline dùng `position` char-offset thay vì regex match text.
-
-### 3. Trang mới `/clinical-nlp-batch` (`src/pages/ClinicalNlpBatch.tsx`)
-- Dropzone nhận `.zip` (dùng `jszip` đã có trong deps? nếu chưa → `bun add jszip file-saver`) HOẶC multi-select `.txt`.
-- Với mỗi file: đọc text → invoke `clinical-nlp` → lưu vào Map `{ "1.json": [...] }`.
-- Concurrency limit 4 (tránh rate-limit Gemini 429).
-- Bảng tiến độ: pending / running / done / error, có retry per-file.
-- Nút **"Tải xuống submission.zip"** đóng gói tất cả `.json` (giữ tên `<n>.json` theo file input).
-- Thêm route trong `App.tsx` + link trong sidebar (mục "Clinical NLP" trong nhóm hiện có).
-
-### 4. Đồng bộ tích hợp cũ
-- `BioVault.tsx` + `ChainEMR.tsx` đang gọi `clinical-nlp` — cập nhật render dùng schema mới (nhãn Vietnamese, assertions badges). Vẫn giữ nút "Trích xuất khái niệm" như cũ.
+### Lớp 3 — Re-rank pass 2 bằng Gemini (chỉ khi cần)
+- Sau khi có candidate pool từ Lớp 2, nếu pool > 3 hoặc score max < 0.8 → gửi 1 batch call Gemini với:
+  - Toàn bộ context văn bản gốc
+  - Entity + candidate pool (mã + tên EN + tên VN)
+  - Yêu cầu chọn top-3 phù hợp nhất với ngữ cảnh (ví dụ K21.0 vs K21.9 phụ thuộc có esophagitis hay không)
+- Model: `google/gemini-3-flash-preview` (đã dùng), JSON mode, chỉ trả `{ entity_id: string, ranked_codes: string[] }[]`.
+- Batch toàn bộ entities cần re-rank trong 1 request → giảm chi phí.
 
 ## Files thay đổi
 
 **Created**
-- `src/pages/ClinicalNlpBatch.tsx` — batch runner UI
-- `src/lib/nlpBatch.ts` — helper concurrency + zip pack/unpack
+- `supabase/functions/clinical-nlp/vi_medical_lexicon.ts` — ~200 thuật ngữ VI→EN cho bệnh & thuốc thường gặp.
+- `supabase/functions/clinical-nlp/candidate_lookup.ts` — helper song song hoá + dedupe + Levenshtein scoring.
 
 **Edited**
-- `supabase/functions/clinical-nlp/index.ts` — schema đề bài + RxNav/WHO verify
-- `src/components/shared/ClinicalNlpPanel.tsx` — render schema mới
-- `src/App.tsx` — thêm route `/clinical-nlp-batch`
-- `src/components/AppSidebar.tsx` — thêm link
-- `src/pages/BioVault.tsx`, `src/pages/ChainEMR.tsx` — adapt schema mới
+- `supabase/functions/clinical-nlp/index.ts`:
+  - Import lexicon + candidate_lookup.
+  - Sau pass 1 (extract): normalize từng CHẨN_ĐOÁN/THUỐC qua lexicon.
+  - Chạy candidate lookup song song (dùng `Promise.all` với concurrency limit 8).
+  - Nếu cần → gọi pass 2 Gemini re-rank.
+  - Giữ nguyên schema output (không breaking change).
 
-**Dependencies**: `bun add jszip file-saver @types/file-saver` (nếu chưa có).
+**Không đổi**
+- `src/components/shared/ClinicalNlpPanel.tsx`, `src/lib/nlpBatch.ts`, `src/pages/ClinicalNlpBatch.tsx` — schema output ổn định.
 
-## Verify trước khi bàn giao
-1. Test 1 văn bản ví dụ trong đề bài → output JSON đúng nhãn, đúng position, có ICD K21.x và RxNorm 360047/1660761.
-2. Test batch với 3 file .txt giả → nhận zip 3 file .json.
-3. Kiểm console không lỗi CORS/429.
+## Đo lường
+- Trên ví dụ mẫu ("trào ngược dạ dày - thực quản" + "Chlorpheniramine 0.4 MG/ML" + "Capsaicin 0.38 MG/ML"), kỳ vọng output:
+  - `K21.0`, `K21.9` (đúng như đề bài)
+  - `360047` cho Chlorpheniramine 0.4 MG/ML
+  - `1660761` cho Capsaicin 0.38 MG/ML
+
+## Verify sau khi build
+1. Curl `clinical-nlp` với text mẫu đề bài → check candidates khớp `K21.0/K21.9`, `360047`, `1660761`.
+2. Kiểm log edge function xem pass 2 chỉ trigger khi candidates ambiguous.
+3. Chạy batch runner với 3-5 file .txt đa dạng → verify không tăng đáng kể latency (< 1.5× so với hiện tại).
 
 ## Không làm trong scope này
-- Fine-tune model hoặc train local NER (đề bài cho phép nhưng vượt scope Lovable).
-- Lưu DB `clinical_notes` (user đã chốt "tích hợp vào BioVault/EMR sẵn có" — không cần bảng mới).
-- Xử lý PDF/hình ảnh input (đề bài chỉ .txt).
+- Fine-tune model local NER.
+- Thay đổi UI panel/batch runner.
+- Relation extraction pass 2 (đã liệt kê ở lựa chọn khác — giữ cho vòng sau).
