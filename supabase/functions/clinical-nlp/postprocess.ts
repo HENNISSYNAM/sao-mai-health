@@ -167,7 +167,7 @@ const FAM_RE = new RegExp(
 // Only an explicit relative + verb (FAM_RE) fires here; semantic family is left to the LLM.
 
 const HIST_CLAUSE_CUES = [
-  'tiền sử', 'tiền căn', 'bệnh sử', 'đã từng', 'từng bị', 'từng mắc', 'trước đây',
+  'tiền sử', 'tiền căn', 'đã từng', 'từng bị', 'từng mắc', 'trước đây',
   'trước đó', 'đã được chẩn đoán', 'đã điều trị', 'nhiều năm nay', 'đã phẫu thuật',
   'phát hiện năm', 'chẩn đoán năm', 'bệnh nền', 'đã mổ',
 ];
@@ -204,7 +204,15 @@ function sentenceBounds(raw: string, pos: number, lookback = 400): [number, numb
 // Tokens that BREAK an assertion scope: a new subject/predicate between the cue and
 // the concept means the cue no longer governs it. Stops "không sốt, bệnh nhân ho"
 // from negating "ho", or "tiền sử THA, hiện đang dùng metformin" from back-dating the drug.
-const SCOPE_BREAKER = /(?<!\p{L})(?:nhưng|tuy nhiên|song|hiện tại|hiện đang|hiện nay|hiện|đang|sau đó|bệnh nhân|bn|khám|kê đơn|chỉ định|ghi nhận|kết quả|điều trị bằng|được cho|thay bằng)(?!\p{L})/iu;
+const BREAK_WORDS = 'nhưng|tuy nhiên|song|hiện tại|hiện đang|hiện nay|hiện|đang|sau đó|bệnh nhân|bn|khám|kê đơn|chỉ định|ghi nhận|kết quả|điều trị bằng|được cho|thay bằng';
+const SCOPE_BREAKER = new RegExp(`(?<!\\p{L})(?:${BREAK_WORDS})(?!\\p{L})`, 'iu');
+// For NEGATION only: an administration/action verb after the negated item starts a new
+// positive predicate ("... không có cơn rét run, DÙNG 1 viên paracetamol") → break.
+// (Not used for isHistorical, where "tiền sử SỬ DỤNG X, Y" keeps Y in scope.)
+const SCOPE_BREAKER_NEG = new RegExp(
+  `(?<!\\p{L})(?:${BREAK_WORDS}|dùng|uống|tiêm|truyền|ăn|sử dụng|cho dùng)(?!\\p{L})`,
+  'iu',
+);
 
 /** Last standalone index of `cue` in `hay`, or -1. */
 function lastCueIndex(hay: string, cue: string): number {
@@ -225,15 +233,13 @@ function lastCueIndex(hay: string, cue: string): number {
  *  (b) cue earlier in the sentence with only a coordinated list in between
  *      (no scope-breaking subject/predicate).
  */
-function cueGoverns(prefix: string, cues: string[], near = 40): boolean {
-  const window = prefix.slice(Math.max(0, prefix.length - near));
-  for (const c of cues) if (hasCue(window, c)) return true;
+function cueGoverns(prefix: string, cues: string[], breaker: RegExp): boolean {
+  // A cue governs the concept iff the text between the cue and the concept contains no
+  // scope-breaker. This covers both the immediate case ("không sốt") and coordinated
+  // lists ("không sốt, ho"; "tiền sử X, Y") while blocking "không ..., dùng X".
   for (const c of cues) {
     const i = lastCueIndex(prefix, c);
-    if (i >= 0) {
-      const between = prefix.slice(i + c.length);
-      if (!SCOPE_BREAKER.test(between)) return true;
-    }
+    if (i >= 0 && !breaker.test(prefix.slice(i + c.length))) return true;
   }
   return false;
 }
@@ -245,14 +251,22 @@ function parseSections(raw: string): Section[] {
   const sections: Section[] = [{ start: 0, historical: false }];
   const lines = raw.split(/\r?\n/);
   let off = 0;
-  const HIST = /tiền sử|tiền căn|bệnh sử|bệnh nền|bệnh (?:lý )?(?:mãn|mạn) tính|các bệnh (?:lý )?(?:mãn|mạn)/iu;
-  const PRESENT = /hiện tại|vào viện|nhập viện|lý do|hiện mắc|đang/iu;
+  // NB: "bệnh sử" (history of present illness) is the CURRENT episode — treated as PRESENT,
+  // not historical. Only true past-history headings count.
+  const HIST = /tiền sử|tiền căn|bệnh nền|(?:các )?bệnh (?:lý )?(?:mãn|mạn)(?: tính)?/iu;
+  const PRESENT = /hiện tại|hiện nay|vào viện|nhập viện|lý do|bệnh sử|quá trình bệnh|diễn biến|khám|chẩn đoán|điều trị|triệu chứng|cận lâm sàng|kết quả/iu;
+  const numHeading = /^\d+\s*[.)/]\s*\S/;                       // "1.", "2)", "3/ ..."
+  const presentStart = /^(?:hiện tại|hiện nay|lý do (?:vào|nhập)|triệu chứng khi|khám lâm sàng|đánh giá tại|chẩn đoán|điều trị)/iu;
   for (const line of lines) {
     const trimmed = line.trim();
-    const isHeading = /^\d+[.)]\s+\S/.test(trimmed) || (trimmed.length > 0 && trimmed.length < 60 && /^[A-ZÀ-Ỹ0-9]/.test(trimmed) && /[:：]?$/.test(trimmed) && HIST.test(trimmed));
-    if (isHeading && (HIST.test(trimmed) || PRESENT.test(trimmed))) {
-      const historical = HIST.test(trimmed) && !PRESENT.test(trimmed);
-      sections.push({ start: off, historical });
+    const heading =
+      numHeading.test(trimmed) ||
+      (trimmed.length > 0 && trimmed.length < 60 && /^[A-ZÀ-Ỹ0-9]/.test(trimmed) && (HIST.test(trimmed) || PRESENT.test(trimmed)));
+    if (heading) {
+      // any recognised heading resets scope; historical only for true past-history headings
+      sections.push({ start: off, historical: HIST.test(trimmed) && !PRESENT.test(trimmed) });
+    } else if (presentStart.test(trimmed)) {
+      sections.push({ start: off, historical: false }); // a present-tense prose line resets scope
     }
     off += line.length + 1; // +1 for the split '\n'
   }
@@ -287,14 +301,15 @@ export function detectAssertions(
   const sentence = raw.slice(sStart, sEnd);
 
   // isNegated — cue immediately before, or across a coordinated list ("không sốt, ho").
-  if (cueGoverns(prefix, NEG_CUES)) out.add('isNegated');
+  // Action verbs (dùng/uống/...) break the scope so "không ..., dùng X" doesn't negate X.
+  if (cueGoverns(prefix, NEG_CUES, SCOPE_BREAKER_NEG)) out.add('isNegated');
 
   // isFamily — tight relative-subject + verb pattern within the sentence.
   if (FAM_RE.test(sentence)) out.add('isFamily');
 
   // isHistorical — history section heading OR a cue governing the concept
   // (propagates over "tiền sử ... A, B, C" lists via cueGoverns).
-  if (sectionHistoricalAt(sections, start) || cueGoverns(prefix, HIST_CLAUSE_CUES, 60)) {
+  if (sectionHistoricalAt(sections, start) || cueGoverns(prefix, HIST_CLAUSE_CUES, SCOPE_BREAKER)) {
     out.add('isHistorical');
   }
 
