@@ -148,13 +148,35 @@ export async function runBatch(
   await spawn();
 }
 
-/** Package results as submission.zip and download. */
-export async function packSubmission(items: BatchItem[], filename = "submission.zip") {
+export interface PackOptions {
+  /**
+   * How the [start, end] char span is written:
+   *  - false (default): end-EXCLUSIVE, i.e. [start, start+len) — Python-slice convention.
+   *  - true: end-INCLUSIVE, i.e. [start, start+len-1] — the last character's index.
+   * The problem statement ("vị trí ... kết thúc ... từ 0 đến n-1") is ambiguous; ship both
+   * and pick whichever scores on the leaderboard. Entities are stored end-exclusive.
+   */
+  endInclusive?: boolean;
+  filename?: string;
+}
+
+/**
+ * Package results as submission.zip and download.
+ * ALWAYS writes one .json per input file (empty [] for not-done items) so the archive
+ * contains all N records — a missing file can fail the whole submission.
+ */
+export async function packSubmission(items: BatchItem[], opts: PackOptions = {}) {
+  const { endInclusive = false, filename = "submission.zip" } = opts;
   const zip = new JSZip();
   for (const it of items) {
-    if (it.status === "done" && it.entities) {
-      zip.file(it.outName, JSON.stringify(it.entities, null, 2));
-    }
+    const entities = it.status === "done" && it.entities ? it.entities : [];
+    const out = endInclusive
+      ? entities.map((e) => ({
+          ...e,
+          position: [e.position[0], Math.max(e.position[0], e.position[1] - 1)] as [number, number],
+        }))
+      : entities;
+    zip.file(it.outName, JSON.stringify(out, null, 2));
   }
   const blob = await zip.generateAsync({ type: "blob" });
   saveAs(blob, filename);
