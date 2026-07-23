@@ -22,6 +22,7 @@ export default function ClinicalNlpBatch() {
   const [running, setRunning] = useState(false);
   const [concurrency, setConcurrency] = useState(4);
   const [fastMode, setFastMode] = useState(false);
+  const [endInclusive, setEndInclusive] = useState(false);
   const [hasSnapshot, setHasSnapshot] = useState(false);
 
   useEffect(() => {
@@ -110,8 +111,12 @@ export default function ClinicalNlpBatch() {
 
   async function downloadZip() {
     if (!items.some((i) => i.status === "done")) { toast.error("Chưa có kết quả nào"); return; }
-    await packSubmission(items);
-    toast.success("Đã tải submission.zip");
+    await packSubmission(items, { endInclusive });
+    const errs = items.filter((i) => i.status !== "done").length;
+    toast.success(
+      `Đã tải submission.zip (${items.length} file, vị trí ${endInclusive ? "[start,end] inclusive" : "[start,end) exclusive"})`
+      + (errs ? ` — ${errs} file lỗi được ghi []` : ""),
+    );
   }
 
   function reset() {
@@ -178,6 +183,18 @@ export default function ClinicalNlpBatch() {
                   <Zap className={`w-3.5 h-3.5 ${fastMode ? "text-amber-500" : "text-muted-foreground"}`} />
                   <Label htmlFor="fast" className="cursor-pointer">Fast mode</Label>
                   <Switch id="fast" checked={fastMode} onCheckedChange={setFastMode} disabled={running} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-muted-foreground">Vị trí:</label>
+                  <select
+                    value={endInclusive ? "inclusive" : "exclusive"}
+                    onChange={(e) => setEndInclusive(e.target.value === "inclusive")}
+                    className="border rounded px-2 py-1 bg-background"
+                    title="Quy ước end của position — thử cả 2 kiểu trên leaderboard"
+                  >
+                    <option value="exclusive">[start, end)</option>
+                    <option value="inclusive">[start, end]</option>
+                  </select>
                 </div>
                 <div className="flex items-center gap-2">
                   <label className="text-muted-foreground">Concurrency:</label>
