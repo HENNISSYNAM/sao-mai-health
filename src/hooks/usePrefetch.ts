@@ -102,23 +102,8 @@ export const usePrefetch = () => {
       case '/dashboard':
         prefetchDashboard();
         break;
-      case '/appointments':
-        prefetchAppointments();
-        break;
       case '/alerts':
         prefetchAlerts();
-        break;
-      case '/beds':
-        prefetchBeds();
-        break;
-      case '/campaigns':
-        prefetchCampaigns();
-        break;
-      case '/patients':
-        prefetchPatients();
-        break;
-      case '/inventory':
-        prefetchInventory();
         break;
       default:
         break;

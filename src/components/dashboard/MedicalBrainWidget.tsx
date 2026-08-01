@@ -17,7 +17,7 @@ export function MedicalBrainWidget() {
   const { insights, isLoading } = useMedicalIntelligence("all", 3);
 
   return (
-    <Link to="/research" className="block group">
+    <Link to="/sensing" className="block group">
       <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 via-background to-accent/5 hover:border-primary/40 hover:shadow-md transition-all">
         <div className="p-3 sm:p-4">
           {/* Header */}

@@ -89,19 +89,16 @@
     "surveillance": "Giám sát dịch",
     "maps": "Bản đồ",
     "alerts": "Cảnh báo",
-    "patients": "Bệnh nhân",
     "facilities": "Cơ sở y tế",
-    "campaigns": "Chiến dịch",
     "inventory": "Kho vật tư",
-    "stocks": "Kho vật tư",
-    "appointments": "Lịch hẹn",
     "labImport": "Nhập XN",
     "caseIntake": "Nhập ca bệnh",
     "bioVault": "BioVault",
     "strokeRisk": "Đánh giá Đột quỵ",
-    "research": "Nghiên cứu",
     "settings": "Cài đặt",
-    "digitalTwin": "Song sinh số"
+    "digitalTwin": "Song sinh số",
+    "sensing": "Sinh hiệu không tiếp xúc",
+    "care": "Chăm sóc tại nhà"
   },
   "dashboard": {
     "title": "Tổng quan hệ thống",

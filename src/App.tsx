@@ -2,7 +2,7 @@ import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavbar } from "@/components/TopNavbar";
@@ -14,29 +14,19 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AuthRedirectHandler } from "@/components/auth/AuthRedirectHandler";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Sensing from "./pages/Sensing";
+import CareMonitor from "./pages/CareMonitor";
 import Surveillance from "./pages/Surveillance";
 import CaseIntake from "./pages/CaseIntake";
-import LabImport from "./pages/LabImport";
 import AlertsNew from "./pages/AlertsNew";
 import NotFound from "./pages/NotFound";
 import { EnhancedCommandPalette } from "./components/EnhancedCommandPalette";
-import PatientsNew from "./pages/PatientsNew";
-import Campaigns from "./pages/Campaigns";
-import Appointments from "./pages/Appointments";
-import Inventory from "./pages/Inventory";
-import Facilities from "./pages/Facilities";
 import StrokeRisk from "./pages/StrokeRisk";
 import Settings from "./pages/Settings";
 import About from "./pages/About";
 import Pricing from "./pages/Pricing";
 import Careers from "./pages/Careers";
 import Legal from "./pages/Legal";
-import Landing from "./pages/Landing";
-import Research from "./pages/Research";
-import ChainOverview from "./pages/ChainOverview";
-import ChainEMR from "./pages/ChainEMR";
-import ChainSmartClinic from "./pages/ChainSmartClinic";
-import ChainHealthCoin from "./pages/ChainHealthCoin";
 import ClinicalNlpBatch from "./pages/ClinicalNlpBatch";
 import ConsentBanner from "./components/ConsentBanner";
 
@@ -62,35 +52,42 @@ const queryClient = new QueryClient({
          <Routes>
            <Route index element={<Dashboard />} />
            <Route path="/dashboard" element={<Dashboard />} />
-           <Route path="/surveillance" element={<Surveillance />} />
-           <Route path="/case-intake" element={<CaseIntake />} />
-           <Route path="/lab-import" element={<LabImport />} />
-           
-           {/* Protected Routes - Require Authentication */}
+
+           {/* Core: contactless WiFi-CSI sensing */}
+           <Route path="/sensing" element={<Sensing />} />
+           <Route path="/care" element={<CareMonitor />} />
            <Route path="/alerts" element={<AlertsNew />} />
-            <Route path="/maps" element={<Surveillance />} />
-            
-            {/* Other routes */}
-            <Route path="/map" element={<Surveillance />} />
-           <Route path="/patients" element={<PatientsNew />} />
-           <Route path="/appointments" element={<Appointments />} />
-           <Route path="/campaigns" element={<Campaigns />} />
-           <Route path="/facilities" element={<Facilities />} />
-           <Route path="/stocks" element={<Inventory />} />
-           <Route path="/inventory" element={<Inventory />} />
+
+           {/* Population-level signals built on the sensing mesh */}
+           <Route path="/surveillance" element={<Surveillance />} />
+           <Route path="/maps" element={<Surveillance />} />
+           <Route path="/map" element={<Surveillance />} />
+           <Route path="/case-intake" element={<CaseIntake />} />
+
+           {/* Clinical concept extraction (ICD-10 / RxNorm) */}
+           <Route path="/clinical-nlp" element={<ClinicalNlpBatch />} />
+
            <Route path="/settings" element={<Settings />} />
            <Route path="/about" element={<About />} />
-            <Route path="/help" element={<About />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/careers" element={<Careers />} />
-            <Route path="/legal" element={<Legal />} />
-             <Route path="/research" element={<Research />} />
-             <Route path="/chain" element={<ChainOverview />} />
-             <Route path="/chain/emr" element={<ChainEMR />} />
-             <Route path="/chain/smart-clinic" element={<ChainSmartClinic />} />
-             <Route path="/chain/healthcoin" element={<ChainHealthCoin />} />
-             <Route path="/clinical-nlp" element={<ClinicalNlpBatch />} />
-             <Route path="*" element={<NotFound />} />
+           <Route path="/help" element={<About />} />
+           <Route path="/pricing" element={<Pricing />} />
+           <Route path="/careers" element={<Careers />} />
+           <Route path="/legal" element={<Legal />} />
+
+           {/* Retired feature surfaces → nearest live equivalent */}
+           <Route path="/lab-import" element={<Navigate to="/clinical-nlp" replace />} />
+           <Route path="/patients" element={<Navigate to="/care" replace />} />
+           <Route path="/appointments" element={<Navigate to="/care" replace />} />
+           <Route path="/campaigns" element={<Navigate to="/surveillance" replace />} />
+           <Route path="/facilities" element={<Navigate to="/surveillance" replace />} />
+           <Route path="/stocks" element={<Navigate to="/dashboard" replace />} />
+           <Route path="/inventory" element={<Navigate to="/dashboard" replace />} />
+           <Route path="/research" element={<Navigate to="/dashboard" replace />} />
+           <Route path="/chain/*" element={<Navigate to="/dashboard" replace />} />
+           <Route path="/chain" element={<Navigate to="/dashboard" replace />} />
+           <Route path="/biovault" element={<Navigate to="/sensing" replace />} />
+
+           <Route path="*" element={<NotFound />} />
          </Routes>
          <EnhancedCommandPalette />
          <GlobalAIAssistant />

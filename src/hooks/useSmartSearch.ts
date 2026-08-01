@@ -150,9 +150,9 @@ export const useSmartSearch = (term: string) => {
   // Function to handle selection (navigate to appointment or campaign)
   const handleSelect = useCallback((suggestion: SearchSuggestion) => {
     if (suggestion.type === 'appointment') {
-      window.location.href = '/appointments';
+      window.location.href = '/care';
     } else if (suggestion.type === 'campaign') {
-      window.location.href = '/campaigns';
+      window.location.href = '/surveillance';
     }
   }, []);
   

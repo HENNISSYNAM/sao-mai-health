@@ -27,7 +27,7 @@ export function useCommandPalette() {
       label: 'Import kết quả xét nghiệm',
       shortcut: 'Alt+L',
       action: () => {
-        window.location.href = '/lab-import'
+        window.location.href = '/clinical-nlp'
       },
       category: 'Nhập liệu'
     },
@@ -35,7 +35,7 @@ export function useCommandPalette() {
       id: 'new-campaign',
       label: 'Tạo chiến dịch mới',
       action: () => {
-        window.location.href = '/campaigns'
+        window.location.href = '/surveillance'
       },
       category: 'Chiến dịch'
     },

@@ -89,19 +89,16 @@
     "surveillance": "Surveillance",
     "maps": "Map",
     "alerts": "Alerts",
-    "patients": "Patients",
     "facilities": "Facilities",
-    "campaigns": "Campaigns",
     "inventory": "Inventory",
-    "stocks": "Inventory",
-    "appointments": "Appointments",
     "labImport": "Lab Import",
     "caseIntake": "Case Intake",
     "bioVault": "BioVault",
     "strokeRisk": "Stroke Risk",
-    "research": "Research",
     "settings": "Settings",
-    "digitalTwin": "Digital Twin"
+    "digitalTwin": "Digital Twin",
+    "sensing": "Contactless Vitals",
+    "care": "Home Care"
   },
   "dashboard": {
     "title": "System Overview",

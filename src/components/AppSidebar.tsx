@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import {
   Activity, Brain, MapPin, AlertTriangle, BarChart3,
   Settings, HelpCircle, Menu, FlaskConical, ClipboardPlus,
-  Users, Package, CalendarDays, Radio, Shield, Boxes, Sparkles,
+  Users, Radio, Shield, Sparkles, Wifi, HeartHandshake,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink, useLocation } from "react-router-dom";
@@ -63,23 +63,20 @@ export function AppSidebar() {
     return () => window.removeEventListener("pointermove", handlePointerMove);
   }, [isHovering, setOpen, isMapRoute]);
 
-  // --- PRIMARY nav: core B2G workflow ---
+  // --- PRIMARY nav: the contactless WiFi-sensing core ---
   const primaryItems: NavItem[] = [
-    { titleKey: "nav.dashboard",    title: t("nav.dashboard"),              url: "/dashboard",    icon: BarChart3     },
-    { titleKey: "nav.surveillance", title: t("nav.surveillance", "Giám sát dịch"), url: "/surveillance", icon: Radio       },
-    { titleKey: "nav.caseIntake",   title: t("nav.caseIntake", "Nhập ca bệnh"),    url: "/case-intake",  icon: ClipboardPlus },
-    { titleKey: "nav.alerts",       title: t("nav.alerts", "Cảnh báo"),            url: "/alerts",       icon: AlertTriangle },
+    { titleKey: "nav.dashboard", title: t("nav.dashboard"),                        url: "/dashboard", icon: BarChart3     },
+    { titleKey: "nav.sensing",   title: t("nav.sensing", "Sinh hiệu không tiếp xúc"), url: "/sensing", icon: Wifi          },
+    { titleKey: "nav.care",      title: t("nav.care", "Chăm sóc tại nhà"),          url: "/care",      icon: HeartHandshake },
+    { titleKey: "nav.alerts",    title: t("nav.alerts", "Cảnh báo"),                url: "/alerts",    icon: AlertTriangle },
   ];
 
-  // --- SECONDARY nav: clinical / tools ---
+  // --- SECONDARY nav: what the sensing mesh feeds into ---
   const secondaryItems: NavItem[] = [
-    { titleKey: "nav.patients",     title: t("nav.patients", "Bệnh nhân"),    url: "/patients",     icon: Users         },
-    { titleKey: "nav.appointments", title: t("nav.appointments", "Lịch hẹn"), url: "/appointments", icon: CalendarDays  },
-    { titleKey: "nav.strokeRisk",   title: t("nav.strokeRisk"),               url: "/stroke-risk",  icon: Brain         },
-    { titleKey: "nav.maps",         title: t("nav.maps"),                     url: "/maps",         icon: MapPin        },
-    { titleKey: "nav.stocks",       title: t("nav.stocks", "Kho vật tư"),      url: "/stocks",       icon: Package       },
-    { titleKey: "nav.clinicalNlp",  title: t("nav.clinicalNlp", "Clinical NLP"), url: "/clinical-nlp", icon: Sparkles     },
-    { titleKey: "nav.chain",        title: t("nav.chain", "Sao Mai Chain"),    url: "/chain",        icon: Boxes         },
+    { titleKey: "nav.strokeRisk",   title: t("nav.strokeRisk"),                       url: "/stroke-risk",  icon: Brain         },
+    { titleKey: "nav.surveillance", title: t("nav.surveillance", "Giám sát dịch"),     url: "/surveillance", icon: Radio         },
+    { titleKey: "nav.caseIntake",   title: t("nav.caseIntake", "Nhập ca bệnh"),        url: "/case-intake",  icon: ClipboardPlus },
+    { titleKey: "nav.clinicalNlp",  title: t("nav.clinicalNlp", "Clinical NLP"),       url: "/clinical-nlp", icon: Sparkles      },
   ];
 
   const isActive = (path: string) => {
@@ -157,15 +154,9 @@ export function AppSidebar() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="top" align="start" className="w-56 mb-2">
                   <DropdownMenuItem asChild>
-                    <NavLink to="/research" className="flex items-center gap-3 cursor-pointer">
-                      <FlaskConical className="h-4 w-4" />
-                      <span>{t("nav.research", "Nghiên cứu")}</span>
-                    </NavLink>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <NavLink to="/campaigns" className="flex items-center gap-3 cursor-pointer">
-                      <Shield className="h-4 w-4" />
-                      <span>{t("nav.campaigns", "Chiến dịch")}</span>
+                    <NavLink to="/case-intake" className="flex items-center gap-3 cursor-pointer">
+                      <ClipboardPlus className="h-4 w-4" />
+                      <span>{t("nav.caseIntake", "Nhập ca bệnh")}</span>
                     </NavLink>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
