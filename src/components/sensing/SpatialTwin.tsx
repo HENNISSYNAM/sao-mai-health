@@ -12,8 +12,8 @@ import type { NodeSensing } from "@/hooks/useRuViewSensing";
  * "somewhere in this room", so we show that rather than fake centimetre accuracy.
  *
  * Movement is driven by the measured motion amplitude and rendered with CSS
- * transitions, so there is no per-frame React state (the twin costs one render
- * per sensing update, not 60/s).
+ * transitions plus declarative SMIL, so there is no per-frame React state (the
+ * twin costs one render per sensing update, not 60/s).
  */
 
 export interface RoomGeometry {
@@ -21,13 +21,127 @@ export interface RoomGeometry {
   label: string;
   /** Floor-plan rectangle on a 0..100 grid. */
   x: number; y: number; w: number; h: number;
+  /** Optional furniture hint used to dress the room. */
+  fixture?: "bed" | "sofa" | "toilet";
 }
 
 export const DEFAULT_FLOORPLAN: RoomGeometry[] = [
-  { node_id: "node-a1", label: "Phòng ngủ",   x: 4,  y: 6,  w: 40, h: 46 },
-  { node_id: "node-a2", label: "Phòng khách", x: 48, y: 6,  w: 48, h: 62 },
-  { node_id: "node-a3", label: "Nhà vệ sinh", x: 4,  y: 56, w: 40, h: 38 },
+  { node_id: "node-a1", label: "Phòng ngủ",   x: 4,  y: 6,  w: 40, h: 46, fixture: "bed" },
+  { node_id: "node-a2", label: "Phòng khách", x: 48, y: 6,  w: 48, h: 62, fixture: "sofa" },
+  { node_id: "node-a3", label: "Nhà vệ sinh", x: 4,  y: 56, w: 40, h: 38, fixture: "toilet" },
 ];
+
+/** Room dressing — drawn faintly so the occupant stays the focal point. */
+function Fixture({ r }: { r: RoomGeometry }) {
+  const common = {
+    fill: "currentColor",
+    fillOpacity: 0.07,
+    stroke: "currentColor",
+    strokeOpacity: 0.28,
+    strokeWidth: 0.35,
+    className: "text-muted-foreground",
+  } as const;
+
+  if (r.fixture === "bed") {
+    const w = r.w * 0.44, h = r.h * 0.3;
+    const x = r.x + r.w - w - 3, y = r.y + r.h - h - 3;
+    return (
+      <g>
+        <rect x={x} y={y} width={w} height={h} rx="1.2" {...common} />
+        <rect x={x + 1} y={y + 1} width={w - 2} height={h * 0.32} rx="0.8" {...common} />
+      </g>
+    );
+  }
+  if (r.fixture === "sofa") {
+    const w = r.w * 0.5, h = r.h * 0.16;
+    const x = r.x + 4, y = r.y + r.h - h - 4;
+    return (
+      <g>
+        <rect x={x} y={y} width={w} height={h} rx="1.4" {...common} />
+        <rect x={x} y={y - 1.8} width={w} height="2" rx="1" {...common} />
+        <circle cx={r.x + r.w - 9} cy={y + h / 2} r="3.2" {...common} />
+      </g>
+    );
+  }
+  if (r.fixture === "toilet") {
+    const x = r.x + r.w - 10, y = r.y + r.h - 12;
+    return (
+      <g>
+        <rect x={x} y={y} width="6" height="3" rx="0.8" {...common} />
+        <ellipse cx={x + 3} cy={y + 6} rx="3" ry="3.6" {...common} />
+      </g>
+    );
+  }
+  return null;
+}
+
+/** Articulated stick figure whose gait speed tracks the measured motion. */
+function Occupant({ motion, alert }: { motion: number; alert: boolean }) {
+  const m = Math.max(0, Math.min(1, motion));
+  const walking = m > 0.12;
+  const gait = Math.max(0.42, 1.35 - m * 1.1).toFixed(2) + "s";
+  const swing = (8 + m * 26).toFixed(0);
+  const breathe = Math.max(2.2, 4.4 - m * 1.6).toFixed(2) + "s";
+
+  return (
+    <g className={alert ? "text-rose-500" : "text-emerald-500"}>
+      {/* contact shadow keeps the figure grounded on the floor plan */}
+      <ellipse cx="0" cy="4.6" rx="2" ry="0.6" fill="currentColor" fillOpacity="0.18" />
+
+      <g>
+        {/* vertical bob while walking, gentle breathing lift while still */}
+        <animateTransform
+          attributeName="transform" type="translate"
+          values={walking ? `0 0; 0 ${(-0.45 - m * 0.9).toFixed(2)}; 0 0` : "0 0; 0 -0.18; 0 0"}
+          dur={walking ? gait : breathe}
+          repeatCount="indefinite"
+        />
+
+        {/* legs */}
+        <g transform="translate(0 2)">
+          <path d="M0,0 L-0.9,2.4" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none">
+            {walking && (
+              <animateTransform attributeName="transform" type="rotate"
+                values={`-${swing};${swing};-${swing}`} dur={gait} repeatCount="indefinite" />
+            )}
+          </path>
+          <path d="M0,0 L0.9,2.4" stroke="currentColor" strokeWidth="0.5" strokeLinecap="round" fill="none">
+            {walking && (
+              <animateTransform attributeName="transform" type="rotate"
+                values={`${swing};-${swing};${swing}`} dur={gait} repeatCount="indefinite" />
+            )}
+          </path>
+        </g>
+
+        {/* torso */}
+        <path d="M0,-0.9 L0,2.1" stroke="currentColor" strokeWidth="0.62" strokeLinecap="round" fill="none" />
+
+        {/* arms */}
+        <g transform="translate(0 0.1)">
+          <path d="M0,0 L-1.5,1.5" stroke="currentColor" strokeWidth="0.45" strokeLinecap="round" fill="none">
+            {walking && (
+              <animateTransform attributeName="transform" type="rotate"
+                values={`${swing};-${swing};${swing}`} dur={gait} repeatCount="indefinite" />
+            )}
+          </path>
+          <path d="M0,0 L1.5,1.5" stroke="currentColor" strokeWidth="0.45" strokeLinecap="round" fill="none">
+            {walking && (
+              <animateTransform attributeName="transform" type="rotate"
+                values={`-${swing};${swing};-${swing}`} dur={gait} repeatCount="indefinite" />
+            )}
+          </path>
+        </g>
+
+        {/* head */}
+        <circle cx="0" cy="-2.2" r="1.3" fill="currentColor" />
+        <circle cx="0" cy="-2.2" r="1.3" fill="none" stroke="currentColor" strokeWidth="0.25" opacity="0.5">
+          <animate attributeName="r" values="1.3;1.9;1.3" dur={breathe} repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.45;0;0.45" dur={breathe} repeatCount="indefinite" />
+        </circle>
+      </g>
+    </g>
+  );
+}
 
 export function SpatialTwin({
   nodes,
@@ -65,6 +179,7 @@ export function SpatialTwin({
         halo: 6 + (1 - Math.max(0, Math.min(1, v.presence_score))) * 10,
         alert,
         label: room.label,
+        persons: v.n_persons ?? 1,
       }];
     });
   }, [nodes, plan]);
@@ -77,11 +192,16 @@ export function SpatialTwin({
            aria-label="Bản sao số không gian: vị trí người ở theo thời gian thực">
         <defs>
           <radialGradient id="twin-halo">
-            <stop offset="0%" stopColor="currentColor" stopOpacity="0.35" />
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.4" />
+            <stop offset="60%" stopColor="currentColor" stopOpacity="0.12" />
             <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
           </radialGradient>
-          <pattern id="twin-grid" width="5" height="5" patternUnits="userSpaceOnUse">
-            <path d="M5 0 L0 0 0 5" fill="none" stroke="currentColor" strokeWidth="0.15" opacity="0.12" />
+          <linearGradient id="twin-room" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.03" />
+          </linearGradient>
+          <pattern id="twin-grid" width="4" height="4" patternUnits="userSpaceOnUse">
+            <path d="M4 0 L0 0 0 4" fill="none" stroke="currentColor" strokeWidth="0.12" opacity="0.14" />
           </pattern>
         </defs>
 
@@ -92,18 +212,29 @@ export function SpatialTwin({
           return (
             <g key={r.node_id}>
               <rect
-                x={r.x} y={r.y} width={r.w} height={r.h} rx="1.5"
+                x={r.x} y={r.y} width={r.w} height={r.h} rx="2"
                 className={occupied ? "text-primary" : "text-muted-foreground"}
-                fill="currentColor" fillOpacity={occupied ? 0.07 : 0.03}
-                stroke="currentColor" strokeOpacity={occupied ? 0.5 : 0.22} strokeWidth="0.4"
+                fill={occupied ? "url(#twin-room)" : "currentColor"}
+                fillOpacity={occupied ? 1 : 0.03}
+                stroke="currentColor" strokeOpacity={occupied ? 0.55 : 0.2} strokeWidth="0.45"
                 style={{ transition: "fill-opacity .6s, stroke-opacity .6s" }}
               />
-              <text x={r.x + 2} y={r.y + 4.5} fontSize="2.8"
-                    className="fill-muted-foreground" style={{ userSelect: "none" }}>
+              <Fixture r={r} />
+              <text x={r.x + 2.5} y={r.y + 5} fontSize="2.9"
+                    className={occupied ? "fill-foreground" : "fill-muted-foreground"}
+                    style={{ userSelect: "none", fontWeight: occupied ? 600 : 400 }}>
                 {r.label}
               </text>
-              <circle cx={r.x + r.w - 3} cy={r.y + 3} r="0.9"
-                      className={occupied ? "fill-primary" : "fill-muted-foreground"} />
+              {/* sensor node indicator; pulses while the zone is being perturbed */}
+              <g transform={`translate(${r.x + r.w - 3.5} ${r.y + 3.5})`}>
+                {occupied && (
+                  <circle r="1" fill="none" stroke="currentColor" strokeWidth="0.25" className="text-primary">
+                    <animate attributeName="r" values="1;3.2;1" dur="2.4s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.7;0;0.7" dur="2.4s" repeatCount="indefinite" />
+                  </circle>
+                )}
+                <circle r="0.9" className={occupied ? "fill-primary" : "fill-muted-foreground"} />
+              </g>
             </g>
           );
         })}
@@ -125,20 +256,12 @@ export function SpatialTwin({
                 <animate attributeName="opacity" values="0.8;0.1;0.8" dur="1.6s" repeatCount="indefinite" />
               </circle>
             )}
-            {/* human figure; bob speed scales with measured motion */}
-            <g>
-              <animateTransform
-                attributeName="transform" type="translate"
-                values={`0 0; 0 ${(-0.5 - o.motion * 2.5).toFixed(2)}; 0 0`}
-                dur={`${Math.max(0.9, 2.6 - o.motion * 4).toFixed(2)}s`}
-                repeatCount="indefinite"
-              />
-              <circle cx="0" cy="-2.2" r="1.35" fill="currentColor" />
-              <path
-                d="M0,-0.9 L0,2.2 M-1.5,0.2 L1.5,0.2 M0,2.2 L-1.2,4.2 M0,2.2 L1.2,4.2"
-                stroke="currentColor" strokeWidth="0.55" fill="none" strokeLinecap="round"
-              />
-            </g>
+            <Occupant motion={o.motion} alert={o.alert} />
+            {o.persons > 1 && (
+              <text x="2.6" y="-2.6" fontSize="2.4" fill="currentColor" style={{ userSelect: "none" }}>
+                ×{o.persons}
+              </text>
+            )}
           </g>
         ))}
       </svg>
