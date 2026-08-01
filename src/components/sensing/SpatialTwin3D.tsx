@@ -38,8 +38,8 @@ function Room({ r, occupied }: { r: RoomGeometry; occupied: boolean }) {
         <meshStandardMaterial color={occupied ? "#0e7490" : "#1e293b"} transparent opacity={occupied ? 0.35 : 0.18} />
       </mesh>
       {/* wall outline */}
-      <lineSegments position={[0, 0.45, 0]}>
-        <edgesGeometry args={[new THREE.BoxGeometry(c.w, 0.9, c.d)]} />
+      <lineSegments position={[0, 0.575, 0]}>
+        <edgesGeometry args={[new THREE.BoxGeometry(c.w, 1.15, c.d)]} />
         <lineBasicMaterial color={colour} transparent opacity={occupied ? 0.75 : 0.3} />
       </lineSegments>
       <Text position={[0, 0.02, -c.d / 2 + 0.12]} rotation={[-Math.PI / 2, 0, 0]}
@@ -66,7 +66,8 @@ function Occupant({ x, z, lying, breathBpm, alert, confidence, motion }: OccProp
   const ring = useRef<THREE.Mesh>(null);
 
   const colour = alert ? "#f43f5e" : lying ? "#818cf8" : "#34d399";
-  const standH = 0.55, lieH = 0.16;
+  const standH = 0.62, lieH = 0.18;
+  const FIG = 1.7; // figure scale — small rooms need a readable person
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -95,19 +96,19 @@ function Occupant({ x, z, lying, breathBpm, alert, confidence, motion }: OccProp
   return (
     <group ref={group} position={[x, standH, z]}>
       {/* head */}
-      <mesh position={[0, lying ? 0.0 : 0.30, lying ? -0.22 : 0]} castShadow>
-        <sphereGeometry args={[0.075, 20, 20]} />
+      <mesh position={[0, lying ? 0.0 : 0.30 * FIG, lying ? -0.22 * FIG : 0]} castShadow>
+        <sphereGeometry args={[0.075 * FIG, 20, 20]} />
         <meshStandardMaterial color={colour} emissive={colour} emissiveIntensity={alert ? 0.8 : 0.35} />
       </mesh>
       {/* torso — this is what visibly breathes */}
       <mesh ref={torso} rotation={lying ? [Math.PI / 2, 0, 0] : [0, 0, 0]} castShadow>
-        <capsuleGeometry args={[0.085, 0.26, 6, 14]} />
+        <capsuleGeometry args={[0.085 * FIG, 0.26 * FIG, 6, 14]} />
         <meshStandardMaterial color={colour} emissive={colour} emissiveIntensity={alert ? 0.55 : 0.2}
                               transparent opacity={0.92} />
       </mesh>
       {/* confidence / alert ring on the floor */}
       <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} position={[0, -standH + 0.01, 0]}>
-        <ringGeometry args={[0.9, 1.0, 48]} />
+        <ringGeometry args={[0.86, 1.0, 48]} />
         <meshBasicMaterial color={colour} transparent opacity={alert ? 0.7 : 0.3} side={THREE.DoubleSide} />
       </mesh>
     </group>
@@ -178,16 +179,16 @@ export function SpatialTwin3D({
     const maxZ = Math.max(...plan.map((r) => r.y + r.h)) * S;
     const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
     const span = Math.max(maxX - minX, maxZ - minZ);
-    const d = span * 1.5 + 1.6;
+    const d = span * 0.85 + 1.1;
     return {
       target: new THREE.Vector3(cx, 0.3, cz),
-      camPos: [cx + d * 0.55, d * 0.85, cz + d * 0.95] as [number, number, number],
+      camPos: [cx + d * 0.45, d * 0.62, cz + d * 0.80] as [number, number, number],
     };
   }, [plan]);
 
   return (
     <div className={`rounded-xl overflow-hidden bg-slate-950 ${className ?? ""}`}>
-      <Canvas shadows camera={{ position: camPos, fov: 40 }}
+      <Canvas shadows camera={{ position: camPos, fov: 46 }}
               dpr={[1, 1.8]} gl={{ antialias: true }}>
         <color attach="background" args={["#020617"]} />
         <fog attach="fog" args={["#020617", 12, 26]} />
