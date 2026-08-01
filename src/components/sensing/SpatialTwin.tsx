@@ -33,9 +33,9 @@ export const DEFAULT_FLOORPLAN: RoomGeometry[] = [
 
 /** Door openings drawn as gaps in the wall plus a swing arc. */
 const DOORS: { x: number; y: number; rot: number }[] = [
-  { x: 44, y: 24, rot: 0 },    // bedroom → hallway
-  { x: 44, y: 70, rot: -90 },  // bathroom → hallway
-  { x: 50, y: 36, rot: 180 },  // living → hallway
+  { x: 44, y: 32, rot: 0 },    // bedroom → hallway
+  { x: 44, y: 74, rot: 0 },    // bathroom → hallway
+  { x: 50, y: 44, rot: 180 },  // living → hallway
 ];
 
 
