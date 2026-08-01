@@ -3,10 +3,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { VitalsTrace } from "@/components/sensing/VitalsTrace";
+import { SpatialTwin } from "@/components/sensing/SpatialTwin";
 import { useRuViewSensing, type NodeSensing } from "@/hooks/useRuViewSensing";
 import { classifyBreathing, classifyHeart, type VitalStatus } from "@/services/ruview";
 import {
-  Wifi, WifiOff, Activity, HeartPulse, Wind, Users, ShieldAlert, Radio, Info,
+  Wifi, WifiOff, Activity, HeartPulse, Wind, Users, ShieldAlert, Radio, Info, Boxes,
 } from "lucide-react";
 
 const STATUS_CLS: Record<VitalStatus, string> = {
@@ -177,6 +178,21 @@ export default function Sensing() {
           </div>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Boxes className="w-4 h-4 text-primary" /> Bản sao số không gian
+          </CardTitle>
+          <p className="text-xs text-muted-foreground">
+            Vị trí người ở suy ra từ cường độ nhiễu CSI của từng cảm biến. Quầng sáng
+            rộng = độ tin cậy thấp hơn; hình người dao động theo mức vận động thực tế.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <SpatialTwin nodes={nodes} className="aspect-[4/3] w-full max-w-2xl mx-auto" />
+        </CardContent>
+      </Card>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {nodes.map((n) => <NodeCard key={n.node.node_id} n={n} />)}
