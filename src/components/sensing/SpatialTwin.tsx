@@ -26,10 +26,18 @@ export interface RoomGeometry {
 }
 
 export const DEFAULT_FLOORPLAN: RoomGeometry[] = [
-  { node_id: "node-a1", label: "Phòng ngủ",   x: 4,  y: 6,  w: 40, h: 46, fixture: "bed" },
-  { node_id: "node-a2", label: "Phòng khách", x: 48, y: 6,  w: 48, h: 62, fixture: "sofa" },
-  { node_id: "node-a3", label: "Nhà vệ sinh", x: 4,  y: 56, w: 40, h: 38, fixture: "toilet" },
+  { node_id: "node-a1", label: "Phòng ngủ",   x: 6,  y: 8,  w: 38, h: 42, fixture: "bed" },
+  { node_id: "node-a2", label: "Phòng khách", x: 50, y: 8,  w: 44, h: 58, fixture: "sofa" },
+  { node_id: "node-a3", label: "Nhà vệ sinh", x: 6,  y: 54, w: 38, h: 38, fixture: "toilet" },
 ];
+
+/** Door openings drawn as gaps in the wall plus a swing arc. */
+const DOORS: { x: number; y: number; rot: number }[] = [
+  { x: 44, y: 32, rot: 0 },    // bedroom → hallway
+  { x: 44, y: 74, rot: 0 },    // bathroom → hallway
+  { x: 50, y: 44, rot: 180 },  // living → hallway
+];
+
 
 /** Room dressing — drawn faintly so the occupant stays the focal point. */
 function Fixture({ r }: { r: RoomGeometry }) {
@@ -196,40 +204,71 @@ export function SpatialTwin({
             <stop offset="60%" stopColor="currentColor" stopOpacity="0.12" />
             <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
           </radialGradient>
-          <linearGradient id="twin-room" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="currentColor" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="currentColor" stopOpacity="0.03" />
+          <linearGradient id="twin-room-live" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.04" />
+          </linearGradient>
+          <linearGradient id="twin-room-idle" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.06" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.02" />
           </linearGradient>
           <pattern id="twin-grid" width="4" height="4" patternUnits="userSpaceOnUse">
-            <path d="M4 0 L0 0 0 4" fill="none" stroke="currentColor" strokeWidth="0.12" opacity="0.14" />
+            <path d="M4 0 L0 0 0 4" fill="none" stroke="currentColor" strokeWidth="0.1" opacity="0.12" />
           </pattern>
+          <pattern id="twin-tile" width="2" height="2" patternUnits="userSpaceOnUse">
+            <path d="M0 2 L2 0" stroke="currentColor" strokeWidth="0.1" opacity="0.18" />
+          </pattern>
+          <filter id="twin-lift" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="0.7" stdDeviation="0.9" floodOpacity="0.14" />
+          </filter>
         </defs>
 
         <rect x="0" y="0" width="100" height="100" fill="url(#twin-grid)" className="text-muted-foreground" />
+
+        {/* building shell — thick exterior wall gives the plan architectural weight */}
+        <rect x="3.2" y="5.2" width="93.6" height="89.6" rx="2.6"
+              className="text-muted-foreground" fill="none"
+              stroke="currentColor" strokeOpacity="0.35" strokeWidth="1.6" filter="url(#twin-lift)" />
+
+        {/* corner registration ticks */}
+        {[[3.2, 5.2, 1, 1], [96.8, 5.2, -1, 1], [3.2, 94.8, 1, -1], [96.8, 94.8, -1, -1]].map(([cx, cy, sx, sy], i) => (
+          <path key={i} d={`M${cx + sx * 3},${cy} L${cx},${cy} L${cx},${cy + sy * 3}`}
+                className="text-primary" fill="none" stroke="currentColor" strokeOpacity="0.5" strokeWidth="0.5" />
+        ))}
 
         {plan.map((r) => {
           const occupied = occupiedIds.has(r.node_id);
           return (
             <g key={r.node_id}>
               <rect
-                x={r.x} y={r.y} width={r.w} height={r.h} rx="2"
+                x={r.x} y={r.y} width={r.w} height={r.h} rx="1.6"
                 className={occupied ? "text-primary" : "text-muted-foreground"}
-                fill={occupied ? "url(#twin-room)" : "currentColor"}
-                fillOpacity={occupied ? 1 : 0.03}
-                stroke="currentColor" strokeOpacity={occupied ? 0.55 : 0.2} strokeWidth="0.45"
-                style={{ transition: "fill-opacity .6s, stroke-opacity .6s" }}
+                fill={`url(#twin-room-${occupied ? "live" : "idle"})`}
+                stroke="currentColor" strokeOpacity={occupied ? 0.6 : 0.22} strokeWidth="0.9"
+                style={{ transition: "stroke-opacity .6s" }}
               />
+              {r.fixture === "toilet" && (
+                <rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1.6"
+                      className="text-muted-foreground" fill="url(#twin-tile)" />
+              )}
               <Fixture r={r} />
-              <text x={r.x + 2.5} y={r.y + 5} fontSize="2.9"
-                    className={occupied ? "fill-foreground" : "fill-muted-foreground"}
-                    style={{ userSelect: "none", fontWeight: occupied ? 600 : 400 }}>
-                {r.label}
-              </text>
+
+              {/* label plate keeps type legible over the floor texture */}
+              <g>
+                <rect x={r.x + 2} y={r.y + 1.9} width={r.label.length * 1.75 + 4} height="5" rx="1.2"
+                      className="text-background" fill="currentColor" fillOpacity="0.82" />
+                <text x={r.x + 4} y={r.y + 5.5} fontSize="3"
+                      className={occupied ? "fill-foreground" : "fill-muted-foreground"}
+                      style={{ userSelect: "none", fontWeight: occupied ? 600 : 400, letterSpacing: "0.05px" }}>
+                  {r.label}
+                </text>
+              </g>
+
               {/* sensor node indicator; pulses while the zone is being perturbed */}
-              <g transform={`translate(${r.x + r.w - 3.5} ${r.y + 3.5})`}>
+              <g transform={`translate(${r.x + r.w - 3.5} ${r.y + 3.8})`}>
                 {occupied && (
                   <circle r="1" fill="none" stroke="currentColor" strokeWidth="0.25" className="text-primary">
-                    <animate attributeName="r" values="1;3.2;1" dur="2.4s" repeatCount="indefinite" />
+                    <animate attributeName="r" values="1;3.4;1" dur="2.4s" repeatCount="indefinite" />
                     <animate attributeName="opacity" values="0.7;0;0.7" dur="2.4s" repeatCount="indefinite" />
                   </circle>
                 )}
@@ -238,6 +277,18 @@ export function SpatialTwin({
             </g>
           );
         })}
+
+        {/* doorways — arc + threshold, the detail that reads as a real floor plan */}
+        {DOORS.map((d, i) => (
+          <g key={i} transform={`translate(${d.x} ${d.y}) rotate(${d.rot})`}
+             className="text-muted-foreground">
+            <path d="M0,-3.2 L0,3.2" stroke="hsl(var(--background))" strokeWidth="1.3" />
+            <path d="M0,-3.2 A6.4,6.4 0 0 1 6.4,3.2" fill="none" stroke="currentColor"
+                  strokeOpacity="0.22" strokeWidth="0.25" strokeDasharray="0.8 0.8" />
+            <path d="M0,-3.2 L6.1,-3.2" stroke="currentColor" strokeOpacity="0.4" strokeWidth="0.45" />
+          </g>
+        ))}
+
 
         {occupants.map((o) => (
           <g
