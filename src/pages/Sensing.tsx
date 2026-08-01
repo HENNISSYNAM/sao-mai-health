@@ -1,9 +1,13 @@
+import { Suspense, lazy, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { VitalsTrace } from "@/components/sensing/VitalsTrace";
 import { SpatialTwin } from "@/components/sensing/SpatialTwin";
+import { VitalsMonitor } from "@/components/sensing/VitalsMonitor";
+// three.js is heavy — keep it out of the main bundle.
+const SpatialTwin3D = lazy(() => import("@/components/sensing/SpatialTwin3D"));
 import { useRuViewSensing, type NodeSensing } from "@/hooks/useRuViewSensing";
 import { classifyBreathing, classifyHeart, type VitalStatus } from "@/services/ruview";
 import {
@@ -36,11 +40,53 @@ function riskTone(score: number) {
   return "bg-emerald-500";
 }
 
+/** Why a vital is currently unmeasurable, in plain Vietnamese. */
+const UNMEASURABLE: Record<string, string> = {
+  motion_too_high: "đang cử động — không đo được",
+  weak_signal: "tín hiệu yếu",
+  no_presence: "không có người",
+  insufficient_data: "đang thu tín hiệu…",
+  unstable_signal: "tín hiệu nhiễu",
+  implausible_change: "biến thiên bất thường",
+  no_data: "đang thu tín hiệu…",
+};
+
+/**
+ * Shows the filtered estimate with its confidence, or an honest reason instead
+ * of a plausible-looking wrong number. Colour comes from deviation against the
+ * subject's own baseline, not a population band.
+ */
+function VitalReadout({
+  est, z,
+}: { est: { value: number | null; confidence: number; reason: string }; z: number | null }) {
+  if (est.value == null) {
+    return (
+      <div className="h-8 flex items-center text-xs text-muted-foreground">
+        {UNMEASURABLE[est.reason] ?? "không đo được"}
+      </div>
+    );
+  }
+  const abnormal = z != null && Math.abs(z) >= 3;
+  return (
+    <div className="flex items-baseline gap-1.5 h-8">
+      <span className={`text-2xl font-bold tabular-nums ${abnormal ? "text-rose-600 dark:text-rose-400" : ""}`}>
+        {est.value.toFixed(0)}
+      </span>
+      <span className="text-xs text-muted-foreground">bpm</span>
+      <span
+        className="text-[10px] text-muted-foreground ml-auto tabular-nums"
+        title={`Độ tin cậy ${(est.confidence * 100).toFixed(0)}%` +
+          (z != null ? ` · lệch ${z.toFixed(1)}σ so với mức nền của chính người này` : "")}
+      >
+        {(est.confidence * 100).toFixed(0)}%
+      </span>
+    </div>
+  );
+}
+
 function NodeCard({ n }: { n: NodeSensing }) {
   const v = n.latest;
   const present = !!v?.presence;
-  const hrStatus = classifyHeart(v?.heartrate_bpm ?? null);
-  const brStatus = classifyBreathing(v?.breathing_rate_bpm ?? null);
   const activeStates = n.semantics.filter((s) => s.active);
 
   return (
@@ -66,20 +112,14 @@ function NodeCard({ n }: { n: NodeSensing }) {
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
               <Wind className="w-3.5 h-3.5" /> Nhịp thở
             </div>
-            <div className={`text-2xl font-bold tabular-nums ${STATUS_CLS[brStatus]}`}>
-              {v?.breathing_rate_bpm != null ? v.breathing_rate_bpm.toFixed(0) : "—"}
-              <span className="text-xs font-normal text-muted-foreground ml-1">bpm</span>
-            </div>
+            <VitalReadout est={n.breathing} z={n.breathingZ} />
             <VitalsTrace history={n.history} field="breathing_rate_bpm" className="text-sky-500" />
           </div>
           <div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
               <HeartPulse className="w-3.5 h-3.5" /> Nhịp tim
             </div>
-            <div className={`text-2xl font-bold tabular-nums ${STATUS_CLS[hrStatus]}`}>
-              {v?.heartrate_bpm != null ? v.heartrate_bpm.toFixed(0) : "—"}
-              <span className="text-xs font-normal text-muted-foreground ml-1">bpm</span>
-            </div>
+            <VitalReadout est={n.heart} z={n.heartZ} />
             <VitalsTrace history={n.history} field="heartrate_bpm" className="text-rose-500" />
           </div>
         </div>
@@ -127,7 +167,8 @@ function NodeCard({ n }: { n: NodeSensing }) {
 }
 
 export default function Sensing() {
-  const { nodes, connected, source, engineDetail, summary } = useRuViewSensing();
+  const { nodes, connected, source, engineDetail, summary, positionFix } = useRuViewSensing();
+  const [view, setView] = useState<"3d" | "2d">("3d");
 
   return (
     <div className="max-w-6xl mx-auto space-y-4">
@@ -181,18 +222,62 @@ export default function Sensing() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Boxes className="w-4 h-4 text-primary" /> Bản sao số không gian
-          </CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Vị trí người ở suy ra từ cường độ nhiễu CSI của từng cảm biến. Quầng sáng
-            rộng = độ tin cậy thấp hơn; hình người dao động theo mức vận động thực tế.
-          </p>
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Boxes className="w-4 h-4 text-primary" /> Bản sao số không gian
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                {view === "3d"
+                  ? "Chiều cao = tư thế (đứng/nằm), lồng ngực phập phồng đúng nhịp thở đo được, vòng sáng = độ tin cậy. Kéo để xoay."
+                  : "Vị trí suy ra từ cường độ nhiễu CSI. Quầng rộng = độ tin cậy thấp hơn."}
+              </p>
+            </div>
+            <div className="flex rounded-lg border overflow-hidden shrink-0">
+              {(["3d", "2d"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setView(m)}
+                  className={`px-3 py-1 text-xs transition-colors ${
+                    view === m ? "bg-primary text-primary-foreground" : "hover:bg-accent"
+                  }`}
+                >
+                  {m === "3d" ? "3D" : "Sơ đồ"}
+                </button>
+              ))}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <SpatialTwin nodes={nodes} className="aspect-[4/3] w-full max-w-2xl mx-auto" />
+          {view === "3d" ? (
+            <Suspense
+              fallback={
+                <div className="aspect-[16/10] w-full max-w-3xl mx-auto rounded-xl bg-slate-950 flex items-center justify-center text-xs text-slate-400">
+                  Đang dựng không gian 3D…
+                </div>
+              }
+            >
+              <SpatialTwin3D nodes={nodes} fix={positionFix} className="aspect-[16/10] w-full max-w-3xl mx-auto" />
+            </Suspense>
+          ) : (
+            <SpatialTwin nodes={nodes} className="aspect-[4/3] w-full max-w-2xl mx-auto" />
+          )}
         </CardContent>
       </Card>
+
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {nodes.map((n) => (
+          <VitalsMonitor
+            key={`mon-${n.node.node_id}`}
+            label={n.node.label}
+            breathing={n.breathing}
+            heart={n.heart}
+            history={n.history}
+            heartZ={n.heartZ}
+            breathingZ={n.breathingZ}
+          />
+        ))}
+      </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {nodes.map((n) => <NodeCard key={n.node.node_id} n={n} />)}

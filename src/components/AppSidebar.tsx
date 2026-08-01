@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import {
   Activity, Brain, MapPin, AlertTriangle, BarChart3,
   Settings, HelpCircle, Menu, FlaskConical, ClipboardPlus,
-  Users, Radio, Shield, Sparkles, Wifi, HeartHandshake,
+  Users, Radio, Shield, Sparkles, Wifi, HeartHandshake, Radar,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { NavLink, useLocation } from "react-router-dom";
@@ -68,6 +68,7 @@ export function AppSidebar() {
     { titleKey: "nav.dashboard", title: t("nav.dashboard"),                        url: "/dashboard", icon: BarChart3     },
     { titleKey: "nav.sensing",   title: t("nav.sensing", "Sinh hiệu không tiếp xúc"), url: "/sensing", icon: Wifi          },
     { titleKey: "nav.care",      title: t("nav.care", "Chăm sóc tại nhà"),          url: "/care",      icon: HeartHandshake },
+    { titleKey: "nav.scan",      title: t("nav.scan", "Quét toàn nhà"),             url: "/scan",      icon: Radar          },
     { titleKey: "nav.alerts",    title: t("nav.alerts", "Cảnh báo"),                url: "/alerts",    icon: AlertTriangle },
   ];
 

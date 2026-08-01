@@ -29,8 +29,8 @@ export default function CareMonitor() {
   const fell = nodes.some((n) => n.latest?.fall_detected);
 
   const v = bedroom?.latest;
-  const brStatus = classifyBreathing(v?.breathing_rate_bpm ?? null);
-  const hrStatus = classifyHeart(v?.heartrate_bpm ?? null);
+  const brStatus = classifyBreathing(bedroom?.breathing.value ?? null);
+  const hrStatus = classifyHeart(bedroom?.heart.value ?? null);
   const vitalsConcern = brStatus === "critical" || hrStatus === "critical";
 
   const escalations = [
@@ -101,7 +101,7 @@ export default function CareMonitor() {
             <div className="text-2xl font-bold">{sleeping ? "Đang ngủ" : v?.presence ? "Đang thức" : "Không có người"}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {sleeping
-                ? `Nhịp thở đều ${v?.breathing_rate_bpm?.toFixed(0)} bpm, cử động tối thiểu`
+                ? `Nhịp thở đều ${bedroom?.breathing.value?.toFixed(0) ?? "--"} bpm, cử động tối thiểu`
                 : "Suy ra từ chuyển động + nhịp thở"}
             </p>
           </CardContent>
@@ -146,7 +146,7 @@ export default function CareMonitor() {
           <div>
             <div className="text-xs text-muted-foreground mb-1">Nhịp thở (bpm)</div>
             <div className="text-3xl font-bold tabular-nums">
-              {v?.breathing_rate_bpm?.toFixed(0) ?? "—"}
+              {bedroom?.breathing.value?.toFixed(0) ?? "—"}
             </div>
             <VitalsTrace history={bedroom?.history ?? []} field="breathing_rate_bpm" className="text-sky-500" />
             <p className="text-[11px] text-muted-foreground mt-1">Bình thường khi ngủ: 12–20 bpm</p>
@@ -154,7 +154,7 @@ export default function CareMonitor() {
           <div>
             <div className="text-xs text-muted-foreground mb-1">Nhịp tim (bpm)</div>
             <div className="text-3xl font-bold tabular-nums">
-              {v?.heartrate_bpm?.toFixed(0) ?? "—"}
+              {bedroom?.heart.value?.toFixed(0) ?? "—"}
             </div>
             <VitalsTrace history={bedroom?.history ?? []} field="heartrate_bpm" className="text-rose-500" />
             <p className="text-[11px] text-muted-foreground mt-1">Bình thường khi nghỉ: 60–100 bpm</p>

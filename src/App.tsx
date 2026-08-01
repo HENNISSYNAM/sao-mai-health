@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Sensing from "./pages/Sensing";
 import CareMonitor from "./pages/CareMonitor";
+import HouseScan from "./pages/HouseScan";
 import Surveillance from "./pages/Surveillance";
 import CaseIntake from "./pages/CaseIntake";
 import AlertsNew from "./pages/AlertsNew";
@@ -56,6 +57,7 @@ const queryClient = new QueryClient({
            {/* Core: contactless WiFi-CSI sensing */}
            <Route path="/sensing" element={<Sensing />} />
            <Route path="/care" element={<CareMonitor />} />
+           <Route path="/scan" element={<HouseScan />} />
            <Route path="/alerts" element={<AlertsNew />} />
 
            {/* Population-level signals built on the sensing mesh */}

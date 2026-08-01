@@ -17,6 +17,8 @@
  * frame says which one produced it — never present simulated data as live.
  */
 
+import type { PoseFrame } from "./positioning";
+
 export type VitalsSource = "live" | "simulated";
 
 export interface EdgeVitals {
@@ -255,6 +257,8 @@ export interface RuViewClientOptions {
   wsUrl?: string;
   onVitals: (v: EdgeVitals) => void;
   onStatus: (connected: boolean, detail?: string) => void;
+  /** DensePose skeletons, when the engine runs with pose publishing enabled. */
+  onPose?: (p: PoseFrame) => void;
 }
 
 /**
@@ -284,7 +288,23 @@ export function connectRuView(opts: RuViewClientOptions): () => void {
     ws.onmessage = (ev) => {
       let msg: any;
       try { msg = JSON.parse(ev.data as string); } catch { return; }
-      if (msg?.type !== "edge_vitals") return;   // ignore pose_data / handshakes
+      if (msg?.type === "pose_data") {
+        // 17-joint COCO skeleton; forwarded as-is, gated on confidence downstream.
+        if (opts.onPose && Array.isArray(msg.keypoints)) {
+          opts.onPose({
+            node_id: String(msg.node_id ?? "unknown"),
+            keypoints: msg.keypoints.map((k: any) => ({
+              x: Number(k?.x ?? 0), y: Number(k?.y ?? 0),
+              z: k?.z != null ? Number(k.z) : undefined,
+              score: Number(k?.score ?? k?.confidence ?? 0),
+            })),
+            score: Number(msg.score ?? msg.confidence ?? 0),
+            timestamp_ms: Date.now(),
+          });
+        }
+        return;
+      }
+      if (msg?.type !== "edge_vitals") return;   // ignore handshakes / unknown types
       opts.onVitals({
         node_id: String(msg.node_id ?? "unknown"),
         presence: !!msg.presence,

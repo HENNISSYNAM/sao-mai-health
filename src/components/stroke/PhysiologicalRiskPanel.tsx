@@ -19,8 +19,8 @@ export function PhysiologicalRiskPanel({ environmentalRisk }: { environmentalRis
   const primary = nodes.find((n) => n.latest?.presence) ?? nodes[0];
   const v = primary?.latest;
 
-  const hrStatus = classifyHeart(v?.heartrate_bpm ?? null);
-  const brStatus = classifyBreathing(v?.breathing_rate_bpm ?? null);
+  const hrStatus = classifyHeart(primary?.heart.value ?? null);
+  const brStatus = classifyBreathing(primary?.breathing.value ?? null);
 
   // Physiological contribution 0..100
   let physio = 0;
@@ -57,7 +57,7 @@ export function PhysiologicalRiskPanel({ environmentalRisk }: { environmentalRis
               <HeartPulse className="w-3 h-3" /> Nhịp tim
             </div>
             <div className="text-xl font-bold tabular-nums">
-              {v?.heartrate_bpm?.toFixed(0) ?? "—"}
+              {primary?.heart.value?.toFixed(0) ?? "—"}
             </div>
             <VitalsTrace history={primary?.history ?? []} field="heartrate_bpm" className="text-rose-500" />
           </div>
@@ -66,7 +66,7 @@ export function PhysiologicalRiskPanel({ environmentalRisk }: { environmentalRis
               <Wind className="w-3 h-3" /> Nhịp thở
             </div>
             <div className="text-xl font-bold tabular-nums">
-              {v?.breathing_rate_bpm?.toFixed(0) ?? "—"}
+              {primary?.breathing.value?.toFixed(0) ?? "—"}
             </div>
             <VitalsTrace history={primary?.history ?? []} field="breathing_rate_bpm" className="text-sky-500" />
           </div>
