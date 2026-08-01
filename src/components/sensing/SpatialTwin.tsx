@@ -26,10 +26,18 @@ export interface RoomGeometry {
 }
 
 export const DEFAULT_FLOORPLAN: RoomGeometry[] = [
-  { node_id: "node-a1", label: "Phòng ngủ",   x: 4,  y: 6,  w: 40, h: 46, fixture: "bed" },
-  { node_id: "node-a2", label: "Phòng khách", x: 48, y: 6,  w: 48, h: 62, fixture: "sofa" },
-  { node_id: "node-a3", label: "Nhà vệ sinh", x: 4,  y: 56, w: 40, h: 38, fixture: "toilet" },
+  { node_id: "node-a1", label: "Phòng ngủ",   x: 6,  y: 8,  w: 38, h: 42, fixture: "bed" },
+  { node_id: "node-a2", label: "Phòng khách", x: 50, y: 8,  w: 44, h: 58, fixture: "sofa" },
+  { node_id: "node-a3", label: "Nhà vệ sinh", x: 6,  y: 54, w: 38, h: 38, fixture: "toilet" },
 ];
+
+/** Door openings drawn as gaps in the wall plus a swing arc. */
+const DOORS: { x: number; y: number; rot: number }[] = [
+  { x: 44, y: 24, rot: 0 },    // bedroom → hallway
+  { x: 44, y: 70, rot: -90 },  // bathroom → hallway
+  { x: 50, y: 36, rot: 180 },  // living → hallway
+];
+
 
 /** Room dressing — drawn faintly so the occupant stays the focal point. */
 function Fixture({ r }: { r: RoomGeometry }) {
