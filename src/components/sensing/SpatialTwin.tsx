@@ -282,10 +282,10 @@ export function SpatialTwin({
         {DOORS.map((d, i) => (
           <g key={i} transform={`translate(${d.x} ${d.y}) rotate(${d.rot})`}
              className="text-muted-foreground">
-            <path d="M0,-4 L0,4" stroke="hsl(var(--background))" strokeWidth="1.4" />
-            <path d="M0,-4 A8,8 0 0 1 8,4" fill="none" stroke="currentColor"
-                  strokeOpacity="0.3" strokeWidth="0.3" strokeDasharray="1 1" />
-            <path d="M0,-4 L7.6,-4" stroke="currentColor" strokeOpacity="0.45" strokeWidth="0.5" />
+            <path d="M0,-3.2 L0,3.2" stroke="hsl(var(--background))" strokeWidth="1.3" />
+            <path d="M0,-3.2 A6.4,6.4 0 0 1 6.4,3.2" fill="none" stroke="currentColor"
+                  strokeOpacity="0.22" strokeWidth="0.25" strokeDasharray="0.8 0.8" />
+            <path d="M0,-3.2 L6.1,-3.2" stroke="currentColor" strokeOpacity="0.4" strokeWidth="0.45" />
           </g>
         ))}
 
