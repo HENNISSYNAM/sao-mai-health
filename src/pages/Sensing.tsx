@@ -305,11 +305,12 @@ export default function Sensing() {
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 order-7">
         {nodes.map((n) => <NodeCard key={n.node.node_id} n={n} />)}
       </div>
 
-      <p className="text-[11px] text-muted-foreground border-t pt-3">
+      <p className="text-[11px] text-muted-foreground border-t pt-3 order-8">
+
         Công cụ hỗ trợ tham khảo. Không thay thế tư vấn và chẩn đoán của bác sĩ.
       </p>
     </div>
