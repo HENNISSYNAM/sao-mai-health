@@ -163,7 +163,14 @@ export function SpatialTwin({
   plan?: RoomGeometry[];
   className?: string;
 }) {
+  // On a phone the plan is only ~340px wide, so type and figures need to be
+  // physically larger to stay readable at the same viewBox scale.
+  const isMobile = useIsMobile();
+  const labelSize = isMobile ? 4.4 : 3;
+  const figScale = isMobile ? 1.45 : 1;
+
   const occupants = useMemo(() => {
+
     return nodes.flatMap((n) => {
       const v = n.latest;
       if (!v?.presence) return [];
