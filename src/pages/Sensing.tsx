@@ -190,7 +190,24 @@ export default function Sensing() {
       </div>
 
       {/* On phones the simulated-data notice is redundant with the status badge
-          above, so the space goes to the spatial twin instead. */}
+          above, so that row becomes the WiFi coverage-scan entry point instead. */}
+      <Link
+        to="/scan"
+        className="sm:hidden order-2 flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 active:scale-[.99] transition-transform"
+      >
+        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+          <Radar className="h-4 w-4 text-primary" />
+          <span className="absolute inset-0 rounded-full border border-primary/40 animate-ping" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Quét WiFi toàn nhà</span>
+          <span className="block text-[11px] text-muted-foreground truncate">
+            Vùng phủ cảm biến, điểm mù và vị trí đặt thêm node
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+      </Link>
+
       {source === "simulated" && (
         <Alert className="hidden sm:flex order-2">
           <Info className="h-4 w-4" />
@@ -203,6 +220,7 @@ export default function Sensing() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 order-4">
+
         <Card className="p-2.5 sm:p-3">
           <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Radio className="w-3.5 h-3.5 shrink-0" /> Cảm biến</div>
           <div className="text-xl sm:text-2xl font-bold">{nodes.length}</div>
