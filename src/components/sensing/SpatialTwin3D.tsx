@@ -170,8 +170,11 @@ export function SpatialTwin3D({
   nodes: NodeSensing[]; plan?: RoomGeometry[]; className?: string;
   fix?: { x: number; y: number; confidence: number; method: string; usedNodes: string[] };
 }) {
+  const isMobile = useIsMobile();
+
   // Frame the whole plan: centre on its bounds and pull the camera back far
-  // enough that every room is in shot regardless of layout.
+  // enough that every room is in shot regardless of layout. Phones get a
+  // slightly wider pull-back because the viewport is squarer and narrower.
   const { target, camPos } = useMemo(() => {
     const minX = Math.min(...plan.map((r) => r.x)) * S;
     const maxX = Math.max(...plan.map((r) => r.x + r.w)) * S;
@@ -179,17 +182,17 @@ export function SpatialTwin3D({
     const maxZ = Math.max(...plan.map((r) => r.y + r.h)) * S;
     const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
     const span = Math.max(maxX - minX, maxZ - minZ);
-    const d = span * 0.85 + 1.1;
+    const d = span * (isMobile ? 1.05 : 0.85) + 1.1;
     return {
       target: new THREE.Vector3(cx, 0.3, cz),
       camPos: [cx + d * 0.45, d * 0.62, cz + d * 0.80] as [number, number, number],
     };
-  }, [plan]);
+  }, [plan, isMobile]);
 
   return (
-    <div className={`rounded-xl overflow-hidden bg-slate-950 ${className ?? ""}`}>
-      <Canvas shadows camera={{ position: camPos, fov: 46 }}
-              dpr={[1, 1.8]} gl={{ antialias: true }}>
+    <div className={`rounded-xl overflow-hidden bg-slate-950 touch-none ${className ?? ""}`}>
+      <Canvas shadows={!isMobile} camera={{ position: camPos, fov: isMobile ? 54 : 46 }}
+              dpr={isMobile ? [1, 1.5] : [1, 1.8]} gl={{ antialias: !isMobile }}>
         <color attach="background" args={["#020617"]} />
         <fog attach="fog" args={["#020617", 12, 26]} />
         <Suspense fallback={null}>
@@ -197,10 +200,13 @@ export function SpatialTwin3D({
         </Suspense>
         <OrbitControls target={target} enablePan={false}
                        minPolarAngle={0.2} maxPolarAngle={Math.PI / 2.15}
-                       minDistance={3} maxDistance={18} enableDamping dampingFactor={0.08} />
+                       minDistance={isMobile ? 2.4 : 3} maxDistance={18}
+                       rotateSpeed={isMobile ? 0.6 : 1}
+                       enableDamping dampingFactor={0.08} />
       </Canvas>
     </div>
   );
 }
+
 
 export default SpatialTwin3D;
