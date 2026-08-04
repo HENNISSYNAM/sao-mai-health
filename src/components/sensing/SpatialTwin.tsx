@@ -1,5 +1,7 @@
 import { useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { NodeSensing } from "@/hooks/useRuViewSensing";
+
 
 /**
  * Spatial digital twin — a live floor plan where each occupant is drawn at the
