@@ -265,14 +265,16 @@ export function SpatialTwin({
 
               {/* label plate keeps type legible over the floor texture */}
               <g>
-                <rect x={r.x + 2} y={r.y + 1.9} width={r.label.length * 1.75 + 4} height="5" rx="1.2"
+                <rect x={r.x + 2} y={r.y + 1.9} width={r.label.length * labelSize * 0.58 + 4}
+                      height={labelSize * 1.7} rx="1.2"
                       className="text-background" fill="currentColor" fillOpacity="0.82" />
-                <text x={r.x + 4} y={r.y + 5.5} fontSize="3"
+                <text x={r.x + 4} y={r.y + 1.9 + labelSize * 1.25} fontSize={labelSize}
                       className={occupied ? "fill-foreground" : "fill-muted-foreground"}
                       style={{ userSelect: "none", fontWeight: occupied ? 600 : 400, letterSpacing: "0.05px" }}>
                   {r.label}
                 </text>
               </g>
+
 
               {/* sensor node indicator; pulses while the zone is being perturbed */}
               <g transform={`translate(${r.x + r.w - 3.5} ${r.y + 3.8})`}>
