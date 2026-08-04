@@ -171,8 +171,8 @@ export default function Sensing() {
   const [view, setView] = useState<"3d" | "2d">("3d");
 
   return (
-    <div className="max-w-6xl mx-auto space-y-3 sm:space-y-4">
-      <div className="flex items-start justify-between gap-3 flex-wrap">
+    <div className="max-w-6xl mx-auto flex flex-col gap-3 sm:gap-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap order-1">
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
             <Wifi className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
@@ -189,8 +189,10 @@ export default function Sensing() {
         </Badge>
       </div>
 
+      {/* On phones the simulated-data notice is redundant with the status badge
+          above, so the space goes to the spatial twin instead. */}
       {source === "simulated" && (
-        <Alert>
+        <Alert className="hidden sm:flex order-2">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
             Đang hiển thị <strong>dữ liệu mô phỏng</strong> (chưa kết nối bộ thu RuView
@@ -200,7 +202,7 @@ export default function Sensing() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 order-4">
         <Card className="p-2.5 sm:p-3">
           <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Radio className="w-3.5 h-3.5 shrink-0" /> Cảm biến</div>
           <div className="text-xl sm:text-2xl font-bold">{nodes.length}</div>
@@ -221,8 +223,9 @@ export default function Sensing() {
         </Card>
       </div>
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden order-3 sm:order-5">
         <CardHeader className="pb-2 px-3 sm:px-6">
+
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <CardTitle className="text-sm sm:text-base flex items-center gap-2">
