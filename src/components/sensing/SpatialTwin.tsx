@@ -1,5 +1,7 @@
 import { useMemo } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { NodeSensing } from "@/hooks/useRuViewSensing";
+
 
 /**
  * Spatial digital twin — a live floor plan where each occupant is drawn at the
@@ -84,7 +86,7 @@ function Fixture({ r }: { r: RoomGeometry }) {
 }
 
 /** Articulated stick figure whose gait speed tracks the measured motion. */
-function Occupant({ motion, alert }: { motion: number; alert: boolean }) {
+function Occupant({ motion, alert, scale = 1 }: { motion: number; alert: boolean; scale?: number }) {
   const m = Math.max(0, Math.min(1, motion));
   const walking = m > 0.12;
   const gait = Math.max(0.42, 1.35 - m * 1.1).toFixed(2) + "s";
@@ -92,7 +94,8 @@ function Occupant({ motion, alert }: { motion: number; alert: boolean }) {
   const breathe = Math.max(2.2, 4.4 - m * 1.6).toFixed(2) + "s";
 
   return (
-    <g className={alert ? "text-rose-500" : "text-emerald-500"}>
+    <g className={alert ? "text-rose-500" : "text-emerald-500"} transform={`scale(${scale})`}>
+
       {/* contact shadow keeps the figure grounded on the floor plan */}
       <ellipse cx="0" cy="4.6" rx="2" ry="0.6" fill="currentColor" fillOpacity="0.18" />
 
@@ -160,7 +163,14 @@ export function SpatialTwin({
   plan?: RoomGeometry[];
   className?: string;
 }) {
+  // On a phone the plan is only ~340px wide, so type and figures need to be
+  // physically larger to stay readable at the same viewBox scale.
+  const isMobile = useIsMobile();
+  const labelSize = isMobile ? 4.4 : 3;
+  const figScale = isMobile ? 1.45 : 1;
+
   const occupants = useMemo(() => {
+
     return nodes.flatMap((n) => {
       const v = n.latest;
       if (!v?.presence) return [];
@@ -255,14 +265,16 @@ export function SpatialTwin({
 
               {/* label plate keeps type legible over the floor texture */}
               <g>
-                <rect x={r.x + 2} y={r.y + 1.9} width={r.label.length * 1.75 + 4} height="5" rx="1.2"
+                <rect x={r.x + 2} y={r.y + 1.9} width={r.label.length * labelSize * 0.58 + 4}
+                      height={labelSize * 1.7} rx="1.2"
                       className="text-background" fill="currentColor" fillOpacity="0.82" />
-                <text x={r.x + 4} y={r.y + 5.5} fontSize="3"
+                <text x={r.x + 4} y={r.y + 1.9 + labelSize * 1.25} fontSize={labelSize}
                       className={occupied ? "fill-foreground" : "fill-muted-foreground"}
                       style={{ userSelect: "none", fontWeight: occupied ? 600 : 400, letterSpacing: "0.05px" }}>
                   {r.label}
                 </text>
               </g>
+
 
               {/* sensor node indicator; pulses while the zone is being perturbed */}
               <g transform={`translate(${r.x + r.w - 3.5} ${r.y + 3.8})`}>
@@ -307,11 +319,12 @@ export function SpatialTwin({
                 <animate attributeName="opacity" values="0.8;0.1;0.8" dur="1.6s" repeatCount="indefinite" />
               </circle>
             )}
-            <Occupant motion={o.motion} alert={o.alert} />
+            <Occupant motion={o.motion} alert={o.alert} scale={figScale} />
             {o.persons > 1 && (
-              <text x="2.6" y="-2.6" fontSize="2.4" fill="currentColor" style={{ userSelect: "none" }}>
+              <text x={2.6 * figScale} y={-2.6 * figScale} fontSize={2.4 * figScale} fill="currentColor" style={{ userSelect: "none" }}>
                 ×{o.persons}
               </text>
+
             )}
           </g>
         ))}

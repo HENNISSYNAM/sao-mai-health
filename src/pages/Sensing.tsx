@@ -171,13 +171,14 @@ export default function Sensing() {
   const [view, setView] = useState<"3d" | "2d">("3d");
 
   return (
-    <div className="max-w-6xl mx-auto space-y-4">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Wifi className="w-6 h-6 text-primary" /> Giám sát sinh hiệu không tiếp xúc
+    <div className="max-w-6xl mx-auto space-y-3 sm:space-y-4">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            <Wifi className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
+            <span className="leading-tight">Giám sát sinh hiệu không tiếp xúc</span>
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Nhịp thở, nhịp tim và chuyển động đo bằng sóng WiFi (CSI) — xuyên tường,
             không camera, không thiết bị đeo trên người bệnh.
           </p>
@@ -199,35 +200,35 @@ export default function Sensing() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="p-3">
-          <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Radio className="w-3.5 h-3.5" /> Cảm biến</div>
-          <div className="text-2xl font-bold">{nodes.length}</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+        <Card className="p-2.5 sm:p-3">
+          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Radio className="w-3.5 h-3.5 shrink-0" /> Cảm biến</div>
+          <div className="text-xl sm:text-2xl font-bold">{nodes.length}</div>
         </Card>
-        <Card className="p-3">
-          <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> Phòng có người</div>
-          <div className="text-2xl font-bold">{summary.occupied}</div>
+        <Card className="p-2.5 sm:p-3">
+          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Users className="w-3.5 h-3.5 shrink-0" /> Phòng có người</div>
+          <div className="text-xl sm:text-2xl font-bold">{summary.occupied}</div>
         </Card>
-        <Card className="p-3">
-          <div className="text-xs text-muted-foreground flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Tổng người</div>
-          <div className="text-2xl font-bold">{summary.people}</div>
+        <Card className="p-2.5 sm:p-3">
+          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 shrink-0" /> Tổng người</div>
+          <div className="text-xl sm:text-2xl font-bold">{summary.people}</div>
         </Card>
-        <Card className="p-3">
-          <div className="text-xs text-muted-foreground flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5" /> Cảnh báo</div>
-          <div className={`text-2xl font-bold ${summary.activeAlerts.length ? "text-rose-600" : ""}`}>
+        <Card className="p-2.5 sm:p-3">
+          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5 shrink-0" /> Cảnh báo</div>
+          <div className={`text-xl sm:text-2xl font-bold ${summary.activeAlerts.length ? "text-rose-600" : ""}`}>
             {summary.activeAlerts.length}
           </div>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Boxes className="w-4 h-4 text-primary" /> Bản sao số không gian
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-2 px-3 sm:px-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+                <Boxes className="w-4 h-4 text-primary shrink-0" /> Bản sao số không gian
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">
                 {view === "3d"
                   ? "Chiều cao = tư thế (đứng/nằm), lồng ngực phập phồng đúng nhịp thở đo được, vòng sáng = độ tin cậy. Kéo để xoay."
                   : "Vị trí suy ra từ cường độ nhiễu CSI. Quầng rộng = độ tin cậy thấp hơn."}
@@ -238,7 +239,7 @@ export default function Sensing() {
                 <button
                   key={m}
                   onClick={() => setView(m)}
-                  className={`px-3 py-1 text-xs transition-colors ${
+                  className={`px-3 py-1.5 text-xs transition-colors min-w-[52px] ${
                     view === m ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                   }`}
                 >
@@ -248,22 +249,23 @@ export default function Sensing() {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 sm:px-6 pb-3 sm:pb-6">
           {view === "3d" ? (
             <Suspense
               fallback={
-                <div className="aspect-[16/10] w-full max-w-3xl mx-auto rounded-xl bg-slate-950 flex items-center justify-center text-xs text-slate-400">
+                <div className="aspect-square sm:aspect-[16/10] w-full max-w-3xl mx-auto rounded-xl bg-slate-950 flex items-center justify-center text-xs text-slate-400">
                   Đang dựng không gian 3D…
                 </div>
               }
             >
-              <SpatialTwin3D nodes={nodes} fix={positionFix} className="aspect-[16/10] w-full max-w-3xl mx-auto" />
+              <SpatialTwin3D nodes={nodes} fix={positionFix} className="aspect-square sm:aspect-[16/10] w-full max-w-3xl mx-auto touch-none" />
             </Suspense>
           ) : (
-            <SpatialTwin nodes={nodes} className="aspect-[4/3] w-full max-w-2xl mx-auto" />
+            <SpatialTwin nodes={nodes} className="aspect-square sm:aspect-[4/3] w-full max-w-2xl mx-auto" />
           )}
         </CardContent>
       </Card>
+
 
       <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
         {nodes.map((n) => (
