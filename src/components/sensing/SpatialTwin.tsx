@@ -319,11 +319,12 @@ export function SpatialTwin({
                 <animate attributeName="opacity" values="0.8;0.1;0.8" dur="1.6s" repeatCount="indefinite" />
               </circle>
             )}
-            <Occupant motion={o.motion} alert={o.alert} />
+            <Occupant motion={o.motion} alert={o.alert} scale={figScale} />
             {o.persons > 1 && (
-              <text x="2.6" y="-2.6" fontSize="2.4" fill="currentColor" style={{ userSelect: "none" }}>
+              <text x={2.6 * figScale} y={-2.6 * figScale} fontSize={2.4 * figScale} fill="currentColor" style={{ userSelect: "none" }}>
                 ×{o.persons}
               </text>
+
             )}
           </g>
         ))}
