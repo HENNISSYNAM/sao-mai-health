@@ -3,7 +3,9 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Grid, Text, RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import type { NodeSensing } from "@/hooks/useRuViewSensing";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { DEFAULT_FLOORPLAN, type RoomGeometry } from "./SpatialTwin";
+
 
 /**
  * Multi-dimensional spatial twin.
