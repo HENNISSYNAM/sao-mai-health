@@ -10,9 +10,12 @@ import { VitalsMonitor } from "@/components/sensing/VitalsMonitor";
 const SpatialTwin3D = lazy(() => import("@/components/sensing/SpatialTwin3D"));
 import { useRuViewSensing, type NodeSensing } from "@/hooks/useRuViewSensing";
 import { classifyBreathing, classifyHeart, type VitalStatus } from "@/services/ruview";
+import { Link } from "react-router-dom";
 import {
   Wifi, WifiOff, Activity, HeartPulse, Wind, Users, ShieldAlert, Radio, Info, Boxes,
+  Radar, ChevronRight,
 } from "lucide-react";
+
 
 const STATUS_CLS: Record<VitalStatus, string> = {
   normal: "text-emerald-600 dark:text-emerald-400",
