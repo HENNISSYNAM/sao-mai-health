@@ -86,7 +86,7 @@ function Fixture({ r }: { r: RoomGeometry }) {
 }
 
 /** Articulated stick figure whose gait speed tracks the measured motion. */
-function Occupant({ motion, alert }: { motion: number; alert: boolean }) {
+function Occupant({ motion, alert, scale = 1 }: { motion: number; alert: boolean; scale?: number }) {
   const m = Math.max(0, Math.min(1, motion));
   const walking = m > 0.12;
   const gait = Math.max(0.42, 1.35 - m * 1.1).toFixed(2) + "s";
@@ -94,7 +94,8 @@ function Occupant({ motion, alert }: { motion: number; alert: boolean }) {
   const breathe = Math.max(2.2, 4.4 - m * 1.6).toFixed(2) + "s";
 
   return (
-    <g className={alert ? "text-rose-500" : "text-emerald-500"}>
+    <g className={alert ? "text-rose-500" : "text-emerald-500"} transform={`scale(${scale})`}>
+
       {/* contact shadow keeps the figure grounded on the floor plan */}
       <ellipse cx="0" cy="4.6" rx="2" ry="0.6" fill="currentColor" fillOpacity="0.18" />
 
