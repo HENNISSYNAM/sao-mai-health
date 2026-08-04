@@ -10,9 +10,12 @@ import { VitalsMonitor } from "@/components/sensing/VitalsMonitor";
 const SpatialTwin3D = lazy(() => import("@/components/sensing/SpatialTwin3D"));
 import { useRuViewSensing, type NodeSensing } from "@/hooks/useRuViewSensing";
 import { classifyBreathing, classifyHeart, type VitalStatus } from "@/services/ruview";
+import { Link } from "react-router-dom";
 import {
   Wifi, WifiOff, Activity, HeartPulse, Wind, Users, ShieldAlert, Radio, Info, Boxes,
+  Radar, ChevronRight,
 } from "lucide-react";
+
 
 const STATUS_CLS: Record<VitalStatus, string> = {
   normal: "text-emerald-600 dark:text-emerald-400",
@@ -190,7 +193,24 @@ export default function Sensing() {
       </div>
 
       {/* On phones the simulated-data notice is redundant with the status badge
-          above, so the space goes to the spatial twin instead. */}
+          above, so that row becomes the WiFi coverage-scan entry point instead. */}
+      <Link
+        to="/scan"
+        className="sm:hidden order-2 flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 active:scale-[.99] transition-transform"
+      >
+        <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+          <Radar className="h-4 w-4 text-primary" />
+          <span className="absolute inset-0 rounded-full border border-primary/40 animate-ping" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Quét WiFi toàn nhà</span>
+          <span className="block text-[11px] text-muted-foreground truncate">
+            Vùng phủ cảm biến, điểm mù và vị trí đặt thêm node
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+      </Link>
+
       {source === "simulated" && (
         <Alert className="hidden sm:flex order-2">
           <Info className="h-4 w-4" />
@@ -203,6 +223,7 @@ export default function Sensing() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 order-4">
+
         <Card className="p-2.5 sm:p-3">
           <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Radio className="w-3.5 h-3.5 shrink-0" /> Cảm biến</div>
           <div className="text-xl sm:text-2xl font-bold">{nodes.length}</div>
@@ -270,7 +291,7 @@ export default function Sensing() {
       </Card>
 
 
-      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 order-6">
         {nodes.map((n) => (
           <VitalsMonitor
             key={`mon-${n.node.node_id}`}
@@ -284,11 +305,12 @@ export default function Sensing() {
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 order-7">
         {nodes.map((n) => <NodeCard key={n.node.node_id} n={n} />)}
       </div>
 
-      <p className="text-[11px] text-muted-foreground border-t pt-3">
+      <p className="text-[11px] text-muted-foreground border-t pt-3 order-8">
+
         Công cụ hỗ trợ tham khảo. Không thay thế tư vấn và chẩn đoán của bác sĩ.
       </p>
     </div>
