@@ -291,7 +291,7 @@ export default function Sensing() {
       </Card>
 
 
-      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 order-6">
         {nodes.map((n) => (
           <VitalsMonitor
             key={`mon-${n.node.node_id}`}
