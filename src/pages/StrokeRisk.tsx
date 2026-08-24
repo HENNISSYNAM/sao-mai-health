@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, memo, useCallback, useRef } from '
 import { useStrokeRiskEngine } from '@/hooks/useStrokeRiskEngine';
 import FullScreenMap from '@/components/stroke/FullScreenMap';
 import RiskOverlay from '@/components/stroke/RiskOverlay';
+import { PhysiologicalRiskPanel } from '@/components/stroke/PhysiologicalRiskPanel';
 import MLAnalyticsDashboard from '@/components/stroke/MLAnalyticsDashboard';
 import { useTranslation } from 'react-i18next';
 
@@ -101,6 +102,9 @@ const StrokeRisk: React.FC = () => {
             <Navigation className="h-4 w-4 mr-2" />
             {t('epiIntel.tracking')}
           </Button>
+        </div>
+        <div className="max-w-5xl mx-auto px-4 pt-20">
+          <PhysiologicalRiskPanel environmentalRisk={riskAssessment?.risk_score} />
         </div>
         <MLAnalyticsDashboard gps={userData.gps} environment={environment} riskAssessment={riskAssessment} ageGroup={userData.ageGroup} isTracking={isTracking} outdoorMinutes={userData.outdoorMinutes} locationConfidence={userData.locationConfidence} pressureChange1h={barometer.pressureChange1h} pressureChange24h={barometer.pressureChange24h} />
       </div>;

@@ -15,7 +15,6 @@ import { formatDistanceToNow } from 'date-fns';
 import { PersonalReportDownloader } from '@/components/reports/PersonalReportDownloader';
 import { vi, enUS } from 'date-fns/locale';
 import { useDBNewsFeed, type DBNewsArticle } from '@/hooks/useDBNewsFeed';
-import { VoiceAlertButton } from '@/components/VoiceAlertButton';
 
 type SeverityFilter = 'all' | 'critical' | 'high' | 'medium' | 'low';
 type ClassificationFilter = 'all' | 'confirmed' | 'emerging' | 'predictive';
@@ -270,13 +269,6 @@ export function HealthNewsFeed() {
                 >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        {/* Voice button */}
-                        <div className="float-right ml-1">
-                          <VoiceAlertButton 
-                            text={article.aiSummary || article.title}
-                            type={article.severity === 'critical' ? 'alert' : 'info'}
-                          />
-                        </div>
                       {/* Badges */}
                       <div className="flex flex-wrap items-center gap-1 sm:gap-1.5 mb-1 sm:mb-1.5">
                         {article.severity && (

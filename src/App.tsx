@@ -1,9 +1,8 @@
- import React from "react";
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
-import { useCartSync } from "@/hooks/useCartSync";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
- import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopNavbar } from "@/components/TopNavbar";
@@ -12,30 +11,24 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GlobalAIAssistant } from "@/components/GlobalAIAssistant";
 import { AuthProvider } from "@/components/auth/AuthProvider";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AuthRedirectHandler } from "@/components/auth/AuthRedirectHandler";
- import Auth from "./pages/Auth";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Sensing from "./pages/Sensing";
+import CareMonitor from "./pages/CareMonitor";
+import HouseScan from "./pages/HouseScan";
 import Surveillance from "./pages/Surveillance";
 import CaseIntake from "./pages/CaseIntake";
-import LabImport from "./pages/LabImport";
 import AlertsNew from "./pages/AlertsNew";
 import NotFound from "./pages/NotFound";
 import { EnhancedCommandPalette } from "./components/EnhancedCommandPalette";
-import MapView from "./pages/MapView";
-import PatientsNew from "./pages/PatientsNew";
-import Campaigns from "./pages/Campaigns";
-import Appointments from "./pages/Appointments";
-import Inventory from "./pages/Inventory";
-import Facilities from "./pages/Facilities";
 import StrokeRisk from "./pages/StrokeRisk";
-import BioVault from "./pages/BioVault";
 import Settings from "./pages/Settings";
 import About from "./pages/About";
 import Pricing from "./pages/Pricing";
 import Careers from "./pages/Careers";
 import Legal from "./pages/Legal";
-import Landing from "./pages/Landing";
+import ClinicalNlpBatch from "./pages/ClinicalNlpBatch";
 import ConsentBanner from "./components/ConsentBanner";
 
 const queryClient = new QueryClient({
@@ -60,29 +53,42 @@ const queryClient = new QueryClient({
          <Routes>
            <Route index element={<Dashboard />} />
            <Route path="/dashboard" element={<Dashboard />} />
-           <Route path="/surveillance" element={<Surveillance />} />
-           <Route path="/case-intake" element={<CaseIntake />} />
-           <Route path="/lab-import" element={<LabImport />} />
-           
-           {/* Protected Routes - Require Authentication */}
+
+           {/* Core: contactless WiFi-CSI sensing */}
+           <Route path="/sensing" element={<Sensing />} />
+           <Route path="/care" element={<CareMonitor />} />
+           <Route path="/scan" element={<HouseScan />} />
            <Route path="/alerts" element={<AlertsNew />} />
-           <Route path="/bio-vault" element={<BioVault />} />
-            <Route path="/maps" element={<Surveillance />} />
-            
-            {/* Other routes */}
-            <Route path="/map" element={<Surveillance />} />
-           <Route path="/patients" element={<PatientsNew />} />
-           <Route path="/appointments" element={<Appointments />} />
-           <Route path="/campaigns" element={<Campaigns />} />
-           <Route path="/facilities" element={<Facilities />} />
-           <Route path="/stocks" element={<Inventory />} />
-           <Route path="/inventory" element={<Inventory />} />
+
+           {/* Population-level signals built on the sensing mesh */}
+           <Route path="/surveillance" element={<Surveillance />} />
+           <Route path="/maps" element={<Surveillance />} />
+           <Route path="/map" element={<Surveillance />} />
+           <Route path="/case-intake" element={<CaseIntake />} />
+
+           {/* Clinical concept extraction (ICD-10 / RxNorm) */}
+           <Route path="/clinical-nlp" element={<ClinicalNlpBatch />} />
+
            <Route path="/settings" element={<Settings />} />
            <Route path="/about" element={<About />} />
-            <Route path="/help" element={<About />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/careers" element={<Careers />} />
-            <Route path="/legal" element={<Legal />} />
+           <Route path="/help" element={<About />} />
+           <Route path="/pricing" element={<Pricing />} />
+           <Route path="/careers" element={<Careers />} />
+           <Route path="/legal" element={<Legal />} />
+
+           {/* Retired feature surfaces → nearest live equivalent */}
+           <Route path="/lab-import" element={<Navigate to="/clinical-nlp" replace />} />
+           <Route path="/patients" element={<Navigate to="/care" replace />} />
+           <Route path="/appointments" element={<Navigate to="/care" replace />} />
+           <Route path="/campaigns" element={<Navigate to="/surveillance" replace />} />
+           <Route path="/facilities" element={<Navigate to="/surveillance" replace />} />
+           <Route path="/stocks" element={<Navigate to="/dashboard" replace />} />
+           <Route path="/inventory" element={<Navigate to="/dashboard" replace />} />
+           <Route path="/research" element={<Navigate to="/dashboard" replace />} />
+           <Route path="/chain/*" element={<Navigate to="/dashboard" replace />} />
+           <Route path="/chain" element={<Navigate to="/dashboard" replace />} />
+           <Route path="/biovault" element={<Navigate to="/sensing" replace />} />
+
            <Route path="*" element={<NotFound />} />
          </Routes>
          <EnhancedCommandPalette />
@@ -94,11 +100,6 @@ const queryClient = new QueryClient({
    </SidebarProvider>
  );
 
-const CartSyncWrapper = ({ children }: { children: React.ReactNode }) => {
-  useCartSync();
-  return <>{children}</>;
-};
-
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -107,18 +108,13 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <CartSyncWrapper>
             <AuthRedirectHandler />
-             <Routes>
-                {/* Auth page - full screen without sidebar */}
-                <Route path="/auth" element={<Auth />} />
-                {/* Stroke Risk - Full screen without sidebar */}
-                <Route path="/stroke-risk/*" element={<StrokeRisk />} />
-               {/* All other routes with sidebar layout */}
-             <Route path="/*" element={<MainLayout />} />
-              </Routes>
-              <ConsentBanner />
-             </CartSyncWrapper>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/stroke-risk/*" element={<StrokeRisk />} />
+              <Route path="/*" element={<MainLayout />} />
+            </Routes>
+            <ConsentBanner />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

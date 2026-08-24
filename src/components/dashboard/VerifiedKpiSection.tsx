@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeWithTimeout } from "@/lib/invokeWithTimeout";
 
 interface KpiMetric {
   value: number;
@@ -63,16 +64,11 @@ export function VerifiedKpiSection({ dailyCounts, alerts, isConnected }: Verifie
     try {
       console.log('🔍 Fetching KPIs from AI agents...');
       
-      const { data, error } = await supabase.functions.invoke('health-kpi-intelligence', {
-        body: { language: i18n.language }
+      const data = await invokeWithTimeout<{ success: boolean; metrics: any; kpi?: any; fromDB?: boolean }>('health-kpi-intelligence', {
+        body: { language: i18n.language },
+        timeoutMs: 25_000,
+        retries: 1,
       });
-
-      if (error) {
-        console.error('KPI fetch error:', error);
-        setIsLoading(false);
-        setIsRefreshing(false);
-        return;
-      }
 
       if (data?.success && data.metrics) {
         // Update cache

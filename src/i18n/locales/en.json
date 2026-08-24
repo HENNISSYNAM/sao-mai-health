@@ -87,17 +87,18 @@
   "nav": {
     "dashboard": "Dashboard",
     "surveillance": "Surveillance",
-    "maps": "Disease Tracking",
+    "maps": "Map",
     "alerts": "Alerts",
-    "patients": "Patients",
     "facilities": "Facilities",
-    "campaigns": "Campaigns",
     "inventory": "Inventory",
-    "appointments": "Appointments",
     "labImport": "Lab Import",
-    "strokeRisk": "Disease Intelligence",
+    "caseIntake": "Case Intake",
+    "bioVault": "BioVault",
+    "strokeRisk": "Stroke Risk",
     "settings": "Settings",
-    "digitalTwin": "Digital Twin"
+    "digitalTwin": "Digital Twin",
+    "sensing": "Contactless Vitals",
+    "care": "Home Care"
   },
   "dashboard": {
     "title": "System Overview",

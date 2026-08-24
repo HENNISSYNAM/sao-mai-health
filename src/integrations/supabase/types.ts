@@ -178,6 +178,7 @@ export type Database = {
           appointment_date: string
           appointment_time: string
           created_at: string
+          created_by: string | null
           doctor: string | null
           facility: string
           id: string
@@ -192,6 +193,7 @@ export type Database = {
           appointment_date: string
           appointment_time: string
           created_at?: string
+          created_by?: string | null
           doctor?: string | null
           facility: string
           id?: string
@@ -206,6 +208,7 @@ export type Database = {
           appointment_date?: string
           appointment_time?: string
           created_at?: string
+          created_by?: string | null
           doctor?: string | null
           facility?: string
           id?: string
@@ -1481,6 +1484,90 @@ export type Database = {
         }
         Relationships: []
       }
+      environment_daily_log: {
+        Row: {
+          air_quality_source: string | null
+          aqi: number | null
+          co: number | null
+          created_at: string
+          humidity: number | null
+          id: string
+          lat: number | null
+          lon: number | null
+          main_pollutant: string | null
+          no2: number | null
+          o3: number | null
+          overall_risk: string | null
+          pm10: number | null
+          pm25: number | null
+          pressure: number | null
+          raw: Json | null
+          recorded_at: string
+          recorded_date: string
+          risk_score: number | null
+          so2: number | null
+          temperature: number | null
+          user_id: string | null
+          uv_index: number | null
+          weather_source: string | null
+          wind_speed: number | null
+        }
+        Insert: {
+          air_quality_source?: string | null
+          aqi?: number | null
+          co?: number | null
+          created_at?: string
+          humidity?: number | null
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          main_pollutant?: string | null
+          no2?: number | null
+          o3?: number | null
+          overall_risk?: string | null
+          pm10?: number | null
+          pm25?: number | null
+          pressure?: number | null
+          raw?: Json | null
+          recorded_at?: string
+          recorded_date?: string
+          risk_score?: number | null
+          so2?: number | null
+          temperature?: number | null
+          user_id?: string | null
+          uv_index?: number | null
+          weather_source?: string | null
+          wind_speed?: number | null
+        }
+        Update: {
+          air_quality_source?: string | null
+          aqi?: number | null
+          co?: number | null
+          created_at?: string
+          humidity?: number | null
+          id?: string
+          lat?: number | null
+          lon?: number | null
+          main_pollutant?: string | null
+          no2?: number | null
+          o3?: number | null
+          overall_risk?: string | null
+          pm10?: number | null
+          pm25?: number | null
+          pressure?: number | null
+          raw?: Json | null
+          recorded_at?: string
+          recorded_date?: string
+          risk_score?: number | null
+          so2?: number | null
+          temperature?: number | null
+          user_id?: string | null
+          uv_index?: number | null
+          weather_source?: string | null
+          wind_speed?: number | null
+        }
+        Relationships: []
+      }
       esg_initiatives: {
         Row: {
           category: string
@@ -2265,6 +2352,120 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_nfts: {
+        Row: {
+          block_height: number
+          created_at: string
+          diagnosis: string | null
+          doctor_name: string
+          doctor_signature: string | null
+          facility: string
+          icd10: string
+          id: string
+          ipfs_hash: string
+          lab_results: Json | null
+          minted_at: string
+          patient_hash: string
+          patient_name: string
+          prescription: Json | null
+          status: string
+          token_id: string
+          tx_hash: string
+          updated_at: string
+          user_id: string
+          visit_date: string
+        }
+        Insert: {
+          block_height: number
+          created_at?: string
+          diagnosis?: string | null
+          doctor_name: string
+          doctor_signature?: string | null
+          facility: string
+          icd10: string
+          id?: string
+          ipfs_hash: string
+          lab_results?: Json | null
+          minted_at?: string
+          patient_hash: string
+          patient_name: string
+          prescription?: Json | null
+          status?: string
+          token_id: string
+          tx_hash: string
+          updated_at?: string
+          user_id: string
+          visit_date: string
+        }
+        Update: {
+          block_height?: number
+          created_at?: string
+          diagnosis?: string | null
+          doctor_name?: string
+          doctor_signature?: string | null
+          facility?: string
+          icd10?: string
+          id?: string
+          ipfs_hash?: string
+          lab_results?: Json | null
+          minted_at?: string
+          patient_hash?: string
+          patient_name?: string
+          prescription?: Json | null
+          status?: string
+          token_id?: string
+          tx_hash?: string
+          updated_at?: string
+          user_id?: string
+          visit_date?: string
+        }
+        Relationships: []
+      }
+      htc_transactions: {
+        Row: {
+          amount_htc: number
+          amount_vnd: number
+          block_height: number
+          counterparty: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          tx_hash: string
+          tx_type: string
+          user_id: string
+        }
+        Insert: {
+          amount_htc: number
+          amount_vnd: number
+          block_height: number
+          counterparty?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          tx_hash: string
+          tx_type: string
+          user_id: string
+        }
+        Update: {
+          amount_htc?: number
+          amount_vnd?: number
+          block_height?: number
+          counterparty?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          tx_hash?: string
+          tx_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       icd_codes: {
         Row: {
           category: string | null
@@ -2698,6 +2899,158 @@ export type Database = {
           sw_lng?: number
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      medical_intelligence_insights: {
+        Row: {
+          ai_model: string | null
+          clinician_summary: string
+          community_summary: string
+          confidence_score: number | null
+          created_at: string
+          disease_codes: string[] | null
+          evidence_count: number | null
+          expires_at: string | null
+          generated_at: string
+          id: string
+          insight_type: string
+          key_findings: Json | null
+          news_sources: Json | null
+          novelty_score: number | null
+          recommendations: Json | null
+          region: string | null
+          research_sources: Json | null
+          superseded_by: string | null
+          title_vi: string
+          topic_category: string
+          updated_at: string
+          urgency_level: string | null
+          view_count: number | null
+        }
+        Insert: {
+          ai_model?: string | null
+          clinician_summary: string
+          community_summary: string
+          confidence_score?: number | null
+          created_at?: string
+          disease_codes?: string[] | null
+          evidence_count?: number | null
+          expires_at?: string | null
+          generated_at?: string
+          id?: string
+          insight_type?: string
+          key_findings?: Json | null
+          news_sources?: Json | null
+          novelty_score?: number | null
+          recommendations?: Json | null
+          region?: string | null
+          research_sources?: Json | null
+          superseded_by?: string | null
+          title_vi: string
+          topic_category: string
+          updated_at?: string
+          urgency_level?: string | null
+          view_count?: number | null
+        }
+        Update: {
+          ai_model?: string | null
+          clinician_summary?: string
+          community_summary?: string
+          confidence_score?: number | null
+          created_at?: string
+          disease_codes?: string[] | null
+          evidence_count?: number | null
+          expires_at?: string | null
+          generated_at?: string
+          id?: string
+          insight_type?: string
+          key_findings?: Json | null
+          news_sources?: Json | null
+          novelty_score?: number | null
+          recommendations?: Json | null
+          region?: string | null
+          research_sources?: Json | null
+          superseded_by?: string | null
+          title_vi?: string
+          topic_category?: string
+          updated_at?: string
+          urgency_level?: string | null
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_intelligence_insights_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "medical_intelligence_insights"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_research_articles: {
+        Row: {
+          abstract: string | null
+          ai_clinical_relevance: string | null
+          ai_summary_vi: string | null
+          authors: string[] | null
+          citation_count: number | null
+          created_at: string
+          doi: string | null
+          fetched_at: string
+          id: string
+          journal: string | null
+          keywords: string[] | null
+          language: string | null
+          mesh_terms: string[] | null
+          pmid: string
+          publication_date: string | null
+          pubmed_url: string
+          relevance_score: number | null
+          title: string
+          topic_category: string
+        }
+        Insert: {
+          abstract?: string | null
+          ai_clinical_relevance?: string | null
+          ai_summary_vi?: string | null
+          authors?: string[] | null
+          citation_count?: number | null
+          created_at?: string
+          doi?: string | null
+          fetched_at?: string
+          id?: string
+          journal?: string | null
+          keywords?: string[] | null
+          language?: string | null
+          mesh_terms?: string[] | null
+          pmid: string
+          publication_date?: string | null
+          pubmed_url: string
+          relevance_score?: number | null
+          title: string
+          topic_category: string
+        }
+        Update: {
+          abstract?: string | null
+          ai_clinical_relevance?: string | null
+          ai_summary_vi?: string | null
+          authors?: string[] | null
+          citation_count?: number | null
+          created_at?: string
+          doi?: string | null
+          fetched_at?: string
+          id?: string
+          journal?: string | null
+          keywords?: string[] | null
+          language?: string | null
+          mesh_terms?: string[] | null
+          pmid?: string
+          publication_date?: string | null
+          pubmed_url?: string
+          relevance_score?: number | null
+          title?: string
+          topic_category?: string
         }
         Relationships: []
       }
@@ -3572,6 +3925,38 @@ export type Database = {
           weight?: number | null
         }
         Relationships: []
+      }
+      research_bookmarks: {
+        Row: {
+          article_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          article_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          article_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_bookmarks_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "medical_research_articles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reward_claims: {
         Row: {
@@ -4923,6 +5308,48 @@ export type Database = {
           source?: string | null
           user_id?: string
           value?: Json
+        }
+        Relationships: []
+      }
+      user_logins: {
+        Row: {
+          email: string | null
+          id: string
+          language: string | null
+          logged_in_at: string
+          platform: string | null
+          provider: string | null
+          referrer: string | null
+          screen_size: string | null
+          timezone: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          email?: string | null
+          id?: string
+          language?: string | null
+          logged_in_at?: string
+          platform?: string | null
+          provider?: string | null
+          referrer?: string | null
+          screen_size?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          email?: string | null
+          id?: string
+          language?: string | null
+          logged_in_at?: string
+          platform?: string | null
+          provider?: string | null
+          referrer?: string | null
+          screen_size?: string | null
+          timezone?: string | null
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
