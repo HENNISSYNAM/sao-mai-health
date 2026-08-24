@@ -1667,12 +1667,13 @@ export default function Surveillance() {
           <Newspaper className="h-4 w-4" />
         </Button>
         <Button
-          size="icon" variant="secondary"
-          className={`h-9 w-9 md:h-10 md:w-10 rounded-full shadow-lg bg-card/90 backdrop-blur-md ${(window as any).__showSwarm ? 'ring-2 ring-cyan-400' : ''}`}
-          onClick={() => { (window as any).__showSwarm = !(window as any).__showSwarm; window.dispatchEvent(new Event('swarm-toggle')); }}
-          title="Swarm Intelligence"
+          variant="secondary"
+          className="h-9 md:h-10 px-3 rounded-full shadow-lg bg-card/90 backdrop-blur-md gap-1.5 text-xs font-medium border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+          onClick={() => { window.dispatchEvent(new Event('swarm-toggle')); }}
+          title="Swarm Intelligence & WiFi Scanner"
         >
-          <Brain className="h-4 w-4 text-cyan-400" />
+          <Brain className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Swarm AI</span>
         </Button>
       </div>
 
@@ -2178,23 +2179,71 @@ export default function Surveillance() {
   );
 }
 
-// ── Swarm Intelligence Side Panel ────────────────────────────────────────────
+// ── Swarm Intelligence Drawer ─────────────────────────────────────────────────
+// Uses shadcn Sheet so it slides in from the right without covering the map.
+// Brain button (right control bar) opens/closes it.
 function SwarmSidePanel() {
-  // Default open so users can find it; Brain button toggles
-  const [visible, setVisible] = React.useState(true);
+  const [open, setOpen] = React.useState(false);
+
   React.useEffect(() => {
-    // Sync initial window flag
-    (window as any).__showSwarm = true;
-    const toggle = () => setVisible(!!(window as any).__showSwarm);
-    window.addEventListener('swarm-toggle', toggle);
-    return () => window.removeEventListener('swarm-toggle', toggle);
+    // Expose so the Brain button in the parent can control this drawer
+    (window as any).__showSwarm = false;
+    const handleToggle = () => {
+      setOpen(prev => {
+        const next = !prev;
+        (window as any).__showSwarm = next;
+        return next;
+      });
+    };
+    window.addEventListener('swarm-toggle', handleToggle);
+    return () => window.removeEventListener('swarm-toggle', handleToggle);
   }, []);
-  if (!visible) return null;
+
   return (
-    <div className="absolute left-2 md:left-16 top-14 bottom-2 z-20 w-80 md:w-96 overflow-y-auto space-y-3 pointer-events-auto">
-      <WifiOccupancyWidget />
-      <SwarmIntelligencePanel />
-    </div>
+    <Sheet open={open} onOpenChange={(v) => {
+      setOpen(v);
+      (window as any).__showSwarm = v;
+    }}>
+      <SheetContent
+        side="right"
+        className="w-full sm:w-[420px] p-0 flex flex-col gap-0 border-l border-border/60 bg-card/95 backdrop-blur-xl"
+      >
+        {/* Header */}
+        <SheetHeader className="px-5 py-4 border-b border-border/50 shrink-0">
+          <SheetTitle className="flex items-center gap-2.5 text-sm font-semibold">
+            <div className="h-7 w-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
+              <Brain className="h-3.5 w-3.5 text-cyan-400" />
+            </div>
+            Swarm Intelligence
+            <span className="ml-auto text-[10px] font-normal text-muted-foreground tracking-wider uppercase">
+              MiroFish Engine
+            </span>
+          </SheetTitle>
+        </SheetHeader>
+
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {/* WiFi Spatial Scanner */}
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Wifi className="h-3 w-3" /> WiFi Spatial Scan
+            </p>
+            <WifiOccupancyWidget />
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-border/40" />
+
+          {/* Swarm Simulation */}
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Brain className="h-3 w-3 text-cyan-400" /> Epidemic Simulation
+            </p>
+            <SwarmIntelligencePanel />
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
