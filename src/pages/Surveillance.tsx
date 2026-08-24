@@ -29,7 +29,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { SwarmIntelligencePanel } from "@/components/SwarmIntelligencePanel";
 import { WifiOccupancyWidget } from "@/components/WifiOccupancyWidget";
-import { Brain, Wifi } from "lucide-react";
+import { Brain, Wifi, Play, Square, ChevronRight } from "lucide-react";
+import { useSwarmSimulation } from "@/hooks/useSwarmSimulation";
+import { SURVEILLANCE_REGIONS } from "@/services/swarmIntelligenceEngine";
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
@@ -95,6 +97,12 @@ export default function Surveillance() {
   const [showHotspots, setShowHotspots] = useState(true);
   const [showPendingAlerts, setShowPendingAlerts] = useState(true);
   const [mapInteracting, setMapInteracting] = useState(false);
+
+  // ── Swarm simulation (renders on map) ──────────────────────────────────────
+  const swarm = useSwarmSimulation();
+  const [swarmRegions, setSwarmRegions] = useState<string[]>(['VN-HN', 'VN-HCM', 'HK', 'SG']);
+  const [swarmDays, setSwarmDays] = useState(60);
+  const [showSimBar, setShowSimBar] = useState(false);
 
   // Province profiles for hotspot weighting
   const provinceProfiles: Record<string, { population_density: number; urban_index: number }> = {
@@ -379,6 +387,42 @@ export default function Surveillance() {
     return { type: 'FeatureCollection' as const, features };
   }, [allCaseEvents]);
 
+  // ── Sync swarm tick → Mapbox GeoJSON ─────────────────────────────────────
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const tickData = swarm.currentTickData;
+    const src = map.current.getSource('swarm-spread') as mapboxgl.GeoJSONSource;
+    if (!src) return;
+
+    if (!tickData || swarm.status === 'idle') {
+      // Hide layers when not simulating
+      ['swarm-heatmap', 'swarm-circles'].forEach(id => {
+        if (map.current?.getLayer(id)) map.current.setLayoutProperty(id, 'visibility', 'none');
+      });
+      src.setData({ type: 'FeatureCollection', features: [] });
+      return;
+    }
+
+    // Show layers
+    ['swarm-heatmap', 'swarm-circles'].forEach(id => {
+      if (map.current?.getLayer(id)) map.current.setLayoutProperty(id, 'visibility', 'visible');
+    });
+
+    // Convert hotspots to GeoJSON features
+    const features = tickData.hotspots.map(h => ({
+      type: 'Feature' as const,
+      geometry: { type: 'Point' as const, coordinates: [h.lng, h.lat] },
+      properties: { intensity: h.intensity, region: h.region },
+    }));
+
+    src.setData({ type: 'FeatureCollection', features });
+  }, [swarm.currentTickData, swarm.status, mapLoaded]);
+
+  // Show/hide the simulation bar based on swarm status
+  useEffect(() => {
+    setShowSimBar(swarm.status !== 'idle');
+  }, [swarm.status]);
+
   // Track whether layers have been set up
   const layersInitRef = useRef(false);
 
@@ -480,6 +524,56 @@ export default function Surveillance() {
           'interpolate', ['linear'], ['heatmap-density'],
           0, 'rgba(0,0,255,0)', 0.2, '#22c55e', 0.5, '#f59e0b', 0.8, '#ef4444', 1, '#dc2626'
         ],
+      },
+    });
+
+    // ======= SWARM SIMULATION LAYERS (render epidemic spread on map) ===========
+    const emptyGJ = { type: 'FeatureCollection' as const, features: [] };
+
+    // Hotspot points from current simulation tick
+    map.current.addSource('swarm-spread', { type: 'geojson', data: emptyGJ });
+
+    // Heatmap — epidemic intensity surface (cyan → red)
+    map.current.addLayer({
+      id: 'swarm-heatmap',
+      type: 'heatmap',
+      source: 'swarm-spread',
+      layout: { visibility: 'none' },
+      paint: {
+        'heatmap-weight': ['interpolate', ['linear'], ['get', 'intensity'], 0, 0, 1, 1],
+        'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 2, 1.5, 9, 4],
+        'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 2, 40, 6, 80, 9, 120],
+        'heatmap-opacity': 0.72,
+        'heatmap-color': [
+          'interpolate', ['linear'], ['heatmap-density'],
+          0,   'rgba(0,201,232,0)',
+          0.2, 'rgba(46,255,160,0.6)',
+          0.5, 'rgba(255,176,32,0.8)',
+          0.8, 'rgba(255,61,87,0.9)',
+          1,   'rgba(220,0,40,1)',
+        ],
+      },
+    });
+
+    // Hotspot circles — one per agent hotspot in current tick
+    map.current.addLayer({
+      id: 'swarm-circles',
+      type: 'circle',
+      source: 'swarm-spread',
+      layout: { visibility: 'none' },
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['get', 'intensity'], 0, 6, 0.5, 14, 1, 28],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'intensity'],
+          0,   '#2EFFA0',
+          0.3, '#FFB020',
+          0.6, '#FF3D57',
+          1,   '#DC0028',
+        ],
+        'circle-opacity': 0.85,
+        'circle-stroke-width': 1.5,
+        'circle-stroke-color': 'rgba(255,255,255,0.25)',
+        'circle-blur': 0.3,
       },
     });
 
@@ -1677,8 +1771,22 @@ export default function Surveillance() {
         </Button>
       </div>
 
-      {/* ====== SWARM INTELLIGENCE SIDE PANEL ====== */}
-      <SwarmSidePanel />
+      {/* ====== SWARM INTELLIGENCE DRAWER ====== */}
+      <SwarmSidePanel
+        swarm={swarm}
+        swarmRegions={swarmRegions}
+        setSwarmRegions={setSwarmRegions}
+        swarmDays={swarmDays}
+        setSwarmDays={setSwarmDays}
+      />
+
+      {/* ====== SIMULATION CONTROL BAR (docked above bottom status) ====== */}
+      {showSimBar && (
+        <SimulationControlBar
+          swarm={swarm}
+          onStop={() => { swarm.reset(); }}
+        />
+      )}
 
       {/* ====== LAYERS PANEL (enhanced) ====== */}
       {showLayers && (
@@ -2180,50 +2288,50 @@ export default function Surveillance() {
 }
 
 // ── Swarm Intelligence Drawer ─────────────────────────────────────────────────
-// Uses shadcn Sheet so it slides in from the right without covering the map.
-// Brain button (right control bar) opens/closes it.
-function SwarmSidePanel() {
+interface SwarmSidePanelProps {
+  swarm: ReturnType<typeof useSwarmSimulation>;
+  swarmRegions: string[];
+  setSwarmRegions: (r: string[]) => void;
+  swarmDays: number;
+  setSwarmDays: (d: number) => void;
+}
+function SwarmSidePanel({ swarm, swarmRegions, setSwarmRegions, swarmDays, setSwarmDays }: SwarmSidePanelProps) {
   const [open, setOpen] = React.useState(false);
+  const isRunning = swarm.status === 'simulating' || swarm.status === 'extracting';
 
   React.useEffect(() => {
-    // Expose so the Brain button in the parent can control this drawer
     (window as any).__showSwarm = false;
-    const handleToggle = () => {
-      setOpen(prev => {
-        const next = !prev;
-        (window as any).__showSwarm = next;
-        return next;
-      });
-    };
+    const handleToggle = () => setOpen(prev => { const next = !prev; (window as any).__showSwarm = next; return next; });
     window.addEventListener('swarm-toggle', handleToggle);
     return () => window.removeEventListener('swarm-toggle', handleToggle);
   }, []);
 
+  const RISK_COLOR: Record<string, string> = {
+    CRITICAL: 'text-red-400 bg-red-500/10 border-red-500/30',
+    HIGH:     'text-orange-400 bg-orange-500/10 border-orange-500/30',
+    MEDIUM:   'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+    LOW:      'text-green-400 bg-green-500/10 border-green-500/30',
+  };
+
   return (
-    <Sheet open={open} onOpenChange={(v) => {
-      setOpen(v);
-      (window as any).__showSwarm = v;
-    }}>
-      <SheetContent
-        side="right"
-        className="w-full sm:w-[420px] p-0 flex flex-col gap-0 border-l border-border/60 bg-card/95 backdrop-blur-xl"
-      >
-        {/* Header */}
+    <Sheet open={open} onOpenChange={(v) => { setOpen(v); (window as any).__showSwarm = v; }}>
+      <SheetContent side="right" className="w-full sm:w-[420px] p-0 flex flex-col gap-0 border-l border-border/60 bg-card/95 backdrop-blur-xl">
+
+        {/* ── Header ── */}
         <SheetHeader className="px-5 py-4 border-b border-border/50 shrink-0">
           <SheetTitle className="flex items-center gap-2.5 text-sm font-semibold">
             <div className="h-7 w-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center">
               <Brain className="h-3.5 w-3.5 text-cyan-400" />
             </div>
             Swarm Intelligence
-            <span className="ml-auto text-[10px] font-normal text-muted-foreground tracking-wider uppercase">
-              MiroFish Engine
-            </span>
+            <span className="ml-auto text-[10px] font-normal text-muted-foreground tracking-wider uppercase">MiroFish Engine</span>
           </SheetTitle>
         </SheetHeader>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {/* WiFi Spatial Scanner */}
+        {/* ── Scrollable body ── */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+          {/* Section 1 — WiFi Spatial Scan */}
           <div>
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <Wifi className="h-3 w-3" /> WiFi Spatial Scan
@@ -2231,19 +2339,177 @@ function SwarmSidePanel() {
             <WifiOccupancyWidget />
           </div>
 
-          {/* Divider */}
           <div className="border-t border-border/40" />
 
-          {/* Swarm Simulation */}
-          <div>
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <Brain className="h-3 w-3 text-cyan-400" /> Epidemic Simulation
+          {/* Section 2 — Simulation Config */}
+          <div className="space-y-3">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <Brain className="h-3 w-3 text-cyan-400" /> Simulation Configuration
             </p>
-            <SwarmIntelligencePanel />
+
+            {/* Region selector */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Surveillance regions</p>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(SURVEILLANCE_REGIONS).map(([key, val]) => {
+                  const active = swarmRegions.includes(key);
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setSwarmRegions(
+                        active ? swarmRegions.filter(r => r !== key) : [...swarmRegions, key]
+                      )}
+                      className={`px-2 py-1 rounded-full text-[10px] font-medium border transition-all ${
+                        active
+                          ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-400'
+                          : 'bg-muted/30 border-border/50 text-muted-foreground hover:border-border'
+                      }`}
+                    >
+                      {key.startsWith('VN') ? '🇻🇳' : key === 'HK' ? '🇭🇰' : key === 'SG' ? '🇸🇬' : key === 'TH-BK' ? '🇹🇭' : key === 'MY-KL' ? '🇲🇾' : '🇨🇳'} {val.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Horizon */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Forecast horizon</p>
+              <div className="flex gap-1.5">
+                {[30, 60, 90, 180].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setSwarmDays(d)}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                      swarmDays === d
+                        ? 'bg-cyan-500/15 border-cyan-500/50 text-cyan-400'
+                        : 'bg-muted/30 border-border/50 text-muted-foreground'
+                    }`}
+                  >
+                    {d}d
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Run / Stop button */}
+            <Button
+              className="w-full gap-2"
+              variant={isRunning ? 'destructive' : 'default'}
+              onClick={() => isRunning ? swarm.reset() : swarm.run(swarmRegions, swarmDays)}
+              disabled={swarm.status === 'extracting'}
+            >
+              {swarm.status === 'extracting' ? (
+                <><Loader2 className="h-4 w-4 animate-spin" /> Collecting signals…</>
+              ) : isRunning ? (
+                <><Square className="h-4 w-4" /> Stop Simulation</>
+              ) : (
+                <><Play className="h-4 w-4" /> Run on Map</>
+              )}
+            </Button>
           </div>
+
+          {/* Section 3 — Results (only when done) */}
+          {swarm.report && (
+            <>
+              <div className="border-t border-border/40" />
+              <div className="space-y-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Simulation Results</p>
+
+                {/* Risk + key metrics */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className={`rounded-lg border px-2 py-2 text-center ${RISK_COLOR[swarm.report.riskLevel]}`}>
+                    <p className="text-sm font-bold">{swarm.report.riskLevel}</p>
+                    <p className="text-[9px] opacity-70">Risk</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 px-2 py-2 text-center">
+                    <p className="text-sm font-bold font-mono text-amber-400">{swarm.report.ticks[swarm.currentTick]?.r0Estimate.toFixed(2) ?? '–'}</p>
+                    <p className="text-[9px] text-muted-foreground">R₀ now</p>
+                  </div>
+                  <div className="rounded-lg border border-border/50 bg-muted/20 px-2 py-2 text-center">
+                    <p className="text-sm font-bold font-mono text-red-400">Day {swarm.report.peakDay}</p>
+                    <p className="text-[9px] text-muted-foreground">Peak</p>
+                  </div>
+                </div>
+
+                {/* Narrative */}
+                <p className="text-xs text-muted-foreground leading-relaxed bg-muted/20 rounded-lg p-3 border border-border/40">
+                  {swarm.report.narrative}
+                </p>
+
+                {/* Full panel */}
+                <SwarmIntelligencePanel />
+              </div>
+            </>
+          )}
         </div>
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ── Simulation Control Bar (floating, docked above bottom status) ─────────────
+interface SimBarProps {
+  swarm: ReturnType<typeof useSwarmSimulation>;
+  onStop: () => void;
+}
+function SimulationControlBar({ swarm, onStop }: SimBarProps) {
+  const report = swarm.report;
+  const tick = swarm.currentTick;
+  const totalTicks = report?.ticks.length ?? 1;
+  const progress = Math.round((tick / Math.max(totalTicks - 1, 1)) * 100);
+  const isRunning = swarm.status === 'simulating';
+
+  const RISK_PILL: Record<string, string> = {
+    CRITICAL: 'bg-red-500/20 text-red-400 border-red-500/30',
+    HIGH:     'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    MEDIUM:   'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    LOW:      'bg-green-500/20 text-green-400 border-green-500/30',
+  };
+
+  return (
+    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
+      <div className="flex items-center gap-3 bg-card/95 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl px-4 py-2.5 min-w-[340px] max-w-[520px]">
+
+        {/* Animated indicator */}
+        <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isRunning ? 'bg-cyan-400 animate-pulse' : 'bg-muted-foreground'}`} />
+
+        {/* Day counter */}
+        <span className="font-mono text-xs text-cyan-400 shrink-0">
+          Day {tick + 1}<span className="text-muted-foreground">/{totalTicks}</span>
+        </span>
+
+        {/* Progress bar */}
+        <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-75"
+            style={{
+              width: `${progress}%`,
+              background: progress > 66 ? 'linear-gradient(90deg,#FFB020,#FF3D57)' : 'linear-gradient(90deg,#00C9E8,#2EFFA0)',
+            }}
+          />
+        </div>
+
+        {/* R₀ */}
+        {report && (
+          <span className="font-mono text-xs shrink-0">
+            R₀ <span className="text-amber-400">{report.ticks[tick]?.r0Estimate.toFixed(2) ?? '–'}</span>
+          </span>
+        )}
+
+        {/* Risk badge */}
+        {report && (
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${RISK_PILL[report.riskLevel]}`}>
+            {report.riskLevel}
+          </span>
+        )}
+
+        {/* Stop button */}
+        <Button size="icon" variant="ghost" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-red-400" onClick={onStop}>
+          <Square className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
   );
 }
 
