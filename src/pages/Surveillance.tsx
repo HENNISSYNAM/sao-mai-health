@@ -2180,8 +2180,11 @@ export default function Surveillance() {
 
 // ── Swarm Intelligence Side Panel ────────────────────────────────────────────
 function SwarmSidePanel() {
-  const [visible, setVisible] = React.useState(false);
+  // Default open so users can find it; Brain button toggles
+  const [visible, setVisible] = React.useState(true);
   React.useEffect(() => {
+    // Sync initial window flag
+    (window as any).__showSwarm = true;
     const toggle = () => setVisible(!!(window as any).__showSwarm);
     window.addEventListener('swarm-toggle', toggle);
     return () => window.removeEventListener('swarm-toggle', toggle);

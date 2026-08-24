@@ -157,9 +157,14 @@ export function GlobalSurveillanceMap() {
             { lat: 10.8231, lng: 106.6297, name: 'HCMC' },
             { lat: 21.0285, lng: 105.8542, name: 'Hanoi' },
             { lat: 16.0544, lng: 108.2022, name: 'Da Nang' },
+            // HK priority — add dense cluster (urban density ~6,400/km²)
+            { lat: 22.3193, lng: 114.1694, name: 'Hong Kong' },
+            { lat: 22.2800, lng: 114.1580, name: 'Kowloon' },
+            { lat: 22.3750, lng: 114.1200, name: 'New Territories' },
             { lat: 13.7563, lng: 100.5018, name: 'Bangkok' },
-            { lat: 1.3521, lng: 103.8198, name: 'Singapore' },
-            { lat: -6.2088, lng: 106.8456, name: 'Jakarta' }
+            { lat: 1.3521,  lng: 103.8198, name: 'Singapore' },
+            { lat: 22.5431, lng: 114.0579, name: 'Shenzhen' },
+            { lat: 23.1291, lng: 113.2644, name: 'Guangzhou' },
           ];
 
           regions.forEach((region, ri) => {
