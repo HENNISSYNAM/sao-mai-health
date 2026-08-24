@@ -1,4 +1,137 @@
 {
+  "ui": {
+    "nav": {
+      "home": "Home",
+      "intake": "Intake",
+      "map": "Map",
+      "alerts": "Alerts",
+      "surveillance": "Surveillance",
+      "settings": "Settings",
+      "help": "Help",
+      "signIn": "Sign in",
+      "signOut": "Sign out",
+      "login": "Login",
+      "notifications": "Notifications",
+      "viewAll": "View all",
+      "noNewAlerts": "No new alerts",
+      "notLoggedIn": "Not signed in — demo mode",
+      "emergency": "Emergency: 115",
+      "user": "User",
+      "sensing": "Contactless Vitals",
+      "care": "Home Care",
+      "scan": "Building Scan",
+      "caseIntake": "Case Intake"
+    },
+    "mode": {
+      "forecast": "Forecast",
+      "crossborder": "Cross-border",
+      "infrastructure": "Infrastructure",
+      "regional": "Regional",
+      "policy": "Policy"
+    },
+    "layers": {
+      "title": "Layers",
+      "epidemiology": "Epidemiology",
+      "cases": "Cases",
+      "heatmap": "Heatmap",
+      "hotspots": "Hotspots",
+      "inferFromNews": "Infer from news",
+      "people": "People",
+      "online": "Online",
+      "pending": "Pending review",
+      "infrastructure": "Infrastructure",
+      "healthFacilities": "Health facilities",
+      "zoomHint": "Zoom <6: Provinces • 6–9: Clusters • >9: Nodes"
+    },
+    "filters": {
+      "title": "Filters",
+      "allDiseases": "All diseases",
+      "allStatuses": "All statuses",
+      "all": "All",
+      "confirmed": "Confirmed",
+      "suspected": "Suspected",
+      "probable": "Probable",
+      "exportCSV": "Export CSV"
+    },
+    "stats": {
+      "confirmedCases": "confirmed cases",
+      "list": "List",
+      "clinicalConfirmed": "clinically confirmed",
+      "signals": "signals",
+      "signalsUnverified": "Raw signals from news, unverified",
+      "hotspots": "hotspots",
+      "pendingApproval": "pending",
+      "online": "online",
+      "summaryTitle": "Surveillance Data Summary",
+      "totalReported": "Total reported",
+      "today": "Today",
+      "newsSignals": "News signals",
+      "signalsSource": "Source: News + AI",
+      "gpsCoords": "with GPS coordinates",
+      "updated": "Updated",
+      "doubleClickHint": "Double-click a region → Report"
+    },
+    "news": {
+      "title": "Global Health News",
+      "noNews": "No news yet",
+      "justNow": "Just now",
+      "hoursAgo": "{{count}}h ago",
+      "daysAgo": "{{count}}d ago",
+      "sources": "Sources"
+    },
+    "caseList": {
+      "title": "Case list",
+      "notFound": "No cases found",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "report": {
+      "totalCases": "Total cases",
+      "last7Days": "Last 7 days",
+      "diseaseTypes": "Disease types",
+      "byDisease": "By disease",
+      "byStatus": "By status",
+      "topDistricts": "Top districts",
+      "download": "Download report",
+      "share": "Share",
+      "copied": "Copied to clipboard",
+      "generatedAt": "Generated at",
+      "source": "Source"
+    },
+    "regions": {
+      "north": "Northern Vietnam",
+      "central": "Central Vietnam",
+      "south": "Southern Vietnam",
+      "hcmc": "Ho Chi Minh City",
+      "hanoi": "Hanoi",
+      "vietnam": "Vietnam"
+    },
+    "swarm": {
+      "title": "Swarm Intelligence",
+      "engine": "MiroFish Engine",
+      "wifiScan": "WiFi Spatial Scan",
+      "config": "Simulation Configuration",
+      "regions": "Surveillance regions",
+      "horizon": "Forecast horizon",
+      "runOnMap": "Run on Map",
+      "stop": "Stop Simulation",
+      "collecting": "Collecting signals…",
+      "results": "Simulation Results",
+      "risk": "Risk",
+      "r0Now": "R₀ now",
+      "peak": "Peak",
+      "day": "Day"
+    },
+    "toast": {
+      "loginRequired": "Please sign in to confirm",
+      "alreadyVoted": "You already confirmed this alert",
+      "hotspotCreated": "Alert confirmed & hotspot created!",
+      "confirmed": "Confirmed ({{count}}/3 people)",
+      "voteError": "Could not vote",
+      "hotspotsFound": "Found {{hotspots}} hotspots from {{articles}} articles",
+      "hotspotError": "Could not create hotspots"
+    }
+  },
   "auth": {
     "login": "Login",
     "signup": "Sign up",

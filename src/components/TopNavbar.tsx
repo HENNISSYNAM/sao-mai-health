@@ -91,12 +91,11 @@ export function TopNavbar() {
   };
 
   const { alerts, unreadCount } = useUserAlerts();
-  const isVi = i18n.language === 'vi';
 
   const userInitials = user?.email
     ? user.email.slice(0, 2).toUpperCase()
     : "?";
-  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Người dùng";
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || t("ui.nav.user");
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-xl">
@@ -138,7 +137,7 @@ export function TopNavbar() {
             "w-1.5 h-1.5 rounded-full",
             realtimeStatus.connected ? "bg-success" : "bg-destructive"
           )} />
-          <span>{realtimeStatus.connected ? (isVi ? 'Live' : 'Live') : 'Offline'}</span>
+          <span>{realtimeStatus.connected ? 'Live' : 'Offline'}</span>
         </div>
 
         <div className="flex-1" />
@@ -150,7 +149,7 @@ export function TopNavbar() {
           {/* Notifications */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative rounded-lg h-8 w-8" aria-label="Thông báo">
+              <Button variant="ghost" size="icon" className="relative rounded-lg h-8 w-8" aria-label={t("ui.nav.notifications")}>
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-destructive text-destructive-foreground text-[8px] font-bold flex items-center justify-center">
@@ -163,7 +162,7 @@ export function TopNavbar() {
               <DropdownMenuLabel className="flex items-center justify-between p-2.5 bg-destructive/5 border-b border-destructive/10">
                 <div className="flex items-center gap-1.5">
                   <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
-                  <span className="font-semibold text-xs text-destructive">{isVi ? 'Cảnh báo' : 'Alerts'}</span>
+                  <span className="font-semibold text-xs text-destructive">{t("ui.nav.alerts")}</span>
                 </div>
                 {unreadCount > 0 && (
                   <Badge className="bg-destructive text-destructive-foreground text-[9px] h-4 px-1.5">{unreadCount}</Badge>
@@ -189,7 +188,7 @@ export function TopNavbar() {
                 ) : (
                   <div className="p-5 text-center text-muted-foreground">
                     <Bell className="h-6 w-6 mx-auto mb-1.5 opacity-30" />
-                    <p className="text-[11px]">{isVi ? 'Không có cảnh báo mới' : 'No new alerts'}</p>
+                    <p className="text-[11px]">{t("ui.nav.noNewAlerts")}</p>
                   </div>
                 )}
               </div>
@@ -202,7 +201,7 @@ export function TopNavbar() {
                   className="w-full justify-center rounded-lg text-[11px] font-medium text-primary hover:text-primary hover:bg-primary/10 h-7"
                   onClick={() => window.location.href = '/alerts'}
                 >
-                  {isVi ? 'Xem tất cả' : 'View all'}
+                  {t("ui.nav.viewAll")}
                   <ChevronRight className="h-3 w-3 ml-1" />
                 </Button>
               </div>
@@ -236,21 +235,21 @@ export function TopNavbar() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => navigate("/settings")}>
                     <Settings className="h-4 w-4" />
-                    <span>{isVi ? "Cài đặt" : "Settings"}</span>
+                    <span>{t("ui.nav.settings")}</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="gap-2 cursor-pointer text-destructive focus:text-destructive" onClick={() => signOut()}>
                     <LogOut className="h-4 w-4" />
-                    <span>{isVi ? "Đăng xuất" : "Sign out"}</span>
+                    <span>{t("ui.nav.signOut")}</span>
                   </DropdownMenuItem>
                 </>
               ) : (
                 <>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Chưa đăng nhập — chế độ xem demo</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">{t("ui.nav.notLoggedIn")}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem className="gap-2 cursor-pointer" onClick={() => navigate("/auth")}>
                     <User className="h-4 w-4" />
-                    <span>{isVi ? "Đăng nhập" : "Sign in"}</span>
+                    <span>{t("ui.nav.signIn")}</span>
                   </DropdownMenuItem>
                 </>
               )}

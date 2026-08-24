@@ -13,19 +13,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const MobileBottomNav: React.FC = () => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const { user, isAuthenticated, signOut, getAvatarUrl, getDisplayName } = useAuth();
   const { label: roleLabel, isAdmin } = useRole();
-  const isVi = i18n.language === "vi";
 
   const menuItems = [
-    { label: isVi ? "Tổng quan"   : "Home",    url: "/dashboard",   icon: BarChart3      },
-    { label: isVi ? "Nhập ca"     : "Intake",  url: "/case-intake", icon: ClipboardPlus  },
-    { label: isVi ? "Bản đồ"      : "Map",     url: "/maps",        icon: MapPin         },
-    { label: isVi ? "Cảnh báo"    : "Alerts",  url: "/alerts",      icon: AlertTriangle  },
+    { label: t("ui.nav.home"),   url: "/dashboard",   icon: BarChart3      },
+    { label: t("ui.nav.intake"), url: "/case-intake", icon: ClipboardPlus  },
+    { label: t("ui.nav.map"),    url: "/maps",        icon: MapPin         },
+    { label: t("ui.nav.alerts"), url: "/alerts",      icon: AlertTriangle  },
   ];
 
   const isActive = (path: string) => {
@@ -95,20 +94,20 @@ export const MobileBottomNav: React.FC = () => {
                 <DropdownMenuItem asChild>
                   <NavLink to="/surveillance" className="flex items-center gap-2.5 cursor-pointer text-sm">
                     <BarChart3 className="h-4 w-4" />
-                    <span>{isVi ? "Giám sát dịch" : "Surveillance"}</span>
+                    <span>{t("ui.nav.surveillance")}</span>
                   </NavLink>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild>
                 <NavLink to="/settings" className="flex items-center gap-2.5 cursor-pointer text-sm">
                   <Settings className="h-4 w-4" />
-                  <span>{isVi ? "Cài đặt" : "Settings"}</span>
+                  <span>{t("ui.nav.settings")}</span>
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <NavLink to="/help" className="flex items-center gap-2.5 cursor-pointer text-sm">
                   <HelpCircle className="h-4 w-4" />
-                  <span>{isVi ? "Trợ giúp" : "Help"}</span>
+                  <span>{t("ui.nav.help")}</span>
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -117,7 +116,7 @@ export const MobileBottomNav: React.FC = () => {
                 onClick={handleSignOut}
               >
                 <LogOut className="h-4 w-4" />
-                <span>{isVi ? "Đăng xuất" : "Sign out"}</span>
+                <span>{t("ui.nav.signOut")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -133,7 +132,7 @@ export const MobileBottomNav: React.FC = () => {
               <User className="h-3.5 w-3.5" strokeWidth={1.5} />
             </div>
             <span className={cn("text-[10px] leading-tight", currentPath === "/auth" ? "font-semibold" : "font-normal")}>
-              {isVi ? "Đăng nhập" : "Login"}
+              {t("ui.nav.login")}
             </span>
           </NavLink>
         )}

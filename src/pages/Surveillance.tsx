@@ -36,12 +36,13 @@ import { SURVEILLANCE_REGIONS } from "@/services/swarmIntelligenceEngine";
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
 // Extended multi-region coverage: Vietnam → Hong Kong → ASEAN
+// `nameKey` resolves through i18n at render time; `name` stays as a fallback.
 const surveillanceRegions = [
-  { id: 'north',   name: 'Miền Bắc',         center: [105.8, 21.0],  bbox: [102, 20, 108, 23.5] },
-  { id: 'central', name: 'Miền Trung',        center: [108.0, 16.0],  bbox: [104, 11.5, 110, 20] },
-  { id: 'south',   name: 'Miền Nam',          center: [106.7, 10.8],  bbox: [104, 8.5, 108, 11.5] },
-  { id: 'hcmc',    name: 'TP. Hồ Chí Minh',  center: [106.63, 10.82],bbox: [106.3, 10.5, 107.0, 11.1] },
-  { id: 'hanoi',   name: 'Hà Nội',            center: [105.85, 21.02],bbox: [105.3, 20.5, 106.4, 21.5] },
+  { id: 'north',   nameKey: 'ui.regions.north',   name: 'Miền Bắc',        center: [105.8, 21.0],  bbox: [102, 20, 108, 23.5] },
+  { id: 'central', nameKey: 'ui.regions.central', name: 'Miền Trung',      center: [108.0, 16.0],  bbox: [104, 11.5, 110, 20] },
+  { id: 'south',   nameKey: 'ui.regions.south',   name: 'Miền Nam',        center: [106.7, 10.8],  bbox: [104, 8.5, 108, 11.5] },
+  { id: 'hcmc',    nameKey: 'ui.regions.hcmc',    name: 'TP. Hồ Chí Minh', center: [106.63, 10.82],bbox: [106.3, 10.5, 107.0, 11.1] },
+  { id: 'hanoi',   nameKey: 'ui.regions.hanoi',   name: 'Hà Nội',          center: [105.85, 21.02],bbox: [105.3, 20.5, 106.4, 21.5] },
   { id: 'hk',      name: '🌏 Hong Kong',      center: [114.17, 22.32],bbox: [113.8, 22.1, 114.5, 22.6] },
   { id: 'sg',      name: '🌏 Singapore',      center: [103.82, 1.35], bbox: [103.5, 1.1, 104.1, 1.6] },
   { id: 'bk',      name: '🌏 Bangkok',        center: [100.50, 13.76],bbox: [100.0, 13.5, 101.0, 14.1] },
@@ -60,7 +61,10 @@ interface RegionReport {
 }
 
 export default function Surveillance() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Locale tag for number/date formatting — follows the active language
+  const localeTag = i18n.language?.startsWith('zh') ? 'zh-HK'
+                  : i18n.language === 'vi' ? 'vi-VN' : 'en-HK';
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const userMarkersRef = useRef<mapboxgl.Marker[]>([]);
@@ -241,7 +245,7 @@ export default function Surveillance() {
 
   const voteOnAlert = useCallback(async (alertId: string) => {
     if (!user?.id) {
-      toast.error('Vui lòng đăng nhập để xác nhận');
+      toast.error(t('ui.toast.loginRequired'));
       return;
     }
     try {
@@ -250,7 +254,7 @@ export default function Surveillance() {
       });
       if (error) throw error;
       if (data?.alreadyVoted) {
-        toast.info('Bạn đã xác nhận cảnh báo này rồi');
+        toast.info(t('ui.toast.alreadyVoted'));
         return;
       }
       if (data?.promoted) {
@@ -1554,7 +1558,7 @@ export default function Surveillance() {
     if (!regionReport) return;
     const lines = [
       `BÁO CÁO Y TẾ - ${regionReport.region}`,
-      `Ngày tạo: ${new Date(regionReport.generatedAt).toLocaleString('vi-VN')}`,
+      `Ngày tạo: ${new Date(regionReport.generatedAt).toLocaleString(localeTag)}`,
       '',
       `Tổng ca: ${regionReport.totalCases}`,
       `Ca trong 7 ngày: ${regionReport.trend7d}`,
@@ -1612,11 +1616,11 @@ export default function Surveillance() {
       {/* ====== MODE SWITCHER ====== */}
       <div className="absolute top-2 left-2 md:top-3 md:left-3 z-20 flex items-center gap-1">
         {([
-          { mode: 'forecast' as MapMode, icon: '📊', label: 'Dự báo' },
-          { mode: 'crossborder' as MapMode, icon: '🌐', label: 'Xuyên biên giới' },
-          { mode: 'infrastructure' as MapMode, icon: '🏥', label: 'Hạ tầng' },
-          { mode: 'regional' as MapMode, icon: '🌏', label: 'Khu vực' },
-          { mode: 'policy' as MapMode, icon: '🛡️', label: 'Chính sách' },
+          { mode: 'forecast' as MapMode, icon: '📊', label: t('ui.mode.forecast') },
+          { mode: 'crossborder' as MapMode, icon: '🌐', label: t('ui.mode.crossborder') },
+          { mode: 'infrastructure' as MapMode, icon: '🏥', label: t('ui.mode.infrastructure') },
+          { mode: 'regional' as MapMode, icon: '🌏', label: t('ui.mode.regional') },
+          { mode: 'policy' as MapMode, icon: '🛡️', label: t('ui.mode.policy') },
         ]).map(({ mode, icon, label }) => (
           <button
             key={mode}
@@ -1793,7 +1797,7 @@ export default function Surveillance() {
         <div className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 z-10 w-48 md:w-56">
           <div className="bg-card/95 backdrop-blur-md rounded-2xl shadow-xl border border-border/50 p-4 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">Layers</span>
+              <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">{t("ui.layers.title")}</span>
               <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setShowLayers(false)}>
                 <X className="h-3 w-3" />
               </Button>
@@ -1801,27 +1805,27 @@ export default function Surveillance() {
 
             {/* Disease tracking */}
             <div className="space-y-2">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Dịch tễ</span>
-              <LayerToggle icon={<Bug className="h-3.5 w-3.5" />} label={`Ca bệnh (${allCaseEvents.length} GPS / ${totalCaseCount} tổng)`} color="bg-destructive" checked={showCaseDots} onChange={setShowCaseDots} />
-              <LayerToggle icon={<Thermometer className="h-3.5 w-3.5" />} label="Heatmap" color="bg-warning" checked={showHeatmap} onChange={setShowHeatmap} />
-              <LayerToggle icon={<AlertTriangle className="h-3.5 w-3.5" />} label={`Hotspots (${hotspotData.length})`} color="bg-destructive" checked={showHotspots} onChange={setShowHotspots} />
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t("ui.layers.epidemiology")}</span>
+              <LayerToggle icon={<Bug className="h-3.5 w-3.5" />} label={`${t("ui.layers.cases")} (${allCaseEvents.length} GPS / ${totalCaseCount})`} color="bg-destructive" checked={showCaseDots} onChange={setShowCaseDots} />
+              <LayerToggle icon={<Thermometer className="h-3.5 w-3.5" />} label={t("ui.layers.heatmap")} color="bg-warning" checked={showHeatmap} onChange={setShowHeatmap} />
+              <LayerToggle icon={<AlertTriangle className="h-3.5 w-3.5" />} label={`${t("ui.layers.hotspots")} (${hotspotData.length})`} color="bg-destructive" checked={showHotspots} onChange={setShowHotspots} />
               <Button size="sm" variant="outline" className="w-full text-[10px] h-7 gap-1" onClick={generateHotspotsFromNews} disabled={loadingHotspots}>
                 {loadingHotspots ? <Loader2 className="h-3 w-3 animate-spin" /> : <Activity className="h-3 w-3" />}
-                Suy luận từ bản tin
+                {t("ui.layers.inferFromNews")}
               </Button>
             </div>
 
             {/* People */}
             <div className="space-y-2">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Người dùng</span>
-              <LayerToggle icon={<Users className="h-3.5 w-3.5" />} label={`Online (${mapUsers.length})`} color="bg-success" checked={showUserDots} onChange={setShowUserDots} />
-              <LayerToggle icon={<AlertTriangle className="h-3.5 w-3.5" />} label={`Chờ duyệt (${pendingAlerts.length})`} color="bg-warning" checked={showPendingAlerts} onChange={setShowPendingAlerts} />
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t("ui.layers.people")}</span>
+              <LayerToggle icon={<Users className="h-3.5 w-3.5" />} label={`${t("ui.layers.online")} (${mapUsers.length})`} color="bg-success" checked={showUserDots} onChange={setShowUserDots} />
+              <LayerToggle icon={<AlertTriangle className="h-3.5 w-3.5" />} label={`${t("ui.layers.pending")} (${pendingAlerts.length})`} color="bg-warning" checked={showPendingAlerts} onChange={setShowPendingAlerts} />
             </div>
 
             {/* Infrastructure */}
             <div className="space-y-2">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Hạ tầng</span>
-              <LayerToggle icon={<Building2 className="h-3.5 w-3.5" />} label="Cơ sở y tế" color="bg-primary" checked={showFacilities} onChange={setShowFacilities} />
+              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{t("ui.layers.infrastructure")}</span>
+              <LayerToggle icon={<Building2 className="h-3.5 w-3.5" />} label={t("ui.layers.healthFacilities")} color="bg-primary" checked={showFacilities} onChange={setShowFacilities} />
             </div>
 
             {/* Legend — Two-layer system */}
@@ -1846,7 +1850,7 @@ export default function Surveillance() {
                 </div>
               </div>
               <div className="text-[8px] text-muted-foreground/60 pt-1">
-                Zoom &lt;6: Tỉnh • 6-9: Clusters • &gt;9: Nodes
+                {t("ui.layers.zoomHint")}
               </div>
             </div>
           </div>
@@ -1858,30 +1862,30 @@ export default function Surveillance() {
         <div className="absolute right-12 md:right-16 top-1/2 -translate-y-1/2 z-10 w-48 md:w-56">
           <div className="bg-card/95 backdrop-blur-md rounded-2xl shadow-xl border border-border/50 p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground">Bộ lọc</span>
+              <span className="text-xs font-semibold text-muted-foreground">{t("ui.filters.title")}</span>
               <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setShowFilters(false)}>
                 <X className="h-3 w-3" />
               </Button>
             </div>
             <Select value={diseaseFilter} onValueChange={(v) => { setDiseaseFilter(v); setCurrentPage(1); }}>
-              <SelectTrigger className="h-8 text-xs rounded-lg"><SelectValue placeholder="Tất cả bệnh" /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs rounded-lg"><SelectValue placeholder={t("ui.filters.allDiseases")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả bệnh</SelectItem>
+                <SelectItem value="all">{t("ui.filters.allDiseases")}</SelectItem>
                 {Object.entries(diseaseLabel).map(([code, label]) => (
                   <SelectItem key={code} value={code}>{label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
-              <SelectTrigger className="h-8 text-xs rounded-lg"><SelectValue placeholder="Tất cả trạng thái" /></SelectTrigger>
+              <SelectTrigger className="h-8 text-xs rounded-lg"><SelectValue placeholder={t("ui.filters.allStatuses")} /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
-                <SelectItem value="confirmed">Xác nhận</SelectItem>
-                <SelectItem value="suspected">Nghi ngờ</SelectItem>
+                <SelectItem value="all">{t("ui.filters.all")}</SelectItem>
+                <SelectItem value="confirmed">{t("ui.filters.confirmed")}</SelectItem>
+                <SelectItem value="suspected">{t("ui.filters.suspected")}</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm" className="w-full text-xs" onClick={exportToCSV}>
-              <Download className="h-3 w-3 mr-1.5" /> Xuất CSV
+              <Download className="h-3 w-3 mr-1.5" /> {t("ui.filters.exportCSV")}
             </Button>
           </div>
         </div>
@@ -1895,7 +1899,7 @@ export default function Surveillance() {
             <div className="p-3 border-b border-border/50 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                <span className="text-xs font-bold tracking-wider text-foreground uppercase">Tin Y Tế Toàn Cầu</span>
+                <span className="text-xs font-bold tracking-wider text-foreground uppercase">{t("ui.news.title")}</span>
                 <Badge variant="outline" className="text-[10px] h-5">{newsArticles.length}</Badge>
                 {newsArticles.some((a: any) => a._live) && <span className="text-[8px] px-1.5 py-0.5 rounded bg-destructive text-destructive-foreground font-bold">LIVE</span>}
               </div>
@@ -1917,7 +1921,7 @@ export default function Surveillance() {
                 if (sev !== 'all' && count === 0) return null;
                 return (
                   <span key={sev} className={`text-[10px] px-2 py-0.5 rounded-full font-medium cursor-default ${sev === 'all' ? 'bg-muted text-muted-foreground' : sevColors[sev] || 'bg-muted'}`}>
-                    {sev === 'all' ? 'Tất cả' : sev.toUpperCase()} {count}
+                    {sev === 'all' ? t('ui.filters.all') : sev.toUpperCase()} {count}
                   </span>
                 );
               })}
@@ -1928,7 +1932,7 @@ export default function Surveillance() {
               {loadingNews ? (
                 <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
               ) : newsArticles.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground text-xs">Chưa có tin tức</div>
+                <div className="text-center py-12 text-muted-foreground text-xs">{t("ui.news.noNews")}</div>
               ) : (
                 <div className="divide-y divide-border/30">
                   {newsArticles.map((article) => {
@@ -1958,7 +1962,7 @@ export default function Surveillance() {
                             )}
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                               {article.case_count > 0 && (
-                                <span className="text-[10px] font-bold text-destructive">🔢 {article.case_count.toLocaleString('vi-VN')} ca</span>
+                                <span className="text-[10px] font-bold text-destructive">🔢 {article.case_count.toLocaleString(localeTag)} ca</span>
                               )}
                               <span className="text-[10px] text-muted-foreground">{article.source}</span>
                               <span className="text-[10px] text-muted-foreground">·</span>
@@ -1993,7 +1997,7 @@ export default function Surveillance() {
             {/* Footer */}
             <div className="p-2 border-t border-border/50 shrink-0">
               <p className="text-[9px] text-muted-foreground text-center">
-                🌍 WHO · Bộ Y tế · CDC · Reuters · VnExpress · Perplexity Sonar · Cập nhật {new Date().toLocaleTimeString('vi-VN')}
+                🌍 WHO · Bộ Y tế · CDC · Reuters · VnExpress · Perplexity Sonar · Cập nhật {new Date().toLocaleTimeString(localeTag)}
               </p>
             </div>
           </div>
@@ -2002,76 +2006,96 @@ export default function Surveillance() {
 
       {/* ====== BOTTOM BAR ====== */}
       <div className="absolute bottom-[4.5rem] md:bottom-3 left-2 md:left-3 right-2 md:right-3 z-10">
-        <div className="flex items-center gap-1.5 md:gap-2 mb-2 overflow-x-auto pb-1 scrollbar-hide">
-          <button onClick={() => setShowStats(!showStats)} className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-card/90 backdrop-blur-md shadow-lg border border-border/50 text-xs font-medium shrink-0 hover:bg-card transition-colors" title="Mở bảng tổng hợp dữ liệu">
-            <Activity className="h-3.5 w-3.5 text-primary" />
-            <span>{totalCaseCount.toLocaleString('vi-VN')} ca xác nhận</span>
-            <ChevronUp className={`h-3 w-3 transition-transform ${showStats ? 'rotate-180' : ''}`} />
-          </button>
+        {/* Unified status capsule — one element, clear hierarchy */}
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="flex items-stretch bg-card/85 backdrop-blur-2xl rounded-2xl shadow-2xl border border-border/40 overflow-hidden">
 
-          <button onClick={() => setShowCaseList(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-card/90 backdrop-blur-md shadow-lg border border-border/50 text-xs font-medium shrink-0 hover:bg-card transition-colors">
-            <List className="h-3.5 w-3.5 text-muted-foreground" />
-            <span>Danh sách</span>
-          </button>
-
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-blue-500/10 backdrop-blur-md shadow-lg border border-blue-500/30 text-xs font-medium shrink-0" title="Ca bệnh đã xác nhận lâm sàng từ Bộ Y tế / HCDC">
-            <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
-            <span className="text-blue-600 dark:text-blue-400">{stats.confirmed.toLocaleString('vi-VN')} xác nhận lâm sàng</span>
-          </div>
-
-          {newsCaseCount > 0 && (
-            <div
-              className="flex flex-col items-start gap-0.5 px-3 py-1.5 rounded-2xl bg-amber-500/10 backdrop-blur-md shadow-lg border border-amber-500/30 text-xs font-medium shrink-0"
-              title="Tín hiệu thô trích xuất từ tin tức và mạng xã hội bằng AI — chưa qua xác minh lâm sàng"
+            {/* Primary metric — clinically confirmed */}
+            <button
+              onClick={() => setShowStats(!showStats)}
+              className="flex items-center gap-2.5 pl-4 pr-3.5 py-2.5 hover:bg-foreground/[0.04] transition-colors"
             >
-              <div className="flex items-center gap-1.5">
-                <Newspaper className="h-3.5 w-3.5 text-amber-600" />
-                <span className="text-amber-600 dark:text-amber-400 font-semibold">{newsCaseCount.toLocaleString('vi-VN')} tín hiệu</span>
+              <div className="text-left">
+                <p className="text-base font-semibold leading-none tabular-nums tracking-tight">
+                  {stats.confirmed.toLocaleString(localeTag)}
+                </p>
+                <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                  {t('ui.stats.clinicalConfirmed')}
+                </p>
               </div>
-              <span className="text-[9px] text-amber-700/70 dark:text-amber-400/70 leading-tight">Tín hiệu thô từ tin tức, chưa xác minh</span>
-            </div>
-          )}
+              <ChevronUp className={`h-3.5 w-3.5 text-muted-foreground/60 transition-transform ${showStats ? 'rotate-180' : ''}`} />
+            </button>
 
-          {hotspotData.length > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-warning/10 backdrop-blur-md shadow-lg border border-warning/20 text-xs font-medium shrink-0">
-              <Thermometer className="h-3.5 w-3.5 text-warning" />
-              <span className="text-warning">{hotspotData.length} điểm nóng</span>
-            </div>
-          )}
-          {pendingAlerts.length > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-amber-500/10 backdrop-blur-md shadow-lg border border-amber-500/20 text-xs font-medium shrink-0 animate-pulse">
-              <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
-              <span className="text-amber-500">{pendingAlerts.length} chờ duyệt</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-success/10 backdrop-blur-md shadow-lg border border-success/20 text-xs font-medium shrink-0">
-            <Users className="h-3.5 w-3.5 text-success" />
-            <span className="text-success">{mapUsers.length} online</span>
+            {/* Secondary metrics — hairline separated */}
+            {newsCaseCount > 0 && (
+              <>
+                <div className="w-px bg-border/50 my-2" />
+                <div className="flex items-center px-3.5 py-2.5" title={t('ui.stats.signalsUnverified')}>
+                  <div className="text-left">
+                    <p className="text-base font-semibold leading-none tabular-nums tracking-tight text-amber-500">
+                      {newsCaseCount.toLocaleString(localeTag)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                      {t('ui.stats.signals')}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {hotspotData.length > 0 && (
+              <>
+                <div className="w-px bg-border/50 my-2" />
+                <div className="flex items-center px-3.5 py-2.5">
+                  <div className="text-left">
+                    <p className="text-base font-semibold leading-none tabular-nums tracking-tight text-orange-500">
+                      {hotspotData.length}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                      {t('ui.stats.hotspots')}
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Actions */}
+            <div className="w-px bg-border/50 my-2" />
+            <button
+              onClick={() => setShowCaseList(true)}
+              className="flex items-center gap-1.5 px-3.5 hover:bg-foreground/[0.04] transition-colors text-muted-foreground hover:text-foreground"
+              title={t('ui.caseList.title')}
+            >
+              <List className="h-4 w-4" />
+            </button>
           </div>
 
+          {/* Attention badge — only when action needed */}
+          {pendingAlerts.length > 0 && (
+            <button className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-amber-500/15 backdrop-blur-2xl shadow-xl border border-amber-500/25 text-xs font-medium text-amber-500">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <span className="tabular-nums">{pendingAlerts.length}</span>
+            </button>
+          )}
+
+          {/* Personal risk — only when known */}
           {myRisk && (
-            <div className={`flex items-center gap-1.5 px-3 py-2 rounded-full backdrop-blur-md shadow-lg border text-xs font-medium shrink-0 ${
-              myRisk.riskLevel === 'high' ? 'bg-destructive/10 border-destructive/20 text-destructive' :
-              myRisk.riskLevel === 'medium' ? 'bg-warning/10 border-warning/20 text-warning' :
-              'bg-success/10 border-success/20 text-success'
+            <div className={`flex items-center gap-1.5 px-3 py-2 rounded-2xl backdrop-blur-2xl shadow-xl border text-xs font-medium ${
+              myRisk.riskLevel === 'high'   ? 'bg-destructive/12 border-destructive/25 text-destructive' :
+              myRisk.riskLevel === 'medium' ? 'bg-warning/12 border-warning/25 text-warning' :
+                                              'bg-success/12 border-success/25 text-success'
             }`}>
               <Shield className="h-3.5 w-3.5" />
-              <span>Risk: {myRisk.riskScore}/100</span>
+              <span className="tabular-nums">{myRisk.riskScore}</span>
             </div>
           )}
-
-          {/* Double-click hint */}
-          <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary/10 backdrop-blur-md shadow-lg border border-primary/20 text-xs font-medium shrink-0">
-            <FileText className="h-3.5 w-3.5 text-primary" />
-            <span className="text-primary">Nhấp đúp vào vùng VN → Báo cáo</span>
-          </div>
         </div>
 
         {showStats && (
           <div className="bg-card/95 backdrop-blur-md rounded-2xl shadow-xl border border-border/50 p-4 animate-in slide-in-from-bottom-4 duration-300 space-y-3">
             {/* Header with legend trigger */}
             <div className="flex items-center justify-between">
-              <p className="text-xs font-semibold text-foreground">Tổng hợp dữ liệu giám sát</p>
+              <p className="text-xs font-semibold text-foreground">{t("ui.stats.summaryTitle")}</p>
               <MetricLegend variant="inline" />
             </div>
 
@@ -2079,26 +2103,26 @@ export default function Surveillance() {
             <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-3">
               <div className="flex items-center gap-1.5 mb-2">
                 <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
-                <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">Ca xác nhận lâm sàng</p>
+                <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400">{t("ui.stats.clinicalConfirmed")}</p>
                 <MetricInfoTooltip content="Ca bệnh đã được cơ sở y tế xác nhận và báo cáo. Nguồn: Bộ Y tế · HCDC." />
-                <span className="ml-auto text-[9px] text-muted-foreground">Cập nhật {new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="ml-auto text-[9px] text-muted-foreground">Cập nhật {new Date().toLocaleTimeString(localeTag, { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
               <div className="grid grid-cols-4 gap-2">
                 <div className="text-center">
-                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{totalCaseCount.toLocaleString('vi-VN')}</p>
-                  <p className="text-[9px] text-muted-foreground">Tổng ca báo cáo</p>
+                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{totalCaseCount.toLocaleString(localeTag)}</p>
+                  <p className="text-[9px] text-muted-foreground">{t("ui.stats.totalReported")}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{stats.confirmed.toLocaleString('vi-VN')}</p>
-                  <p className="text-[9px] text-muted-foreground">Xác nhận</p>
+                  <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{stats.confirmed.toLocaleString(localeTag)}</p>
+                  <p className="text-[9px] text-muted-foreground">{t("ui.filters.confirmed")}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-bold text-warning">{stats.suspected.toLocaleString('vi-VN')}</p>
-                  <p className="text-[9px] text-muted-foreground">Nghi ngờ</p>
+                  <p className="text-xl font-bold text-warning">{stats.suspected.toLocaleString(localeTag)}</p>
+                  <p className="text-[9px] text-muted-foreground">{t("ui.filters.suspected")}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xl font-bold text-success">{stats.todayCases.toLocaleString('vi-VN')}</p>
-                  <p className="text-[9px] text-muted-foreground">Hôm nay</p>
+                  <p className="text-xl font-bold text-success">{stats.todayCases.toLocaleString(localeTag)}</p>
+                  <p className="text-[9px] text-muted-foreground">{t("ui.stats.today")}</p>
                 </div>
               </div>
             </div>
@@ -2108,12 +2132,12 @@ export default function Surveillance() {
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Newspaper className="h-3.5 w-3.5 text-amber-600" />
-                  <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">Tín hiệu từ tin tức</p>
+                  <p className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">{t("ui.stats.newsSignals")}</p>
                   <MetricInfoTooltip content="Tín hiệu thô được trích xuất từ tin tức và mạng xã hội bằng AI. Chưa qua xác minh lâm sàng — chỉ dùng để cảnh báo sớm." />
-                  <span className="ml-auto text-[9px] text-muted-foreground">Nguồn: Tin tức + AI</span>
+                  <span className="ml-auto text-[9px] text-muted-foreground">{t("ui.stats.signalsSource")}</span>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{newsCaseCount.toLocaleString('vi-VN')}</p>
+                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{newsCaseCount.toLocaleString(localeTag)}</p>
                   <p className="text-[10px] text-muted-foreground">tín hiệu (chưa xác minh)</p>
                 </div>
               </div>
@@ -2121,7 +2145,7 @@ export default function Surveillance() {
 
             {hotspotCaseCount > 0 && (
               <div className="pt-2 border-t border-border/50 flex items-center justify-center gap-4 text-xs text-muted-foreground">
-                <span>🔥 Điểm nóng: <strong className="text-warning">{hotspotCaseCount.toLocaleString('vi-VN')} ca</strong></span>
+                <span>🔥 Điểm nóng: <strong className="text-warning">{hotspotCaseCount.toLocaleString(localeTag)} ca</strong></span>
                 <span>📍 {allCaseEvents.length} có tọa độ GPS</span>
               </div>
             )}
@@ -2136,7 +2160,7 @@ export default function Surveillance() {
             <div className="flex items-center justify-between">
               <SheetTitle className="flex items-center gap-2 text-base">
                 <Eye className="h-4 w-4 text-primary" />
-                Danh sách ca bệnh ({totalCount})
+                {t("ui.caseList.title")} ({totalCount})
               </SheetTitle>
               <Badge variant="outline" className="text-xs">
                 Trang {currentPage}/{Math.ceil(totalCount / pageSize) || 1}
@@ -2147,7 +2171,7 @@ export default function Surveillance() {
             {loading ? (
               <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
             ) : cases.length === 0 ? (
-              <div className="text-center py-16 text-muted-foreground text-sm">Không tìm thấy ca bệnh</div>
+              <div className="text-center py-16 text-muted-foreground text-sm">{t("ui.caseList.notFound")}</div>
             ) : (
               <div className="divide-y divide-border">
                 {cases.map((c: any) => (
@@ -2168,7 +2192,7 @@ export default function Surveillance() {
             )}
             {Math.ceil(totalCount / pageSize) > 1 && (
               <div className="flex items-center justify-center gap-2 p-4">
-                <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>Trước</Button>
+                <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>{t("ui.caseList.previous")}</Button>
                 <span className="text-xs text-muted-foreground">{currentPage} / {Math.ceil(totalCount / pageSize)}</span>
                 <Button variant="outline" size="sm" disabled={currentPage >= Math.ceil(totalCount / pageSize)} onClick={() => setCurrentPage(p => p + 1)}>Sau</Button>
               </div>
@@ -2196,21 +2220,21 @@ export default function Surveillance() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-muted/50 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-primary">{regionReport.totalCases}</p>
-                  <p className="text-[10px] text-muted-foreground">Tổng ca</p>
+                  <p className="text-[10px] text-muted-foreground">{t("ui.report.totalCases")}</p>
                 </div>
                 <div className="bg-muted/50 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-destructive">{regionReport.trend7d}</p>
-                  <p className="text-[10px] text-muted-foreground">7 ngày qua</p>
+                  <p className="text-[10px] text-muted-foreground">{t("ui.report.last7Days")}</p>
                 </div>
                 <div className="bg-muted/50 rounded-xl p-3 text-center">
                   <p className="text-2xl font-bold text-warning">{Object.keys(regionReport.byDisease).length}</p>
-                  <p className="text-[10px] text-muted-foreground">Loại bệnh</p>
+                  <p className="text-[10px] text-muted-foreground">{t("ui.report.diseaseTypes")}</p>
                 </div>
               </div>
 
               {/* Disease breakdown */}
               <div>
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Phân loại theo bệnh</h4>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">{t("ui.report.byDisease")}</h4>
                 <div className="space-y-2">
                   {Object.entries(regionReport.byDisease).sort((a, b) => b[1] - a[1]).map(([disease, count]) => (
                     <div key={disease} className="flex items-center gap-2">
@@ -2227,7 +2251,7 @@ export default function Surveillance() {
 
               {/* Status breakdown */}
               <div>
-                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Trạng thái</h4>
+                <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">{t("ui.report.byStatus")}</h4>
                 <div className="flex gap-2">
                   {Object.entries(regionReport.byStatus).map(([status, count]) => (
                     <div key={status} className={`flex-1 rounded-xl p-2 text-center ${
@@ -2243,7 +2267,7 @@ export default function Surveillance() {
               {/* Top districts */}
               {regionReport.topDistricts.length > 0 && (
                 <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Top Quận/Huyện</h4>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">{t("ui.report.topDistricts")}</h4>
                   <div className="space-y-1.5">
                     {regionReport.topDistricts.map((d, i) => (
                       <div key={d.name} className="flex items-center gap-2 text-sm">
@@ -2259,21 +2283,21 @@ export default function Surveillance() {
               {/* Actions */}
               <div className="flex gap-2 pt-2 border-t border-border/50">
                 <Button variant="outline" size="sm" className="flex-1 text-xs" onClick={exportRegionReport}>
-                  <Download className="h-3 w-3 mr-1.5" /> Tải báo cáo
+                  <Download className="h-3 w-3 mr-1.5" /> {t("ui.report.download")}
                 </Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => window.print()}>
                   <Printer className="h-3 w-3 mr-1.5" /> In
                 </Button>
                 <Button variant="outline" size="sm" className="text-xs" onClick={() => {
                   navigator.clipboard.writeText(`Báo cáo y tế ${regionReport.region}: ${regionReport.totalCases} ca, ${regionReport.trend7d} ca trong 7 ngày`);
-                  toast.success('Đã sao chép');
+                  toast.success(t('ui.report.copied'));
                 }}>
-                  <Share2 className="h-3 w-3 mr-1.5" /> Chia sẻ
+                  <Share2 className="h-3 w-3 mr-1.5" /> {t("ui.report.share")}
                 </Button>
               </div>
 
               <p className="text-[10px] text-muted-foreground text-center">
-                Dữ liệu tạo lúc {new Date(regionReport.generatedAt).toLocaleString('vi-VN')} · Nguồn: HCMC Health Hub
+                Dữ liệu tạo lúc {new Date(regionReport.generatedAt).toLocaleString(localeTag)} · Nguồn: HCMC Health Hub
               </p>
             </div>
           ) : null}

@@ -1,4 +1,137 @@
 {
+  "ui": {
+    "nav": {
+      "home": "Tổng quan",
+      "intake": "Nhập ca",
+      "map": "Bản đồ",
+      "alerts": "Cảnh báo",
+      "surveillance": "Giám sát dịch",
+      "settings": "Cài đặt",
+      "help": "Trợ giúp",
+      "signIn": "Đăng nhập",
+      "signOut": "Đăng xuất",
+      "login": "Đăng nhập",
+      "notifications": "Thông báo",
+      "viewAll": "Xem tất cả",
+      "noNewAlerts": "Không có cảnh báo mới",
+      "notLoggedIn": "Chưa đăng nhập — chế độ xem demo",
+      "emergency": "Cấp cứu: 115",
+      "user": "Người dùng",
+      "sensing": "Sinh hiệu không tiếp xúc",
+      "care": "Chăm sóc tại nhà",
+      "scan": "Quét toàn nhà",
+      "caseIntake": "Nhập ca bệnh"
+    },
+    "mode": {
+      "forecast": "Dự báo",
+      "crossborder": "Xuyên biên giới",
+      "infrastructure": "Hạ tầng",
+      "regional": "Khu vực",
+      "policy": "Chính sách"
+    },
+    "layers": {
+      "title": "Lớp bản đồ",
+      "epidemiology": "Dịch tễ",
+      "cases": "Ca bệnh",
+      "heatmap": "Bản đồ nhiệt",
+      "hotspots": "Điểm nóng",
+      "inferFromNews": "Suy luận từ bản tin",
+      "people": "Người dùng",
+      "online": "Trực tuyến",
+      "pending": "Chờ duyệt",
+      "infrastructure": "Hạ tầng",
+      "healthFacilities": "Cơ sở y tế",
+      "zoomHint": "Zoom <6: Tỉnh • 6–9: Cụm • >9: Điểm"
+    },
+    "filters": {
+      "title": "Bộ lọc",
+      "allDiseases": "Tất cả bệnh",
+      "allStatuses": "Tất cả trạng thái",
+      "all": "Tất cả",
+      "confirmed": "Xác nhận",
+      "suspected": "Nghi ngờ",
+      "probable": "Có thể",
+      "exportCSV": "Xuất CSV"
+    },
+    "stats": {
+      "confirmedCases": "ca xác nhận",
+      "list": "Danh sách",
+      "clinicalConfirmed": "xác nhận lâm sàng",
+      "signals": "tín hiệu",
+      "signalsUnverified": "Tín hiệu thô từ tin tức, chưa xác minh",
+      "hotspots": "điểm nóng",
+      "pendingApproval": "chờ duyệt",
+      "online": "trực tuyến",
+      "summaryTitle": "Tổng hợp dữ liệu giám sát",
+      "totalReported": "Tổng ca báo cáo",
+      "today": "Hôm nay",
+      "newsSignals": "Tín hiệu từ tin tức",
+      "signalsSource": "Nguồn: Tin tức + AI",
+      "gpsCoords": "có tọa độ GPS",
+      "updated": "Cập nhật",
+      "doubleClickHint": "Nhấp đúp vào vùng → Báo cáo"
+    },
+    "news": {
+      "title": "Tin Y Tế Toàn Cầu",
+      "noNews": "Chưa có tin tức",
+      "justNow": "Vừa xong",
+      "hoursAgo": "{{count}}h trước",
+      "daysAgo": "{{count}}d trước",
+      "sources": "Nguồn"
+    },
+    "caseList": {
+      "title": "Danh sách ca bệnh",
+      "notFound": "Không tìm thấy ca bệnh",
+      "previous": "Trước",
+      "next": "Sau"
+    },
+    "report": {
+      "totalCases": "Tổng ca",
+      "last7Days": "7 ngày qua",
+      "diseaseTypes": "Loại bệnh",
+      "byDisease": "Phân loại theo bệnh",
+      "byStatus": "Trạng thái",
+      "topDistricts": "Top Quận/Huyện",
+      "download": "Tải báo cáo",
+      "share": "Chia sẻ",
+      "copied": "Đã sao chép",
+      "generatedAt": "Dữ liệu tạo lúc",
+      "source": "Nguồn"
+    },
+    "regions": {
+      "north": "Miền Bắc",
+      "central": "Miền Trung",
+      "south": "Miền Nam",
+      "hcmc": "TP. Hồ Chí Minh",
+      "hanoi": "Hà Nội",
+      "vietnam": "Việt Nam"
+    },
+    "swarm": {
+      "title": "Trí tuệ bầy đàn",
+      "engine": "Động cơ MiroFish",
+      "wifiScan": "Quét không gian WiFi",
+      "config": "Cấu hình mô phỏng",
+      "regions": "Vùng giám sát",
+      "horizon": "Thời gian dự báo",
+      "runOnMap": "Chạy trên bản đồ",
+      "stop": "Dừng mô phỏng",
+      "collecting": "Đang thu thập tín hiệu…",
+      "results": "Kết quả mô phỏng",
+      "risk": "Rủi ro",
+      "r0Now": "R₀ hiện tại",
+      "peak": "Đỉnh dịch",
+      "day": "Ngày"
+    },
+    "toast": {
+      "loginRequired": "Vui lòng đăng nhập để xác nhận",
+      "alreadyVoted": "Bạn đã xác nhận cảnh báo này rồi",
+      "hotspotCreated": "Cảnh báo đã được xác nhận & tạo điểm nóng!",
+      "confirmed": "Đã xác nhận ({{count}}/3 người)",
+      "voteError": "Không thể vote",
+      "hotspotsFound": "Phát hiện {{hotspots}} điểm nóng từ {{articles}} bản tin",
+      "hotspotError": "Không thể tạo điểm nóng"
+    }
+  },
   "auth": {
     "login": "Đăng nhập",
     "signup": "Đăng ký",
