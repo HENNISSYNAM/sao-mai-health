@@ -26,17 +26,25 @@ import { useGPS } from "@/hooks/useGPS";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { SwarmIntelligencePanel } from "@/components/SwarmIntelligencePanel";
+import { WifiOccupancyWidget } from "@/components/WifiOccupancyWidget";
+import { Brain, Wifi } from "lucide-react";
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
-// Vietnam regions for click-to-report
-const vietnamRegions = [
-  { id: 'north', name: 'Miền Bắc', center: [105.8, 21.0], bbox: [102, 20, 108, 23.5] },
-  { id: 'central', name: 'Miền Trung', center: [108.0, 16.0], bbox: [104, 11.5, 110, 20] },
-  { id: 'south', name: 'Miền Nam', center: [106.7, 10.8], bbox: [104, 8.5, 108, 11.5] },
-  { id: 'hcmc', name: 'TP. Hồ Chí Minh', center: [106.63, 10.82], bbox: [106.3, 10.5, 107.0, 11.1] },
-  { id: 'hanoi', name: 'Hà Nội', center: [105.85, 21.02], bbox: [105.3, 20.5, 106.4, 21.5] },
+// Extended multi-region coverage: Vietnam → Hong Kong → ASEAN
+const surveillanceRegions = [
+  { id: 'north',   name: 'Miền Bắc',         center: [105.8, 21.0],  bbox: [102, 20, 108, 23.5] },
+  { id: 'central', name: 'Miền Trung',        center: [108.0, 16.0],  bbox: [104, 11.5, 110, 20] },
+  { id: 'south',   name: 'Miền Nam',          center: [106.7, 10.8],  bbox: [104, 8.5, 108, 11.5] },
+  { id: 'hcmc',    name: 'TP. Hồ Chí Minh',  center: [106.63, 10.82],bbox: [106.3, 10.5, 107.0, 11.1] },
+  { id: 'hanoi',   name: 'Hà Nội',            center: [105.85, 21.02],bbox: [105.3, 20.5, 106.4, 21.5] },
+  { id: 'hk',      name: '🌏 Hong Kong',      center: [114.17, 22.32],bbox: [113.8, 22.1, 114.5, 22.6] },
+  { id: 'sg',      name: '🌏 Singapore',      center: [103.82, 1.35], bbox: [103.5, 1.1, 104.1, 1.6] },
+  { id: 'bk',      name: '🌏 Bangkok',        center: [100.50, 13.76],bbox: [100.0, 13.5, 101.0, 14.1] },
 ];
+// Keep backwards compat
+const vietnamRegions = surveillanceRegions;
 
 interface RegionReport {
   region: string;
@@ -1657,7 +1665,18 @@ export default function Surveillance() {
         <Button size="icon" variant="secondary" className={`h-9 w-9 md:h-10 md:w-10 rounded-full shadow-lg bg-card/90 backdrop-blur-md ${showNewsPanel ? 'ring-2 ring-primary' : ''}`} onClick={() => { setShowNewsPanel(!showNewsPanel); if (!showNewsPanel && newsArticles.length === 0) loadNewsArticles(); }}>
           <Newspaper className="h-4 w-4" />
         </Button>
+        <Button
+          size="icon" variant="secondary"
+          className={`h-9 w-9 md:h-10 md:w-10 rounded-full shadow-lg bg-card/90 backdrop-blur-md ${(window as any).__showSwarm ? 'ring-2 ring-cyan-400' : ''}`}
+          onClick={() => { (window as any).__showSwarm = !(window as any).__showSwarm; window.dispatchEvent(new Event('swarm-toggle')); }}
+          title="Swarm Intelligence"
+        >
+          <Brain className="h-4 w-4 text-cyan-400" />
+        </Button>
       </div>
+
+      {/* ====== SWARM INTELLIGENCE SIDE PANEL ====== */}
+      <SwarmSidePanel />
 
       {/* ====== LAYERS PANEL (enhanced) ====== */}
       {showLayers && (
@@ -2124,6 +2143,23 @@ export default function Surveillance() {
       {/* ====== MODALS ====== */}
       <CaseDetailModal case_={selectedCase} open={showCaseModal} onOpenChange={setShowCaseModal} />
       <AddCaseModal open={showAddModal} onOpenChange={setShowAddModal} onCaseAdded={handleCaseAdded} />
+    </div>
+  );
+}
+
+// ── Swarm Intelligence Side Panel ────────────────────────────────────────────
+function SwarmSidePanel() {
+  const [visible, setVisible] = React.useState(false);
+  React.useEffect(() => {
+    const toggle = () => setVisible(!!(window as any).__showSwarm);
+    window.addEventListener('swarm-toggle', toggle);
+    return () => window.removeEventListener('swarm-toggle', toggle);
+  }, []);
+  if (!visible) return null;
+  return (
+    <div className="absolute left-2 md:left-16 top-14 bottom-2 z-20 w-80 md:w-96 overflow-y-auto space-y-3 pointer-events-auto">
+      <WifiOccupancyWidget />
+      <SwarmIntelligencePanel />
     </div>
   );
 }

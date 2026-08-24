@@ -10,13 +10,20 @@ import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  Map, Layers, ThermometerSun, CloudRain, Users, 
-  Activity, AlertTriangle, MousePointerClick, Loader2, Shield
+import {
+  Map, Layers, ThermometerSun, CloudRain, Users,
+  Activity, AlertTriangle, MousePointerClick, Loader2, Shield,
+  Brain, Wifi, Globe2
 } from 'lucide-react';
 import { getICD11Display } from '@/lib/icd11';
 import { getNearestRegion, getRegionDisplayName } from '@/lib/geography';
 import { useUserRiskScorer, type UserMapDot } from '@/hooks/useUserRiskScorer';
+import { SURVEILLANCE_REGIONS, extractSeedSignals, type SeedSignal } from '@/services/swarmIntelligenceEngine';
+
+// Expand map default to cover Vietnam → Hong Kong → ASEAN
+const MAP_DEFAULT_BOUNDS: [number, number, number, number] = [98, 1, 122, 25]; // [W, S, E, N]
+const MAP_DEFAULT_CENTER: [number, number] = [108, 14]; // Southeast Asia centroid
+const MAP_DEFAULT_ZOOM = 4.5;
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
@@ -56,21 +63,37 @@ export function GlobalSurveillanceMap() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [cases, setCases] = useState<CasePoint[]>([]);
   const [showClustering, setShowClustering] = useState(true);
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const [layers, setLayers] = useState<LayerConfig>({ 
-    disease: true, 
-    population: false, 
-    weather: false 
+  const [layers, setLayers] = useState<LayerConfig>({
+    disease: true,
+    population: false,
+    weather: false
   });
   const [clickPrediction, setClickPrediction] = useState<ClickPrediction | null>(null);
-  const [zoomLevel, setZoomLevel] = useState(4);
+  const [zoomLevel, setZoomLevel] = useState(MAP_DEFAULT_ZOOM);
   const [showUserDots, setShowUserDots] = useState(true);
+  const [showSwarmLayer, setShowSwarmLayer] = useState(false);
+  const [swarmSeeds, setSwarmSeeds] = useState<SeedSignal[]>([]);
+  const [wifiSignals, setWifiSignals] = useState<{ lat: number; lng: number; rssi: number; region: string }[]>([]);
   const { mapUsers, myRisk, isLoading: riskLoading, fetchMapUsers } = useUserRiskScorer();
   const userMarkersRef = useRef<mapboxgl.Marker[]>([]);
+  const swarmMarkersRef = useRef<mapboxgl.Marker[]>([]);
+
+  // Load swarm seed signals and WiFi data
+  const loadSwarmLayer = useCallback(async () => {
+    const regionKeys = Object.keys(SURVEILLANCE_REGIONS);
+    const seeds = await extractSeedSignals(regionKeys);
+    setSwarmSeeds(seeds);
+    // Generate WiFi probe visualisation points
+    const wifi = seeds
+      .filter(s => s.type === 'wifi_probe' && s.lat && s.lng)
+      .map(s => ({ lat: s.lat!, lng: s.lng!, rssi: Math.round(s.magnitude * 100), region: s.region }));
+    setWifiSignals(wifi);
+  }, []);
 
   // Fetch case data + community alerts
   useEffect(() => {
@@ -204,8 +227,8 @@ export function GlobalSurveillanceMap() {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
-      center: [106.6297, 10.8231], // HCMC default
-      zoom: 4,
+      center: MAP_DEFAULT_CENTER, // SE Asia — covers VN, HK, SG
+      zoom: MAP_DEFAULT_ZOOM,
       projection: 'globe'
     });
 
