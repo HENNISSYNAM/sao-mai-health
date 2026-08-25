@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { NodeSensing } from "@/hooks/useRuViewSensing";
 
@@ -28,9 +29,9 @@ export interface RoomGeometry {
 }
 
 export const DEFAULT_FLOORPLAN: RoomGeometry[] = [
-  { node_id: "node-a1", label: "Phòng ngủ",   x: 6,  y: 8,  w: 38, h: 42, fixture: "bed" },
-  { node_id: "node-a2", label: "Phòng khách", x: 50, y: 8,  w: 44, h: 58, fixture: "sofa" },
-  { node_id: "node-a3", label: "Nhà vệ sinh", x: 6,  y: 54, w: 38, h: 38, fixture: "toilet" },
+  { node_id: "node-a1", label: "sensing.rooms.bedroom",   x: 6,  y: 8,  w: 38, h: 42, fixture: "bed" },
+  { node_id: "node-a2", label: "sensing.rooms.living", x: 50, y: 8,  w: 44, h: 58, fixture: "sofa" },
+  { node_id: "node-a3", label: "sensing.rooms.bathroom", x: 6,  y: 54, w: 38, h: 38, fixture: "toilet" },
 ];
 
 /** Door openings drawn as gaps in the wall plus a swing arc. */
@@ -43,6 +44,7 @@ const DOORS: { x: number; y: number; rot: number }[] = [
 
 /** Room dressing — drawn faintly so the occupant stays the focal point. */
 function Fixture({ r }: { r: RoomGeometry }) {
+  const { t } = useTranslation();
   const common = {
     fill: "currentColor",
     fillOpacity: 0.07,
@@ -87,6 +89,7 @@ function Fixture({ r }: { r: RoomGeometry }) {
 
 /** Articulated stick figure whose gait speed tracks the measured motion. */
 function Occupant({ motion, alert, scale = 1 }: { motion: number; alert: boolean; scale?: number }) {
+  const { t } = useTranslation();
   const m = Math.max(0, Math.min(1, motion));
   const walking = m > 0.12;
   const gait = Math.max(0.42, 1.35 - m * 1.1).toFixed(2) + "s";
@@ -163,6 +166,7 @@ export function SpatialTwin({
   plan?: RoomGeometry[];
   className?: string;
 }) {
+  const { t } = useTranslation();
   // On a phone the plan is only ~340px wide, so type and figures need to be
   // physically larger to stay readable at the same viewBox scale.
   const isMobile = useIsMobile();
@@ -196,7 +200,7 @@ export function SpatialTwin({
         motion: v.motion,
         halo: 6 + (1 - Math.max(0, Math.min(1, v.presence_score))) * 10,
         alert,
-        label: room.label,
+        label: t(room.label),
         persons: v.n_persons ?? 1,
       }];
     });
@@ -207,7 +211,7 @@ export function SpatialTwin({
   return (
     <div className={className}>
       <svg viewBox="0 0 100 100" className="w-full h-full" role="img"
-           aria-label="Bản sao số không gian: vị trí người ở theo thời gian thực">
+           aria-label={t("sensing.twin.realtime")}>
         <defs>
           <radialGradient id="twin-halo">
             <stop offset="0%" stopColor="currentColor" stopOpacity="0.4" />
@@ -265,13 +269,13 @@ export function SpatialTwin({
 
               {/* label plate keeps type legible over the floor texture */}
               <g>
-                <rect x={r.x + 2} y={r.y + 1.9} width={r.label.length * labelSize * 0.58 + 4}
+                <rect x={r.x + 2} y={r.y + 1.9} width={t(r.label).length * labelSize * 0.58 + 4}
                       height={labelSize * 1.7} rx="1.2"
                       className="text-background" fill="currentColor" fillOpacity="0.82" />
                 <text x={r.x + 4} y={r.y + 1.9 + labelSize * 1.25} fontSize={labelSize}
                       className={occupied ? "fill-foreground" : "fill-muted-foreground"}
                       style={{ userSelect: "none", fontWeight: occupied ? 600 : 400, letterSpacing: "0.05px" }}>
-                  {r.label}
+                  {t(r.label)}
                 </text>
               </g>
 

@@ -871,5 +871,116 @@
     "feat_customAI": "Custom AI models",
     "feat_training": "Training & deployment",
     "feat_dedicatedSupport": "Dedicated support"
+  },
+  "sensing": {
+    "title": "Contactless Vital Signs",
+    "subtitle": "Breathing, heart rate and motion measured with WiFi (CSI) — through walls, no camera, nothing worn by the patient.",
+    "simMode": "Simulation mode",
+    "liveEngine": "Live engine",
+    "simBanner": "Showing <b>simulated data</b> (RuView receiver not connected — {{reason}}). Point VITE_RUVIEW_WS_URL at your sensing-server to receive real CSI from the ESP32 mesh.",
+    "acquiring": "acquiring signal…",
+    "kpi": {
+      "sensors": "Sensors",
+      "roomsOccupied": "Rooms occupied",
+      "totalPeople": "People detected",
+      "alerts": "Alerts"
+    },
+    "twin": {
+      "title": "Spatial Digital Twin",
+      "subtitle": "Height = posture (standing/lying), the chest rises at the measured breathing rate, halo = confidence. Drag to rotate.",
+      "realtime": "Spatial twin: occupant position in real time",
+      "view3d": "3D",
+      "viewPlan": "Plan",
+      "posHint": "Position inferred from CSI perturbation strength. A wider halo means lower confidence."
+    },
+    "rooms": {
+      "bedroom": "Bedroom",
+      "living": "Living room",
+      "bathroom": "Bathroom"
+    },
+    "vitals": {
+      "breathing": "Breathing",
+      "heartRate": "Heart rate",
+      "motion": "Motion",
+      "nightVitals": "Night vitals —",
+      "unavailable": "not measurable",
+      "movingUnavailable": "moving — not measurable",
+      "weakSignal": "weak signal",
+      "noisySignal": "noisy signal",
+      "abnormalVariance": "abnormal variance",
+      "inferredFrom": "Inferred from motion + breathing",
+      "traceNote": "Breathing and heart-rate traces are reconstructed from the measured frequency; the motion trace is the raw signal from the mesh."
+    },
+    "presence": {
+      "asleep": "Asleep",
+      "awake": "Awake",
+      "noOccupant": "No occupant",
+      "empty": "empty",
+      "occupied": "Room active",
+      "bathroomOccupied": "Bathroom occupied",
+      "inMeeting": "In a meeting",
+      "movingBetweenRooms": "Moving between rooms",
+      "outOfBed": "Out of bed",
+      "noMotion": "No motion",
+      "prolongedNoMotion": "Prolonged stillness"
+    },
+    "alerts": {
+      "fallDetected": "Fall detected",
+      "fallRiskHigh": "High fall risk",
+      "abnormalVitals": "Abnormal vital signs",
+      "inactivityAnomaly": "Unusual inactivity",
+      "lowActivity": "Anomaly: low activity",
+      "checkNow": "Check immediately",
+      "suspectedCritical": "Suspected critical",
+      "vitalsOutOfRange": "Breathing or heart rate outside the safe range",
+      "presentButStill": "Someone is present but almost motionless",
+      "belowBaseline": "Well below this person's own baseline",
+      "hrSpikeWithMotion": "Heart rate spike with vigorous motion"
+    },
+    "coverage": {
+      "title": "Whole-home sensor coverage map"
+    },
+    "confidence": "Confidence {{pct}}%",
+    "zDeviation": " · {{z}}σ from this person's own baseline",
+    "personCount": "{{count}} person",
+    "personCount_plural": "{{count}} people",
+    "motionLevel": "Motion level",
+    "fallRisk": "Fall risk",
+    "buildingScanCta": "Whole-home WiFi survey",
+    "buildingScanSub": "Sensor coverage, blind spots and where to add nodes",
+    "building3d": "Building the 3D space…",
+    "disclaimer": "A supportive reference tool. It does not replace a doctor's advice or diagnosis.",
+    "care": {
+      "title": "Home Care",
+      "subtitle": "Watching over an elderly person living alone — sleep, activity and fall risk, with nothing worn and no camera in the bedroom.",
+      "simNote": "Simulated data — RuView receiver not connected.",
+      "allNormal": "All readings within normal range. No open alerts.",
+      "restState": "Rest state",
+      "breathingSteady": "Breathing steady at {{bpm}} bpm, minimal movement",
+      "fallRisk": "Fall risk",
+      "fallRiskBasis": "Derived from motion variability and vital signs",
+      "activityLevel": "Activity level",
+      "nightVitalsOf": "Night vitals —",
+      "breathingBpm": "Breathing (bpm)",
+      "heartBpm": "Heart rate (bpm)",
+      "normalSleep": "Normal during sleep: 12–20 bpm",
+      "normalResting": "Normal at rest: 60–100 bpm",
+      "disclaimer2": "Vital signs measured by WiFi carry error; call emergency services immediately at any sign of a medical emergency."
+    },
+    "scan": {
+      "title": "Whole-Home Scan",
+      "subtitle": "Survey WiFi sensing coverage across the whole floor plan — where measurement works, where the blind spots are, and where to add sensors.",
+      "physicsNote": "Sensing range is set by the <strong>round-trip reflected path</strong> (the wave travels out and back), so it attenuates as <code>d⁴</code> — the measurable radius (~5 m) is far smaller than ordinary WiFi coverage. This is an installation-planning estimate and needs field verification.",
+      "area": "Floor area",
+      "measurable": "Measurable",
+      "goodQuality": "Good quality",
+      "localisable": "Localisable",
+      "coverageMap": "Coverage map",
+      "good": "good",
+      "usable": "usable",
+      "blindSpot": "blind spot",
+      "suggestGain": "suggested +{{gain}}%",
+      "extraNode": "Extra {{n}}"
+    }
   }
 }

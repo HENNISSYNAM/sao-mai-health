@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import type { EdgeVitals } from "@/services/ruview";
 import type { VitalEstimate } from "@/services/vitalsQuality";
 
@@ -34,6 +35,7 @@ const COL = {
 export function VitalsMonitor({
   label, breathing, heart, history, heartZ, breathingZ, className,
 }: Props) {
+  const { t } = useTranslation();
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const raf = useRef<number | null>(null);
   const tRef = useRef(0);
@@ -160,25 +162,24 @@ export function VitalsMonitor({
         <span className="text-xs font-medium tracking-wide">{label}</span>
         <span className="text-[10px] text-slate-400 tabular-nums">
           {breathing.value != null || heart.value != null
-            ? `tin cậy ${(Math.max(breathing.confidence, heart.confidence) * 100).toFixed(0)}%`
-            : "không đo được"}
+            ? t("sensing.confidence", { pct: (Math.max(breathing.confidence, heart.confidence) * 100).toFixed(0) })
+            : t("sensing.vitals.unavailable")}
         </span>
       </div>
 
       <canvas ref={canvas} className="w-full h-32 block" />
 
       <div className="flex gap-3 px-3 py-2 border-t border-slate-800">
-        <Reading name="Nhịp thở" v={breathing.value} unit="bpm" colour={COL.breath} z={breathingZ} />
-        <Reading name="Nhịp tim" v={heart.value} unit="bpm" colour={COL.heart} z={heartZ} />
+        <Reading name={t("sensing.vitals.breathing")} v={breathing.value} unit="bpm" colour={COL.breath} z={breathingZ} />
+        <Reading name={t("sensing.vitals.heartRate")} v={heart.value} unit="bpm" colour={COL.heart} z={heartZ} />
         <Reading
-          name="Vận động" unit="%" colour={COL.motion}
+          name={t("sensing.vitals.motion")} unit="%" colour={COL.motion}
           v={history.length ? history[history.length - 1].motion * 100 : null}
         />
       </div>
 
       <p className="px-3 pb-2 text-[9px] leading-tight text-slate-500">
-        Dải nhịp thở/nhịp tim được dựng lại từ tần số đo được (không phải dạng sóng thô);
-        dải vận động là tín hiệu thật từ mesh.
+        {t("sensing.vitals.traceNote")}
       </p>
     </div>
   );

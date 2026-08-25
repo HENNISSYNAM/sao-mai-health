@@ -19,7 +19,38 @@
 
 import type { PoseFrame } from "./positioning";
 
-export type VitalsSource = "live" | "simulated";
+export type VitalsSource = "live" | "simulated" | "sim-rf";
+
+/**
+ * Ambient RF conditions measured in the browser, used to modulate the
+ * simulator so a demo without ESP32 hardware still responds to the real room.
+ * Set by the sensing page from useWifiScanning; null until the first scan.
+ *
+ * This never produces "live" data — frames stay flagged `sim-rf` so the UI can
+ * keep telling the truth about where the numbers came from.
+ */
+export interface AmbientRF {
+  /** 0-1 channel congestion */
+  congestion: number;
+  /** 0-1 timing jitter — rises with the number of devices contending */
+  jitter: number;
+  /** inferred devices within the scan radius */
+  devices: number;
+  /** metres */
+  radiusM: number;
+  sampledAt: number;
+}
+
+let ambientRF: AmbientRF | null = null;
+
+/** Feed the latest browser RF measurement into the simulator. */
+export function setAmbientRF(rf: AmbientRF | null) {
+  ambientRF = rf;
+}
+
+export function getAmbientRF(): AmbientRF | null {
+  return ambientRF;
+}
 
 export interface EdgeVitals {
   node_id: string;
@@ -199,9 +230,9 @@ export function fallRiskScore(v: EdgeVitals, history: EdgeVitals[]): number {
 // ───────────────────────── simulator (no hardware) ─────────────────────────
 
 export const DEMO_NODES: SensingNode[] = [
-  { node_id: "node-a1", label: "Phòng ngủ", zone: "bedroom", online: true },
-  { node_id: "node-a2", label: "Phòng khách", zone: "living", online: true },
-  { node_id: "node-a3", label: "Nhà vệ sinh", zone: "bathroom", online: true },
+  { node_id: "node-a1", label: "sensing.rooms.bedroom", zone: "bedroom", online: true },
+  { node_id: "node-a2", label: "sensing.rooms.living", zone: "living", online: true },
+  { node_id: "node-a3", label: "sensing.rooms.bathroom", zone: "bathroom", online: true },
 ];
 
 interface SimState { phase: number; hrBase: number; brBase: number; scenario: string }
@@ -224,30 +255,51 @@ export function simulateVitals(node: SensingNode, tick: number): EdgeVitals {
   }
   const t = tick / 10 + st.phase;
   const sleeping = st.scenario === "sleeping";
-  const present = node.zone !== "bathroom" || Math.sin(t / 7) > 0.6;
 
-  const motion = present
+  // Real ambient RF, when the page has fed us a browser scan. Without it the
+  // trace is a pure oscillator and nothing in the room can move it.
+  const rf = ambientRF;
+  const busy = rf ? rf.congestion * 0.5 + rf.jitter * 0.5 : 0;      // 0-1
+  const crowded = rf ? Math.min(1, rf.devices / 60) : 0;            // 0-1
+
+  // A busier channel means more bodies perturbing the field, so occupancy in
+  // the transient zone becomes more likely and motion energy rises.
+  const occupancyBias = busy * 0.35;
+  const present =
+    node.zone !== "bathroom" || Math.sin(t / 7) + occupancyBias > 0.6;
+
+  const motionBase = present
     ? sleeping
-      ? Math.max(0, 0.02 + Math.sin(t * 1.7) * 0.015)
-      : Math.max(0, 0.18 + Math.sin(t * 0.9) * 0.14 + Math.sin(t * 3.1) * 0.05)
+      ? 0.02 + Math.sin(t * 1.7) * 0.015
+      : 0.18 + Math.sin(t * 0.9) * 0.14 + Math.sin(t * 3.1) * 0.05
     : 0;
+  // Ambient activity adds real, measured energy on top of the baseline shape
+  const motion = Math.max(0, motionBase * (1 + busy * 1.4) + crowded * 0.05);
 
-  const hr = present ? st.hrBase + Math.sin(t * 0.6) * 4 + Math.sin(t * 2.3) * 1.5 : null;
-  const br = present ? st.brBase + Math.sin(t * 0.4) * 2 : null;
+  // Physiological response to a more active environment: modest HR lift and a
+  // slightly faster respiratory rate, bounded so values stay plausible.
+  const hrLift = busy * 9;
+  const brLift = busy * 2.5;
+
+  const hr = present
+    ? st.hrBase + hrLift + Math.sin(t * 0.6) * 4 + Math.sin(t * 2.3) * 1.5
+    : null;
+  const br = present ? st.brBase + brLift + Math.sin(t * 0.4) * 2 : null;
 
   return {
     node_id: node.node_id,
     presence: present,
     presence_score: present ? 0.86 + Math.sin(t) * 0.1 : 0.05,
-    n_persons: present ? 1 : 0,
+    n_persons: present ? (crowded > 0.55 ? 2 : 1) : 0,
     breathing_rate_bpm: br,
     heartrate_bpm: hr,
     motion,
     motion_energy: motion * 12,
     fall_detected: false,
-    rssi: -52 + Math.sin(t * 0.3) * 4,
+    // Congestion depresses effective RSSI, exactly as it does on real hardware
+    rssi: -52 - busy * 14 + Math.sin(t * 0.3) * 4,
     timestamp_ms: Date.now(),
-    source: "simulated",
+    source: rf ? "sim-rf" : "simulated",
   };
 }
 

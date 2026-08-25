@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,6 +16,7 @@ import {
  * which is what makes overnight bedroom monitoring acceptable at all.
  */
 export default function CareMonitor() {
+  const { t } = useTranslation();
   const { nodes, source, summary } = useRuViewSensing();
 
   const bedroom = useMemo(
@@ -34,22 +36,21 @@ export default function CareMonitor() {
   const vitalsConcern = brStatus === "critical" || hrStatus === "critical";
 
   const escalations = [
-    fell && { level: "critical", label: "Phát hiện té ngã", detail: "Cần kiểm tra ngay lập tức" },
-    distress && { level: "critical", label: "Nghi ngờ nguy cấp", detail: "Nhịp tim tăng bất thường kèm cử động mạnh" },
-    vitalsConcern && { level: "critical", label: "Sinh hiệu bất thường", detail: "Nhịp thở hoặc nhịp tim ngoài ngưỡng an toàn" },
-    noMovement && { level: "warning", label: "Không chuyển động kéo dài", detail: "Có người trong phòng nhưng gần như bất động" },
-    inactivity && { level: "warning", label: "Ít vận động bất thường", detail: "Thấp hơn nhiều so với mức nền của người này" },
+    fell && { level: "critical", label: t("sensing.alerts.fallDetected"), detail: t("sensing.alerts.checkNow") },
+    distress && { level: "critical", label: t("sensing.alerts.suspectedCritical"), detail: t("sensing.alerts.hrSpikeWithMotion") },
+    vitalsConcern && { level: "critical", label: t("sensing.alerts.abnormalVitals"), detail: t("sensing.alerts.vitalsOutOfRange") },
+    noMovement && { level: "warning", label: t("sensing.presence.prolongedNoMotion"), detail: t("sensing.alerts.presentButStill") },
+    inactivity && { level: "warning", label: t("sensing.alerts.inactivityAnomaly"), detail: t("sensing.alerts.belowBaseline") },
   ].filter(Boolean) as { level: string; label: string; detail: string }[];
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <HeartHandshake className="w-6 h-6 text-primary" /> Chăm sóc tại nhà
+          <HeartHandshake className="w-6 h-6 text-primary" /> {t("sensing.care.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Theo dõi người cao tuổi sống một mình — giấc ngủ, vận động và nguy cơ té ngã,
-          không cần đeo thiết bị, không camera trong phòng ngủ.
+            {t("sensing.care.subtitle")}
         </p>
       </div>
 
@@ -57,7 +58,7 @@ export default function CareMonitor() {
         <Alert>
           <Info className="h-4 w-4" />
           <AlertDescription className="text-xs">
-            Dữ liệu mô phỏng — chưa kết nối bộ thu RuView.
+            {t("sensing.care.simNote")}
           </AlertDescription>
         </Alert>
       )}
@@ -85,7 +86,7 @@ export default function CareMonitor() {
         <Alert className="border-emerald-500/40 bg-emerald-500/10">
           <Activity className="h-4 w-4 text-emerald-600" />
           <AlertDescription className="text-sm">
-            Mọi chỉ số trong ngưỡng bình thường. Không có cảnh báo nào đang mở.
+            {t("sensing.care.allNormal")}
           </AlertDescription>
         </Alert>
       )}
@@ -94,15 +95,15 @@ export default function CareMonitor() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Moon className="w-4 h-4" /> Trạng thái nghỉ ngơi
+              <Moon className="w-4 h-4" /> {t("sensing.care.restState")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{sleeping ? "Đang ngủ" : v?.presence ? "Đang thức" : "Không có người"}</div>
+            <div className="text-2xl font-bold">{sleeping ? t("sensing.presence.asleep") : v?.presence ? t("sensing.presence.awake") : t("sensing.presence.noOccupant")}</div>
             <p className="text-xs text-muted-foreground mt-1">
               {sleeping
-                ? `Nhịp thở đều ${bedroom?.breathing.value?.toFixed(0) ?? "--"} bpm, cử động tối thiểu`
-                : "Suy ra từ chuyển động + nhịp thở"}
+                ? t("sensing.care.breathingSteady", { bpm: bedroom?.breathing.value?.toFixed(0) ?? "--" })
+                : t("sensing.vitals.inferredFrom")}
             </p>
           </CardContent>
         </Card>
@@ -110,7 +111,7 @@ export default function CareMonitor() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4" /> Nguy cơ té ngã
+              <ShieldAlert className="w-4 h-4" /> {t("sensing.care.fallRisk")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -118,7 +119,7 @@ export default function CareMonitor() {
               {summary.maxFallRisk}<span className="text-sm font-normal text-muted-foreground">/100</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Tổng hợp từ độ dao động vận động và sinh hiệu
+              {t("sensing.care.fallRiskBasis")}
             </p>
           </CardContent>
         </Card>
@@ -126,7 +127,7 @@ export default function CareMonitor() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <TrendingDown className="w-4 h-4" /> Mức vận động
+              <TrendingDown className="w-4 h-4" /> {t("sensing.care.activityLevel")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -139,32 +140,32 @@ export default function CareMonitor() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Bed className="w-4 h-4" /> Sinh hiệu ban đêm — {bedroom?.node.label ?? "—"}
+            <Bed className="w-4 h-4" /> {t("sensing.vitals.nightVitals")} {bedroom ? t(bedroom.node.label) : "—"}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid sm:grid-cols-2 gap-6">
           <div>
-            <div className="text-xs text-muted-foreground mb-1">Nhịp thở (bpm)</div>
+            <div className="text-xs text-muted-foreground mb-1">{t("sensing.care.breathingBpm")}</div>
             <div className="text-3xl font-bold tabular-nums">
               {bedroom?.breathing.value?.toFixed(0) ?? "—"}
             </div>
             <VitalsTrace history={bedroom?.history ?? []} field="breathing_rate_bpm" className="text-sky-500" />
-            <p className="text-[11px] text-muted-foreground mt-1">Bình thường khi ngủ: 12–20 bpm</p>
+            <p className="text-[11px] text-muted-foreground mt-1">{t("sensing.care.normalSleep")}</p>
           </div>
           <div>
-            <div className="text-xs text-muted-foreground mb-1">Nhịp tim (bpm)</div>
+            <div className="text-xs text-muted-foreground mb-1">{t("sensing.care.heartBpm")}</div>
             <div className="text-3xl font-bold tabular-nums">
               {bedroom?.heart.value?.toFixed(0) ?? "—"}
             </div>
             <VitalsTrace history={bedroom?.history ?? []} field="heartrate_bpm" className="text-rose-500" />
-            <p className="text-[11px] text-muted-foreground mt-1">Bình thường khi nghỉ: 60–100 bpm</p>
+            <p className="text-[11px] text-muted-foreground mt-1">{t("sensing.care.normalResting")}</p>
           </div>
         </CardContent>
       </Card>
 
       <p className="text-[11px] text-muted-foreground border-t pt-3">
-        Công cụ hỗ trợ tham khảo. Không thay thế tư vấn và chẩn đoán của bác sĩ.
-        Sinh hiệu đo bằng sóng WiFi có sai số; khi có dấu hiệu cấp cứu phải gọi y tế ngay.
+              {t("sensing.disclaimer")}
+              {t("sensing.care.disclaimer2")}
       </p>
     </div>
   );

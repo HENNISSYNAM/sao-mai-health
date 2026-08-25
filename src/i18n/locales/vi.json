@@ -872,5 +872,116 @@
     "feat_customAI": "Tùy chỉnh mô hình AI",
     "feat_training": "Đào tạo & triển khai",
     "feat_dedicatedSupport": "Hỗ trợ chuyên biệt"
+  },
+  "sensing": {
+    "title": "Giám sát sinh hiệu không tiếp xúc",
+    "subtitle": "Nhịp thở, nhịp tim và chuyển động đo bằng sóng WiFi (CSI) — xuyên tường, không camera, không thiết bị đeo trên người bệnh.",
+    "simMode": "Chế độ mô phỏng",
+    "liveEngine": "Engine trực tiếp",
+    "simBanner": "Đang hiển thị <b>dữ liệu mô phỏng</b> (chưa kết nối bộ thu RuView — {{reason}}). Cấu hình VITE_RUVIEW_WS_URL trỏ tới sensing-server để nhận tín hiệu CSI thật từ mesh ESP32.",
+    "acquiring": "đang thu tín hiệu…",
+    "kpi": {
+      "sensors": "Cảm biến",
+      "roomsOccupied": "Phòng có người",
+      "totalPeople": "Tổng người",
+      "alerts": "Cảnh báo"
+    },
+    "twin": {
+      "title": "Bản sao số không gian",
+      "subtitle": "Chiều cao = tư thế (đứng/nằm), lồng ngực phập phồng đúng nhịp thở đo được, vòng sáng = độ tin cậy. Kéo để xoay.",
+      "realtime": "Bản sao số không gian: vị trí người ở theo thời gian thực",
+      "view3d": "3D",
+      "viewPlan": "Sơ đồ",
+      "posHint": "Vị trí suy ra từ cường độ nhiễu CSI. Quầng rộng = độ tin cậy thấp hơn."
+    },
+    "rooms": {
+      "bedroom": "Phòng ngủ",
+      "living": "Phòng khách",
+      "bathroom": "Nhà vệ sinh"
+    },
+    "vitals": {
+      "breathing": "Nhịp thở",
+      "heartRate": "Nhịp tim",
+      "motion": "Vận động",
+      "nightVitals": "Sinh hiệu ban đêm —",
+      "unavailable": "không đo được",
+      "movingUnavailable": "đang cử động — không đo được",
+      "weakSignal": "tín hiệu yếu",
+      "noisySignal": "tín hiệu nhiễu",
+      "abnormalVariance": "biến thiên bất thường",
+      "inferredFrom": "Suy ra từ chuyển động + nhịp thở",
+      "traceNote": "Dải nhịp thở/nhịp tim được dựng lại từ tần số đo được; dải vận động là tín hiệu thật từ mesh."
+    },
+    "presence": {
+      "asleep": "Đang ngủ",
+      "awake": "Đang thức",
+      "noOccupant": "Không có người",
+      "empty": "trống",
+      "occupied": "Phòng có hoạt động",
+      "bathroomOccupied": "Nhà vệ sinh có người",
+      "inMeeting": "Đang họp",
+      "movingBetweenRooms": "Di chuyển giữa phòng",
+      "outOfBed": "Rời giường",
+      "noMotion": "Không chuyển động",
+      "prolongedNoMotion": "Không chuyển động kéo dài"
+    },
+    "alerts": {
+      "fallDetected": "Phát hiện té ngã",
+      "fallRiskHigh": "Nguy cơ té ngã cao",
+      "abnormalVitals": "Sinh hiệu bất thường",
+      "inactivityAnomaly": "Ít vận động bất thường",
+      "lowActivity": "Bất thường: ít vận động",
+      "checkNow": "Cần kiểm tra ngay lập tức",
+      "suspectedCritical": "Nghi ngờ nguy cấp",
+      "vitalsOutOfRange": "Nhịp thở hoặc nhịp tim ngoài ngưỡng an toàn",
+      "presentButStill": "Có người trong phòng nhưng gần như bất động",
+      "belowBaseline": "Thấp hơn nhiều so với mức nền của người này",
+      "hrSpikeWithMotion": "Nhịp tim tăng bất thường kèm cử động mạnh"
+    },
+    "coverage": {
+      "title": "Bản đồ vùng phủ cảm biến toàn nhà"
+    },
+    "confidence": "Độ tin cậy {{pct}}%",
+    "zDeviation": " · lệch {{z}}σ so với mức nền của chính người này",
+    "personCount": "{{count}} người",
+    "personCount_plural": "{{count}} người",
+    "motionLevel": "Mức vận động",
+    "fallRisk": "Nguy cơ té ngã",
+    "buildingScanCta": "Quét WiFi toàn nhà",
+    "buildingScanSub": "Vùng phủ cảm biến, điểm mù và vị trí đặt thêm node",
+    "building3d": "Đang dựng không gian 3D…",
+    "disclaimer": "Công cụ hỗ trợ tham khảo. Không thay thế tư vấn và chẩn đoán của bác sĩ.",
+    "care": {
+      "title": "Chăm sóc tại nhà",
+      "subtitle": "Theo dõi người cao tuổi sống một mình — giấc ngủ, vận động và nguy cơ té ngã, không cần đeo thiết bị, không camera trong phòng ngủ.",
+      "simNote": "Dữ liệu mô phỏng — chưa kết nối bộ thu RuView.",
+      "allNormal": "Mọi chỉ số trong ngưỡng bình thường. Không có cảnh báo nào đang mở.",
+      "restState": "Trạng thái nghỉ ngơi",
+      "breathingSteady": "Nhịp thở đều {{bpm}} bpm, cử động tối thiểu",
+      "fallRisk": "Nguy cơ té ngã",
+      "fallRiskBasis": "Tổng hợp từ độ dao động vận động và sinh hiệu",
+      "activityLevel": "Mức vận động",
+      "nightVitalsOf": "Sinh hiệu ban đêm —",
+      "breathingBpm": "Nhịp thở (bpm)",
+      "heartBpm": "Nhịp tim (bpm)",
+      "normalSleep": "Bình thường khi ngủ: 12–20 bpm",
+      "normalResting": "Bình thường khi nghỉ: 60–100 bpm",
+      "disclaimer2": "Sinh hiệu đo bằng sóng WiFi có sai số; khi có dấu hiệu cấp cứu phải gọi y tế ngay."
+    },
+    "scan": {
+      "title": "Quét toàn nhà",
+      "subtitle": "Khảo sát vùng phủ cảm biến WiFi cho toàn bộ mặt bằng — xác định khu vực đo được, điểm mù, và vị trí nên đặt thêm cảm biến.",
+      "physicsNote": "Tầm cảm biến quyết định bởi <strong>đường phản xạ khứ hồi</strong> (sóng đi tới rồi quay lại), nên suy hao theo <code>d⁴</code> — bán kính đo được (~5 m) nhỏ hơn nhiều so với vùng phủ WiFi thông thường. Đây là mô hình ước lượng khi lắp đặt, cần đo thực địa để xác nhận.",
+      "area": "Diện tích",
+      "measurable": "Đo được",
+      "goodQuality": "Chất lượng tốt",
+      "localisable": "Định vị được",
+      "coverageMap": "Bản đồ vùng phủ",
+      "good": "tốt",
+      "usable": "dùng được",
+      "blindSpot": "điểm mù",
+      "suggestGain": "đề xuất +{{gain}}%",
+      "extraNode": "Bổ sung {{n}}"
+    }
   }
 }

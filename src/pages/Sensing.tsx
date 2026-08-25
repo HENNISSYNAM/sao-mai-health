@@ -1,4 +1,5 @@
 import { Suspense, lazy, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -10,6 +11,9 @@ import { VitalsMonitor } from "@/components/sensing/VitalsMonitor";
 const SpatialTwin3D = lazy(() => import("@/components/sensing/SpatialTwin3D"));
 import { useRuViewSensing, type NodeSensing } from "@/hooks/useRuViewSensing";
 import { classifyBreathing, classifyHeart, type VitalStatus } from "@/services/ruview";
+import { setAmbientRF } from "@/services/ruview";
+import { useWifiScanning } from "@/hooks/useWifiScanning";
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Wifi, WifiOff, Activity, HeartPulse, Wind, Users, ShieldAlert, Radio, Info, Boxes,
@@ -25,16 +29,16 @@ const STATUS_CLS: Record<VitalStatus, string> = {
 };
 
 const PRIMITIVE_LABEL: Record<string, string> = {
-  someone_sleeping: "Đang ngủ",
-  possible_distress: "Nghi ngờ nguy cấp",
-  room_active: "Phòng có hoạt động",
-  elderly_inactivity_anomaly: "Bất thường: ít vận động",
-  no_movement: "Không chuyển động",
-  fall_risk_elevated: "Nguy cơ té ngã cao",
-  bathroom_occupied: "Nhà vệ sinh có người",
-  bed_exit: "Rời giường",
-  meeting_in_progress: "Đang họp",
-  multi_room_transition: "Di chuyển giữa phòng",
+  someone_sleeping: "sensing.presence.asleep",
+  possible_distress: "sensing.alerts.suspectedCritical",
+  room_active: "sensing.presence.occupied",
+  elderly_inactivity_anomaly: "sensing.alerts.lowActivity",
+  no_movement: "sensing.presence.noMotion",
+  fall_risk_elevated: "sensing.alerts.fallRiskHigh",
+  bathroom_occupied: "sensing.presence.bathroomOccupied",
+  bed_exit: "sensing.presence.outOfBed",
+  meeting_in_progress: "sensing.presence.inMeeting",
+  multi_room_transition: "sensing.presence.movingBetweenRooms",
 };
 
 function riskTone(score: number) {
@@ -45,13 +49,13 @@ function riskTone(score: number) {
 
 /** Why a vital is currently unmeasurable, in plain Vietnamese. */
 const UNMEASURABLE: Record<string, string> = {
-  motion_too_high: "đang cử động — không đo được",
-  weak_signal: "tín hiệu yếu",
-  no_presence: "không có người",
-  insufficient_data: "đang thu tín hiệu…",
-  unstable_signal: "tín hiệu nhiễu",
-  implausible_change: "biến thiên bất thường",
-  no_data: "đang thu tín hiệu…",
+  motion_too_high: "sensing.vitals.movingUnavailable",
+  weak_signal: "sensing.vitals.weakSignal",
+  no_presence: "sensing.presence.noOccupant",
+  insufficient_data: "sensing.acquiring",
+  unstable_signal: "sensing.vitals.noisySignal",
+  implausible_change: "sensing.vitals.abnormalVariance",
+  no_data: "sensing.acquiring",
 };
 
 /**
@@ -62,10 +66,11 @@ const UNMEASURABLE: Record<string, string> = {
 function VitalReadout({
   est, z,
 }: { est: { value: number | null; confidence: number; reason: string }; z: number | null }) {
+  const { t } = useTranslation();
   if (est.value == null) {
     return (
       <div className="h-8 flex items-center text-xs text-muted-foreground">
-        {UNMEASURABLE[est.reason] ?? "không đo được"}
+        {est.reason && UNMEASURABLE[est.reason] ? t(UNMEASURABLE[est.reason]) : t("sensing.vitals.unavailable")}
       </div>
     );
   }
@@ -78,8 +83,7 @@ function VitalReadout({
       <span className="text-xs text-muted-foreground">bpm</span>
       <span
         className="text-[10px] text-muted-foreground ml-auto tabular-nums"
-        title={`Độ tin cậy ${(est.confidence * 100).toFixed(0)}%` +
-          (z != null ? ` · lệch ${z.toFixed(1)}σ so với mức nền của chính người này` : "")}
+        title={t("sensing.confidence", { pct: (est.confidence * 100).toFixed(0) }) + (z != null ? t("sensing.zDeviation", { z: z.toFixed(1) }) : "")}
       >
         {(est.confidence * 100).toFixed(0)}%
       </span>
@@ -88,6 +92,7 @@ function VitalReadout({
 }
 
 function NodeCard({ n }: { n: NodeSensing }) {
+  const { t } = useTranslation();
   const v = n.latest;
   const present = !!v?.presence;
   const activeStates = n.semantics.filter((s) => s.active);
@@ -98,10 +103,10 @@ function NodeCard({ n }: { n: NodeSensing }) {
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Radio className="w-4 h-4 text-primary" />
-            {n.node.label}
+            {t(n.node.label)}
           </CardTitle>
           <Badge variant={present ? "default" : "outline"} className="text-xs">
-            {present ? `${v?.n_persons ?? 1} người` : "trống"}
+            {present ? t("sensing.personCount", { count: v?.n_persons ?? 1 }) : t("sensing.presence.empty")}
           </Badge>
         </div>
         <p className="text-[11px] text-muted-foreground font-mono">
@@ -113,14 +118,14 @@ function NodeCard({ n }: { n: NodeSensing }) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <Wind className="w-3.5 h-3.5" /> Nhịp thở
+              <Wind className="w-3.5 h-3.5" /> {t("sensing.vitals.breathing")}
             </div>
             <VitalReadout est={n.breathing} z={n.breathingZ} />
             <VitalsTrace history={n.history} field="breathing_rate_bpm" className="text-sky-500" />
           </div>
           <div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <HeartPulse className="w-3.5 h-3.5" /> Nhịp tim
+              <HeartPulse className="w-3.5 h-3.5" /> {t("sensing.vitals.heartRate")}
             </div>
             <VitalReadout est={n.heart} z={n.heartZ} />
             <VitalsTrace history={n.history} field="heartrate_bpm" className="text-rose-500" />
@@ -129,7 +134,7 @@ function NodeCard({ n }: { n: NodeSensing }) {
 
         <div>
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-            <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Mức vận động</span>
+            <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> {t("sensing.motionLevel")}</span>
             <span className="tabular-nums">{v ? (v.motion * 100).toFixed(0) : 0}%</span>
           </div>
           <VitalsTrace history={n.history} field="motion" className="text-violet-500" />
@@ -137,7 +142,7 @@ function NodeCard({ n }: { n: NodeSensing }) {
 
         <div>
           <div className="flex items-center justify-between text-xs mb-1">
-            <span className="text-muted-foreground">Nguy cơ té ngã</span>
+            <span className="text-muted-foreground">{t("sensing.fallRisk")}</span>
             <span className="font-semibold tabular-nums">{n.fallRisk}/100</span>
           </div>
           <div className="h-1.5 rounded-full bg-muted overflow-hidden">
@@ -158,7 +163,7 @@ function NodeCard({ n }: { n: NodeSensing }) {
                 }
                 title={s.reason.join(" · ")}
               >
-                {PRIMITIVE_LABEL[s.primitive] ?? s.primitive}
+                {PRIMITIVE_LABEL[s.primitive] ? t(PRIMITIVE_LABEL[s.primitive]) : s.primitive}
                 {s.score != null ? ` (${s.score})` : ""}
               </Badge>
             ))}
@@ -170,6 +175,22 @@ function NodeCard({ n }: { n: NodeSensing }) {
 }
 
 export default function Sensing() {
+  const { t } = useTranslation();
+
+  // Feed the real browser RF measurement into the sensing engine. Without a
+  // RuView mesh the vitals come from a simulator, and this is what makes that
+  // simulator respond to the actual room instead of running on a fixed clock.
+  const { env: rfEnv } = useWifiScanning(8000);
+  useEffect(() => {
+    if (!rfEnv.sampledAt) return;
+    setAmbientRF({
+      congestion: rfEnv.channelCongestion,
+      jitter: rfEnv.rttJitter,
+      devices: rfEnv.estimatedDevices,
+      radiusM: rfEnv.spatialRadiusMetres,
+      sampledAt: rfEnv.sampledAt,
+    });
+  }, [rfEnv]);
   const { nodes, connected, source, engineDetail, summary, positionFix } = useRuViewSensing();
   const [view, setView] = useState<"3d" | "2d">("3d");
 
@@ -179,16 +200,15 @@ export default function Sensing() {
         <div className="min-w-0">
           <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
             <Wifi className="w-5 h-5 sm:w-6 sm:h-6 text-primary shrink-0" />
-            <span className="leading-tight">Giám sát sinh hiệu không tiếp xúc</span>
+            <span className="leading-tight">{t("sensing.title")}</span>
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Nhịp thở, nhịp tim và chuyển động đo bằng sóng WiFi (CSI) — xuyên tường,
-            không camera, không thiết bị đeo trên người bệnh.
+              {t("sensing.subtitle")}
           </p>
         </div>
         <Badge variant={connected ? "default" : "outline"} className="gap-1.5 shrink-0">
           {connected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-          {connected ? "Engine trực tiếp" : "Chế độ mô phỏng"}
+          {connected ? t("sensing.liveEngine") : t("sensing.simMode")}
         </Badge>
       </div>
 
@@ -203,9 +223,9 @@ export default function Sensing() {
           <span className="absolute inset-0 rounded-full border border-primary/40 animate-ping" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">Quét WiFi toàn nhà</span>
+          <span className="block text-sm font-semibold">{t("sensing.buildingScanCta")}</span>
           <span className="block text-[11px] text-muted-foreground truncate">
-            Vùng phủ cảm biến, điểm mù và vị trí đặt thêm node
+                {t("sensing.buildingScanSub")}
           </span>
         </span>
         <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -214,30 +234,29 @@ export default function Sensing() {
       {source === "simulated" && (
         <Alert className="hidden sm:flex order-2">
           <Info className="h-4 w-4" />
-          <AlertDescription className="text-xs">
-            Đang hiển thị <strong>dữ liệu mô phỏng</strong> (chưa kết nối bộ thu RuView
-            {engineDetail ? ` — ${engineDetail}` : ""}). Cấu hình <code>VITE_RUVIEW_WS_URL</code> trỏ
-            tới sensing-server để nhận tín hiệu CSI thật từ mesh ESP32.
-          </AlertDescription>
+          <AlertDescription className="text-xs"
+            dangerouslySetInnerHTML={{ __html: t("sensing.simBanner", {
+              reason: engineDetail || "no-engine-configured",
+            }) }} />
         </Alert>
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 order-4">
 
         <Card className="p-2.5 sm:p-3">
-          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Radio className="w-3.5 h-3.5 shrink-0" /> Cảm biến</div>
+          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Radio className="w-3.5 h-3.5 shrink-0" /> {t("sensing.kpi.sensors")}</div>
           <div className="text-xl sm:text-2xl font-bold">{nodes.length}</div>
         </Card>
         <Card className="p-2.5 sm:p-3">
-          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Users className="w-3.5 h-3.5 shrink-0" /> Phòng có người</div>
+          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Users className="w-3.5 h-3.5 shrink-0" /> {t("sensing.kpi.roomsOccupied")}</div>
           <div className="text-xl sm:text-2xl font-bold">{summary.occupied}</div>
         </Card>
         <Card className="p-2.5 sm:p-3">
-          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 shrink-0" /> Tổng người</div>
+          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 shrink-0" /> {t("sensing.kpi.totalPeople")}</div>
           <div className="text-xl sm:text-2xl font-bold">{summary.people}</div>
         </Card>
         <Card className="p-2.5 sm:p-3">
-          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5 shrink-0" /> Cảnh báo</div>
+          <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5 shrink-0" /> {t("sensing.kpi.alerts")}</div>
           <div className={`text-xl sm:text-2xl font-bold ${summary.activeAlerts.length ? "text-rose-600" : ""}`}>
             {summary.activeAlerts.length}
           </div>
@@ -250,12 +269,12 @@ export default function Sensing() {
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <CardTitle className="text-sm sm:text-base flex items-center gap-2">
-                <Boxes className="w-4 h-4 text-primary shrink-0" /> Bản sao số không gian
+                <Boxes className="w-4 h-4 text-primary shrink-0" /> {t("sensing.twin.title")}
               </CardTitle>
               <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">
                 {view === "3d"
-                  ? "Chiều cao = tư thế (đứng/nằm), lồng ngực phập phồng đúng nhịp thở đo được, vòng sáng = độ tin cậy. Kéo để xoay."
-                  : "Vị trí suy ra từ cường độ nhiễu CSI. Quầng rộng = độ tin cậy thấp hơn."}
+                  ? t("sensing.twin.subtitle")
+                  : t("sensing.twin.posHint")}
               </p>
             </div>
             <div className="flex rounded-lg border overflow-hidden shrink-0">
@@ -267,7 +286,7 @@ export default function Sensing() {
                     view === m ? "bg-primary text-primary-foreground" : "hover:bg-accent"
                   }`}
                 >
-                  {m === "3d" ? "3D" : "Sơ đồ"}
+                  {m === "3d" ? "3D" : t("sensing.twin.viewPlan")}
                 </button>
               ))}
             </div>
@@ -278,7 +297,7 @@ export default function Sensing() {
             <Suspense
               fallback={
                 <div className="aspect-square sm:aspect-[16/10] w-full max-w-3xl mx-auto rounded-xl bg-slate-950 flex items-center justify-center text-xs text-slate-400">
-                  Đang dựng không gian 3D…
+                  {t("sensing.building3d")}
                 </div>
               }
             >
@@ -295,7 +314,7 @@ export default function Sensing() {
         {nodes.map((n) => (
           <VitalsMonitor
             key={`mon-${n.node.node_id}`}
-            label={n.node.label}
+            label={t(n.node.label)}
             breathing={n.breathing}
             heart={n.heart}
             history={n.history}
@@ -310,8 +329,7 @@ export default function Sensing() {
       </div>
 
       <p className="text-[11px] text-muted-foreground border-t pt-3 order-8">
-
-        Công cụ hỗ trợ tham khảo. Không thay thế tư vấn và chẩn đoán của bác sĩ.
+              {t("sensing.disclaimer")}
       </p>
     </div>
   );

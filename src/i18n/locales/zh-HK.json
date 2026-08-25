@@ -760,5 +760,116 @@
     "step2Desc": "AI 系統分析並在數分鐘內建立您的個人化數碼健康孿生。",
     "step3Title": "接收主動警報",
     "step3Desc": "數碼孿生 24/7 監測，在健康風險發生前向您發出警報。"
+  },
+  "sensing": {
+    "title": "非接觸式生命體徵監測",
+    "subtitle": "以 WiFi 訊號（CSI）量度呼吸、心率與活動 — 穿牆偵測，無鏡頭，病人身上無需佩戴任何裝置。",
+    "simMode": "模擬模式",
+    "liveEngine": "實時引擎",
+    "simBanner": "正顯示<b>模擬數據</b>（尚未連接 RuView 接收器 — {{reason}}）。請將 VITE_RUVIEW_WS_URL 指向 sensing-server，以接收 ESP32 mesh 的真實 CSI 訊號。",
+    "acquiring": "正在擷取訊號⋯",
+    "kpi": {
+      "sensors": "感測器",
+      "roomsOccupied": "有人房間",
+      "totalPeople": "偵測人數",
+      "alerts": "警報"
+    },
+    "twin": {
+      "title": "空間數碼孿生",
+      "subtitle": "高度＝姿勢（站立／躺臥），胸廓起伏對應實測呼吸頻率，光環＝可信度。拖曳可旋轉。",
+      "realtime": "空間孿生：實時顯示居住者位置",
+      "view3d": "3D",
+      "viewPlan": "平面圖",
+      "posHint": "位置由 CSI 擾動強度推算。光環越大，可信度越低。"
+    },
+    "rooms": {
+      "bedroom": "睡房",
+      "living": "客廳",
+      "bathroom": "洗手間"
+    },
+    "vitals": {
+      "breathing": "呼吸",
+      "heartRate": "心率",
+      "motion": "活動",
+      "nightVitals": "夜間生命體徵 —",
+      "unavailable": "無法量度",
+      "movingUnavailable": "正在活動 — 無法量度",
+      "weakSignal": "訊號微弱",
+      "noisySignal": "訊號受干擾",
+      "abnormalVariance": "變異異常",
+      "inferredFrom": "由活動與呼吸推算",
+      "traceNote": "呼吸與心率曲線由實測頻率重建；活動曲線為 mesh 傳回的原始訊號。"
+    },
+    "presence": {
+      "asleep": "睡眠中",
+      "awake": "清醒",
+      "noOccupant": "無人",
+      "empty": "空置",
+      "occupied": "房間有活動",
+      "bathroomOccupied": "洗手間有人",
+      "inMeeting": "會議中",
+      "movingBetweenRooms": "在房間之間移動",
+      "outOfBed": "離床",
+      "noMotion": "無活動",
+      "prolongedNoMotion": "長時間靜止"
+    },
+    "alerts": {
+      "fallDetected": "偵測到跌倒",
+      "fallRiskHigh": "跌倒風險高",
+      "abnormalVitals": "生命體徵異常",
+      "inactivityAnomaly": "活動量異常偏低",
+      "lowActivity": "異常：活動量低",
+      "checkNow": "須立即查看",
+      "suspectedCritical": "疑似危急",
+      "vitalsOutOfRange": "呼吸或心率超出安全範圍",
+      "presentButStill": "房內有人但幾乎完全靜止",
+      "belowBaseline": "遠低於此人的基線水平",
+      "hrSpikeWithMotion": "心率異常上升並伴隨劇烈活動"
+    },
+    "coverage": {
+      "title": "全屋感測器覆蓋圖"
+    },
+    "confidence": "可信度 {{pct}}%",
+    "zDeviation": " · 偏離此人基線 {{z}}σ",
+    "personCount": "{{count}} 人",
+    "personCount_plural": "{{count}} 人",
+    "motionLevel": "活動程度",
+    "fallRisk": "跌倒風險",
+    "buildingScanCta": "全屋 WiFi 勘測",
+    "buildingScanSub": "感測覆蓋範圍、盲區，以及建議加裝節點的位置",
+    "building3d": "正在建構 3D 空間⋯",
+    "disclaimer": "本工具僅供參考，不能取代醫生的診斷與建議。",
+    "care": {
+      "title": "居家護理",
+      "subtitle": "照顧獨居長者 — 睡眠、活動與跌倒風險，毋須佩戴任何裝置，睡房內亦無鏡頭。",
+      "simNote": "模擬數據 — 尚未連接 RuView 接收器。",
+      "allNormal": "所有讀數均在正常範圍內，沒有未處理的警報。",
+      "restState": "休息狀態",
+      "breathingSteady": "呼吸平穩，{{bpm}} bpm，活動極少",
+      "fallRisk": "跌倒風險",
+      "fallRiskBasis": "根據活動變異度與生命體徵綜合推算",
+      "activityLevel": "活動程度",
+      "nightVitalsOf": "夜間生命體徵 —",
+      "breathingBpm": "呼吸（bpm）",
+      "heartBpm": "心率（bpm）",
+      "normalSleep": "睡眠時正常值：12–20 bpm",
+      "normalResting": "靜息時正常值：60–100 bpm",
+      "disclaimer2": "以 WiFi 訊號量度的生命體徵存在誤差；一旦出現急症徵狀，請立即致電急救服務。"
+    },
+    "scan": {
+      "title": "全屋掃描",
+      "subtitle": "為整個平面圖勘測 WiFi 感測覆蓋範圍 — 找出可量度區域、盲區，以及應加裝感測器的位置。",
+      "physicsNote": "感測距離取決於<strong>反射訊號的來回路徑</strong>（訊號傳出再折返），因此衰減與 <code>d⁴</code> 成正比 — 可量度半徑（約 5 米）遠小於一般 WiFi 覆蓋範圍。此為安裝規劃的估算模型，需實地量測驗證。",
+      "area": "面積",
+      "measurable": "可量度",
+      "goodQuality": "品質良好",
+      "localisable": "可定位",
+      "coverageMap": "覆蓋範圍圖",
+      "good": "良好",
+      "usable": "可用",
+      "blindSpot": "盲區",
+      "suggestGain": "建議 +{{gain}}%",
+      "extraNode": "加裝 {{n}}"
+    }
   }
 }

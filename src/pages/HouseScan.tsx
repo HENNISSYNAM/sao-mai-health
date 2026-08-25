@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { Radar, Radio, TriangleAlert, Plus, Minus, Info, CheckCircle2 } from "lu
  * more node would recover the most area.
  */
 export default function HouseScan() {
+  const { t } = useTranslation();
   const { nodes: live } = useRuViewSensing();
   const [extra, setExtra] = useState<{ x: number; y: number }[]>([]);
 
@@ -28,7 +30,7 @@ export default function HouseScan() {
       // Extra nodes are modelled as tiny virtual rooms centred on the drop point,
       // so they contribute coverage without adding walls.
       ...extra.map((e, i) => ({
-        node_id: `extra-${i}`, label: `Bổ sung ${i + 1}`,
+        node_id: `extra-${i}`, label: `extra-${i + 1}`,
         x: e.x - 0.5, y: e.y - 0.5, w: 1, h: 1,
       })),
     ],
@@ -49,11 +51,10 @@ export default function HouseScan() {
     <div className="max-w-5xl mx-auto space-y-4">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Radar className="w-6 h-6 text-primary" /> Quét toàn nhà
+          <Radar className="w-6 h-6 text-primary" /> {t("sensing.scan.title")}
         </h1>
         <p className="text-sm text-muted-foreground">
-          Khảo sát vùng phủ cảm biến WiFi cho toàn bộ mặt bằng — xác định khu vực đo được,
-          điểm mù, và vị trí nên đặt thêm cảm biến.
+            {t("sensing.scan.subtitle")}
         </p>
       </div>
 
@@ -68,21 +69,21 @@ export default function HouseScan() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Diện tích</div>
+          <div className="text-xs text-muted-foreground">{t("sensing.scan.area")}</div>
           <div className="text-2xl font-bold">{areaM2.toFixed(0)}<span className="text-sm font-normal"> m²</span></div>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Đo được</div>
+          <div className="text-xs text-muted-foreground">{t("sensing.scan.measurable")}</div>
           <div className={`text-2xl font-bold ${report.covered >= 0.9 ? "text-emerald-600" : "text-amber-600"}`}>
             {pct(report.covered)}
           </div>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Chất lượng tốt</div>
+          <div className="text-xs text-muted-foreground">{t("sensing.scan.goodQuality")}</div>
           <div className="text-2xl font-bold">{pct(report.wellCovered)}</div>
         </Card>
         <Card className="p-3">
-          <div className="text-xs text-muted-foreground">Định vị được</div>
+          <div className="text-xs text-muted-foreground">{t("sensing.scan.localisable")}</div>
           <div className="text-2xl font-bold">{pct(report.multilaterable)}</div>
         </Card>
       </div>
@@ -90,23 +91,23 @@ export default function HouseScan() {
       <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <CardTitle className="text-base">Bản đồ vùng phủ</CardTitle>
+            <CardTitle className="text-base">{t("sensing.scan.coverageMap")}</CardTitle>
             <div className="flex items-center gap-3 text-[11px]">
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-sm" style={{ background: "#10b981" }} /> tốt
+                <span className="w-3 h-3 rounded-sm" style={{ background: "#10b981" }} /> {t("sensing.scan.good")}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-sm" style={{ background: "#f59e0b" }} /> dùng được
+                <span className="w-3 h-3 rounded-sm" style={{ background: "#f59e0b" }} /> {t("sensing.scan.usable")}
               </span>
               <span className="flex items-center gap-1">
-                <span className="w-3 h-3 rounded-sm" style={{ background: "#ef4444" }} /> điểm mù
+                <span className="w-3 h-3 rounded-sm" style={{ background: "#ef4444" }} /> {t("sensing.scan.blindSpot")}
               </span>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <svg viewBox="0 0 100 100" className="w-full max-w-2xl mx-auto rounded-lg bg-slate-950"
-               role="img" aria-label="Bản đồ vùng phủ cảm biến toàn nhà">
+               role="img" aria-label={t("sensing.coverage.title")}>
             {/* coverage cells */}
             {report.cells.map((c, i) => (
               <rect
@@ -153,7 +154,7 @@ export default function HouseScan() {
                 <circle cx={report.suggestion.x} cy={report.suggestion.y} r="2.4"
                         fill="none" stroke="#f472b6" strokeWidth="0.6" strokeDasharray="1.2 1" />
                 <text x={report.suggestion.x + 3.2} y={report.suggestion.y + 1} fontSize="2.6" fill="#f472b6">
-                  đề xuất +{report.suggestion.gain}%
+                  {t("sensing.scan.suggestGain", { gain: report.suggestion.gain })}
                 </text>
               </g>
             )}
