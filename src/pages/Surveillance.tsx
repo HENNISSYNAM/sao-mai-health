@@ -49,6 +49,12 @@ const surveillanceRegions = [
   { id: 'hk',      name: '🌏 Hong Kong',      center: [114.17, 22.32],bbox: [113.8, 22.1, 114.5, 22.6] },
   { id: 'sg',      name: '🌏 Singapore',      center: [103.82, 1.35], bbox: [103.5, 1.1, 104.1, 1.6] },
   { id: 'bk',      name: '🌏 Bangkok',        center: [100.50, 13.76],bbox: [100.0, 13.5, 101.0, 14.1] },
+  // Global quick-jumps — one per continent the agent network covers
+  { id: 'world',   name: '🌍 World',          center: [30, 15],       bbox: [-170, -55, 180, 70] },
+  { id: 'eu',      name: '🇪🇺 Europe',        center: [10, 50],       bbox: [-11, 35, 40, 62] },
+  { id: 'us',      name: '🌎 Americas',       center: [-80, 10],      bbox: [-125, -40, -35, 50] },
+  { id: 'af',      name: '🌍 Africa',         center: [20, 2],        bbox: [-18, -35, 52, 37] },
+  { id: 'oc',      name: '🏝️ Oceania',        center: [150, -30],     bbox: [110, -47, 180, -10] },
 ];
 // Keep backwards compat
 const vietnamRegions = surveillanceRegions;
@@ -355,10 +361,11 @@ export default function Surveillance() {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/dark-v11',
-      center: [106.6297, 10.8231],
-      zoom: 6,
+      center: [30, 15],   // World view — agents sweep 47 regions on 6 continents
+      zoom: 1.4,
       attributionControl: false,
-      minZoom: 2,
+      minZoom: 1,
+      renderWorldCopies: true,
     });
 
     map.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
@@ -1748,8 +1755,8 @@ export default function Surveillance() {
       map.current.flyTo({ center: [gps.lng, gps.lat], zoom: 14, duration: 1500 });
   };
 
-  const flyToVietnam = () => {
-    map.current?.flyTo({ center: [106.5, 16.0], zoom: 5.5, duration: 2000 });
+  const flyToWorld = () => {
+    map.current?.flyTo({ center: [30, 15], zoom: 1.4, duration: 1600 });
   };
 
   const handleCaseAdded = () => { setCurrentPage(1); window.location.reload(); };
@@ -1800,14 +1807,14 @@ export default function Surveillance() {
                 });
               }
             }}
-            className={`px-2 py-1.5 md:px-3 md:py-2 rounded-full text-[10px] md:text-xs font-medium transition-all shrink-0 ${
+            className={`px-3 py-2.5 md:px-3 md:py-2 min-h-[40px] md:min-h-0 flex items-center rounded-full text-[11px] md:text-xs font-medium transition-all shrink-0 ${
               mapMode === mode
                 ? 'bg-primary text-primary-foreground shadow-lg'
                 : 'bg-card/80 backdrop-blur-md text-muted-foreground hover:bg-card border border-border/40'
             }`}
           >
             <span className="mr-1">{icon}</span>
-            <span className="hidden sm:inline">{label}</span>
+            <span>{label}</span>
           </button>
         ))}
       </div>
@@ -1902,8 +1909,8 @@ export default function Surveillance() {
         </Badge>
 
         {/* Vietnam focus - hidden on very small screens */}
-        <Button size="sm" variant="secondary" className="hidden sm:flex h-9 md:h-10 rounded-full bg-card/90 backdrop-blur-md shadow-lg text-xs gap-1.5 shrink-0" onClick={flyToVietnam}>
-          🇻🇳 Vietnam
+        <Button size="sm" variant="secondary" className="h-9 md:h-10 rounded-full bg-card/90 backdrop-blur-md shadow-lg text-xs gap-1.5 shrink-0" onClick={flyToWorld}>
+          🌍 <span className="hidden sm:inline">World</span>
         </Button>
 
         <Button size="icon" className="h-9 w-9 md:h-10 md:w-10 rounded-full shadow-lg shrink-0" onClick={() => setShowAddModal(true)}>
@@ -1935,7 +1942,7 @@ export default function Surveillance() {
           title="Swarm Intelligence & WiFi Scanner"
         >
           <Brain className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Swarm AI</span>
+          <span>Swarm AI</span>
         </Button>
       </div>
 
@@ -2676,8 +2683,8 @@ function SimulationControlBar({ swarm, onStop }: SimBarProps) {
   };
 
   return (
-    <div className="absolute bottom-14 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
-      <div className="flex items-center gap-3 bg-card/95 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl px-4 py-2.5 min-w-[340px] max-w-[520px]">
+    <div className="absolute bottom-[8.5rem] md:bottom-14 left-1/2 -translate-x-1/2 z-20 pointer-events-auto">
+      <div className="flex items-center gap-2 sm:gap-3 bg-card/95 backdrop-blur-xl border border-border/60 rounded-2xl shadow-2xl px-3 sm:px-4 py-2.5 w-[calc(100vw-1.5rem)] sm:w-auto sm:min-w-[340px] max-w-[520px]">
 
         {/* Animated indicator */}
         <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isRunning ? 'bg-cyan-400 animate-pulse' : 'bg-muted-foreground'}`} />

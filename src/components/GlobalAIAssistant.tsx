@@ -181,7 +181,7 @@ export const GlobalAIAssistant = () => {
   const ActiveIcon = SKILL_LABELS[skill].icon;
 
   return (
-    <Card className="fixed bottom-6 right-6 w-[420px] h-[650px] shadow-2xl z-50 flex flex-col border-2 animate-in slide-in-from-bottom-4 duration-300">
+    <Card className="fixed z-50 flex flex-col border-2 shadow-2xl animate-in slide-in-from-bottom-4 duration-300 inset-x-3 bottom-20 max-h-[70vh] sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-[420px] sm:h-[650px] sm:max-h-[calc(100vh-3rem)]">
       <div className="flex items-center justify-between p-3 border-b bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground rounded-t-lg gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <ActiveIcon className="h-5 w-5 shrink-0" />

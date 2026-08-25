@@ -166,3 +166,31 @@ export async function signHealthRecord(record: unknown, secret: string): Promise
   );
   return btoa(String.fromCharCode(...new Uint8Array(sig)));
 }
+
+// ─── PII hashing ─────────────────────────────────────────────────────────────
+
+/**
+ * Salt for PII hashing. Public by design: it is a domain separator so the same
+ * national ID hashes differently here than in any other system, not a secret.
+ */
+const PII_DOMAIN = 'sao-mai-health:pii:v1';
+
+/**
+ * One-way hash for patient identifiers (national ID, phone, address).
+ *
+ * Replaces the previous `btoa()` call, which was reversible Base64 encoding
+ * rather than a hash — anyone with database read access could decode it back
+ * to the patient's real identity.
+ *
+ * SHA-256 over a domain-separated input, returned as 32 hex characters to
+ * match the existing column width.
+ */
+export async function hashPII(value: string): Promise<string> {
+  if (!value) return '';
+  const bytes = new TextEncoder().encode(`${PII_DOMAIN}|${value.trim().toLowerCase()}`);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return Array.from(new Uint8Array(digest))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, 32);
+}

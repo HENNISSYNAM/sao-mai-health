@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Scan, Save, User, MapPin, Calendar, Activity, Printer } from "lucide-react"
 import { useOfflineStorage } from "@/hooks/useOfflineStorage"
+import { hashPII } from "@/lib/quantumCrypto"
 import { supabase } from "@/integrations/supabase/client"
 import { CCIDScanner } from "@/components/CCIDScanner"
 
@@ -141,9 +142,9 @@ export default function CaseIntake() {
           p_symptoms: { text: data.symptoms || '', severity: data.severity },
           p_lat: 0,
           p_lng: 0,
-          p_mpi_hash: btoa(data.citizenId).slice(0, 32),
-          p_address_hash: btoa(unescape(encodeURIComponent(data.address))).slice(0, 32),
-          p_phone_hash: data.phone ? btoa(data.phone).slice(0, 32) : '',
+          p_mpi_hash: await hashPII(data.citizenId),
+          p_address_hash: await hashPII(data.address),
+          p_phone_hash: data.phone ? await hashPII(data.phone) : '',
         })
         if (error) throw error
         toast.success("Đã nhập ca bệnh thành công")

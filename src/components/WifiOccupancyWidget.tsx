@@ -161,7 +161,7 @@ export function WifiOccupancyWidget() {
             <Badge className={`${DENSITY_STYLE[env.occupancyDensity]} border text-[10px] px-1.5`}>
               {DENSITY_LABEL[env.occupancyDensity]}
             </Badge>
-            <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground"
+            <Button size="icon" variant="ghost" className="h-9 w-9 md:h-6 md:w-6 text-muted-foreground"
                     onClick={scan} disabled={scanning}>
               <RefreshCw className={`h-3 w-3 ${scanning ? 'animate-spin' : ''}`} />
             </Button>
