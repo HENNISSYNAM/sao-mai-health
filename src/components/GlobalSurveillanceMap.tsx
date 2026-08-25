@@ -22,8 +22,8 @@ import { SURVEILLANCE_REGIONS, extractSeedSignals, type SeedSignal } from '@/ser
 
 // Expand map default to cover Vietnam → Hong Kong → ASEAN
 const MAP_DEFAULT_BOUNDS: [number, number, number, number] = [98, 1, 122, 25]; // [W, S, E, N]
-const MAP_DEFAULT_CENTER: [number, number] = [108, 14]; // Southeast Asia centroid
-const MAP_DEFAULT_ZOOM = 4.5;
+const MAP_DEFAULT_CENTER: [number, number] = [20, 20]; // World view — agents cover 6 continents
+const MAP_DEFAULT_ZOOM = 1.6;
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
@@ -232,7 +232,7 @@ export function GlobalSurveillanceMap() {
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: 'mapbox://styles/mapbox/light-v11',
-      center: MAP_DEFAULT_CENTER, // SE Asia — covers VN, HK, SG
+      center: MAP_DEFAULT_CENTER, // World — 47 regions across 6 continents
       zoom: MAP_DEFAULT_ZOOM,
       projection: 'globe'
     });

@@ -32,6 +32,9 @@ import { WifiOccupancyWidget } from "@/components/WifiOccupancyWidget";
 import { Brain, Wifi, Play, Square, ChevronRight } from "lucide-react";
 import { useSwarmSimulation } from "@/hooks/useSwarmSimulation";
 import { SURVEILLANCE_REGIONS } from "@/services/swarmIntelligenceEngine";
+import { useSurveillanceAgents } from "@/hooks/useSurveillanceAgents";
+import { AgentNetworkPanel } from "@/components/AgentNetworkPanel";
+import { useWifiScanning, sectorToLatLng } from "@/hooks/useWifiScanning";
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 
@@ -104,6 +107,10 @@ export default function Surveillance() {
 
   // ── Swarm simulation (renders on map) ──────────────────────────────────────
   const swarm = useSwarmSimulation();
+  // Autonomous agents sweep every region continuously and feed the map
+  const agentNet = useSurveillanceAgents(true);
+  // Live WiFi occupancy field, anchored to the user's GPS position
+  const wifi = useWifiScanning(20000);
   const [swarmRegions, setSwarmRegions] = useState<string[]>(['VN-HN', 'VN-HCM', 'HK', 'SG']);
   const [swarmDays, setSwarmDays] = useState(60);
   const [showSimBar, setShowSimBar] = useState(false);
@@ -391,6 +398,61 @@ export default function Surveillance() {
     return { type: 'FeatureCollection' as const, features };
   }, [allCaseEvents]);
 
+  // ── Sync WiFi occupancy field → Mapbox GeoJSON ───────────────────────────
+  // Re-projects on every scan, so moving the device moves the field with it.
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const src = map.current.getSource('wifi-field') as mapboxgl.GeoJSONSource;
+    if (!src) return;
+
+    const a = wifi.env.anchor;
+    if (!a) {
+      src.setData({ type: 'FeatureCollection', features: [] });
+      return;
+    }
+
+    const features: any[] = [
+      {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [a.lng, a.lat] },
+        properties: { kind: 'coverage', radiusM: wifi.env.spatialRadiusMetres },
+      },
+      ...wifi.env.sectors.map(sec => {
+        const p = sectorToLatLng({ lat: a.lat, lng: a.lng }, sec.bearing, sec.distanceM);
+        return {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [p.lng, p.lat] },
+          properties: { kind: 'sector', density: sec.density, bearing: sec.bearing },
+        };
+      }),
+    ];
+
+    src.setData({ type: 'FeatureCollection', features });
+  }, [wifi.env.anchor, wifi.env.sectors, wifi.env.spatialRadiusMetres, mapLoaded]);
+
+  // ── Sync agent detections → Mapbox GeoJSON ───────────────────────────────
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const src = map.current.getSource('agent-detections') as mapboxgl.GeoJSONSource;
+    if (!src) return;
+
+    src.setData({
+      type: 'FeatureCollection',
+      features: agentNet.detections.map(d => ({
+        type: 'Feature' as const,
+        geometry: { type: 'Point' as const, coordinates: [d.lng, d.lat] },
+        properties: {
+          regionName: d.regionName,
+          disease: d.disease,
+          severity: d.severity,
+          source: d.source,
+          detectedBy: d.detectedBy,
+          isNew: d.isNew,
+        },
+      })),
+    });
+  }, [agentNet.detections, mapLoaded]);
+
   // ── Sync swarm tick → Mapbox GeoJSON ─────────────────────────────────────
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
@@ -529,6 +591,108 @@ export default function Surveillance() {
           0, 'rgba(0,0,255,0)', 0.2, '#22c55e', 0.5, '#f59e0b', 0.8, '#ef4444', 1, '#dc2626'
         ],
       },
+    });
+
+    // ======= WIFI OCCUPANCY FIELD (anchored to the user's real position) ======
+    map.current.addSource('wifi-field', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection' as const, features: [] },
+    });
+
+    // Coverage disc — the scan radius around the user
+    map.current.addLayer({
+      id: 'wifi-coverage',
+      type: 'circle',
+      source: 'wifi-field',
+      filter: ['==', ['get', 'kind'], 'coverage'],
+      paint: {
+        'circle-radius': [
+          'interpolate', ['exponential', 2], ['zoom'],
+          12, 8,
+          20, ['/', ['get', 'radiusM'], 0.6],
+        ],
+        'circle-color': '#22D3EE',
+        'circle-opacity': 0.07,
+        'circle-stroke-width': 1,
+        'circle-stroke-color': 'rgba(34,211,238,0.35)',
+      },
+    });
+
+    // Per-sector density points projected onto real coordinates
+    map.current.addLayer({
+      id: 'wifi-sectors',
+      type: 'circle',
+      source: 'wifi-field',
+      filter: ['==', ['get', 'kind'], 'sector'],
+      minzoom: 13,
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['get', 'density'], 0, 3, 1, 10],
+        'circle-color': [
+          'interpolate', ['linear'], ['get', 'density'],
+          0, '#22D3EE', 0.5, '#F59E0B', 1, '#EF4444',
+        ],
+        'circle-opacity': 0.55,
+        'circle-blur': 0.4,
+      },
+    });
+
+    // ======= AGENT DETECTION LAYERS (autonomous, always-on) ===================
+    const emptyAgentGJ = { type: 'FeatureCollection' as const, features: [] };
+    map.current.addSource('agent-detections', { type: 'geojson', data: emptyAgentGJ });
+
+    // Outer pulse ring — expands on newly emitted detections
+    map.current.addLayer({
+      id: 'agent-pulse',
+      type: 'circle',
+      source: 'agent-detections',
+      filter: ['==', ['get', 'isNew'], true],
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['get', 'severity'], 0, 14, 1, 34],
+        'circle-color': ['interpolate', ['linear'], ['get', 'severity'],
+          0, '#22D3EE', 0.5, '#F59E0B', 1, '#EF4444'],
+        'circle-opacity': 0.18,
+        'circle-blur': 0.6,
+      },
+    });
+
+    // Detection dot
+    map.current.addLayer({
+      id: 'agent-dots',
+      type: 'circle',
+      source: 'agent-detections',
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['get', 'severity'], 0, 4, 1, 11],
+        'circle-color': ['interpolate', ['linear'], ['get', 'severity'],
+          0, '#22D3EE', 0.5, '#F59E0B', 1, '#EF4444'],
+        'circle-opacity': 0.9,
+        'circle-stroke-width': 1.5,
+        'circle-stroke-color': 'rgba(255,255,255,0.55)',
+      },
+    });
+
+    // Popup on click
+    map.current.on('click', 'agent-dots', (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      const p = f.properties as any;
+      new mapboxgl.Popup({ closeButton: true, maxWidth: '240px' })
+        .setLngLat((f.geometry as any).coordinates)
+        .setHTML(
+          `<div style="font-family:system-ui;padding:2px 4px;">
+             <div style="font-weight:700;font-size:13px;margin-bottom:4px;">${p.regionName}</div>
+             <div style="font-size:11px;color:#94a3b8;">Disease: <b style="color:#e2e8f0;">${p.disease}</b></div>
+             <div style="font-size:11px;color:#94a3b8;">Severity: <b style="color:#e2e8f0;">${Math.round(p.severity * 100)}%</b></div>
+             <div style="font-size:11px;color:#94a3b8;">Source: ${p.source}</div>
+             <div style="font-size:10px;color:#64748b;margin-top:4px;">Detected by ${p.detectedBy} agent</div>
+           </div>`
+        )
+        .addTo(map.current!);
+    });
+    map.current.on('mouseenter', 'agent-dots', () => {
+      if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+    });
+    map.current.on('mouseleave', 'agent-dots', () => {
+      if (map.current) map.current.getCanvas().style.cursor = '';
     });
 
     // ======= SWARM SIMULATION LAYERS (render epidemic spread on map) ===========
@@ -1777,6 +1941,7 @@ export default function Surveillance() {
 
       {/* ====== SWARM INTELLIGENCE DRAWER ====== */}
       <SwarmSidePanel
+        agentNet={agentNet}
         swarm={swarm}
         swarmRegions={swarmRegions}
         setSwarmRegions={setSwarmRegions}
@@ -2313,13 +2478,14 @@ export default function Surveillance() {
 
 // ── Swarm Intelligence Drawer ─────────────────────────────────────────────────
 interface SwarmSidePanelProps {
+  agentNet: ReturnType<typeof useSurveillanceAgents>;
   swarm: ReturnType<typeof useSwarmSimulation>;
   swarmRegions: string[];
   setSwarmRegions: (r: string[]) => void;
   swarmDays: number;
   setSwarmDays: (d: number) => void;
 }
-function SwarmSidePanel({ swarm, swarmRegions, setSwarmRegions, swarmDays, setSwarmDays }: SwarmSidePanelProps) {
+function SwarmSidePanel({ agentNet, swarm, swarmRegions, setSwarmRegions, swarmDays, setSwarmDays }: SwarmSidePanelProps) {
   const [open, setOpen] = React.useState(false);
   const isRunning = swarm.status === 'simulating' || swarm.status === 'extracting';
 
@@ -2354,6 +2520,24 @@ function SwarmSidePanel({ swarm, swarmRegions, setSwarmRegions, swarmDays, setSw
 
         {/* ── Scrollable body ── */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+          {/* Section 0 — Autonomous agents */}
+          <div>
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Autonomous Surveillance
+            </p>
+            <AgentNetworkPanel
+              agents={agentNet.agents}
+              detections={agentNet.detections}
+              totalRegions={agentNet.totalRegions}
+              totalDetections={agentNet.totalDetections}
+              isRunning={agentNet.isRunning}
+              onStart={agentNet.start}
+              onStop={agentNet.stop}
+            />
+          </div>
+
+          <div className="border-t border-border/40" />
 
           {/* Section 1 — WiFi Spatial Scan */}
           <div>

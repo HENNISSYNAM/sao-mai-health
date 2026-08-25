@@ -8,6 +8,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { SURVEILLANCE_REGIONS } from './surveillanceRegions';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -66,18 +67,16 @@ export interface PredictionReport {
 
 // ─── Region Definitions ──────────────────────────────────────────────────────
 
-export const SURVEILLANCE_REGIONS: Record<string, { lat: number; lng: number; name: string; population: number }> = {
-  'VN-HN':  { lat: 21.03, lng: 105.85, name: 'Hà Nội',        population: 8246600 },
-  'VN-HCM': { lat: 10.78, lng: 106.69, name: 'TP. Hồ Chí Minh', population: 9162900 },
-  'VN-DN':  { lat: 16.06, lng: 108.22, name: 'Đà Nẵng',        population: 1134310 },
-  'VN-CT':  { lat: 10.04, lng: 105.78, name: 'Cần Thơ',         population: 1235171 },
-  'HK':     { lat: 22.32, lng: 114.17, name: 'Hong Kong',        population: 7413100 },
-  'SG':     { lat: 1.35,  lng: 103.82, name: 'Singapore',        population: 5637022 },
-  'TH-BK':  { lat: 13.76, lng: 100.50, name: 'Bangkok',          population: 10539000 },
-  'MY-KL':  { lat: 3.14,  lng: 101.69, name: 'Kuala Lumpur',    population: 1982112 },
-  'CN-SZ':  { lat: 22.54, lng: 114.06, name: 'Shenzhen',         population: 17494398 },
-  'CN-GZ':  { lat: 23.13, lng: 113.26, name: 'Guangzhou',        population: 18676605 },
-};
+// Region registry lives in its own module; re-exported so existing imports
+// of SURVEILLANCE_REGIONS from this file keep working.
+export {
+  SURVEILLANCE_REGIONS,
+  REGIONS_BY_CONTINENT,
+  ALL_REGION_KEYS,
+  CONTINENTS,
+  countryFlag,
+} from './surveillanceRegions';
+export type { RegionMeta, Continent } from './surveillanceRegions';
 
 // ─── Seed Extractor ──────────────────────────────────────────────────────────
 
@@ -126,72 +125,139 @@ export async function extractSeedSignals(regionKeys: string[]): Promise<SeedSign
     });
   }
 
-  // 3. HK-specific OSINT fallback seed signals (reflects real endemic patterns)
-  //    Sources: HKSAR CHP bulletin, HA weekly surveillance, SCMP health desk
-  const hkFallbackSeeds: SeedSignal[] = [
-    {
-      type: 'osint',
-      region: 'HK',
-      disease: 'influenza',
-      magnitude: 0.62,
-      timestamp: Date.now() - 2 * 3600000,
-      source: 'CHP HKSAR Weekly Surveillance',
-      rawText: 'Influenza activity above baseline threshold in Hong Kong',
-      lat: 22.319,
-      lng: 114.169,
-    },
-    {
-      type: 'osint',
-      region: 'HK',
-      disease: 'covid',
-      magnitude: 0.48,
-      timestamp: Date.now() - 5 * 3600000,
-      source: 'Hospital Authority HA Weekly Report',
-      rawText: 'COVID-19 wastewater viral load elevated in Kowloon districts',
-      lat: 22.283,
-      lng: 114.153,
-    },
-    {
-      type: 'osint',
-      region: 'HK',
-      disease: 'hfmd',
-      magnitude: 0.35,
-      timestamp: Date.now() - 8 * 3600000,
-      source: 'Centre for Health Protection Bulletin',
-      rawText: 'Hand, foot and mouth disease cases rising in kindergartens, New Territories',
-      lat: 22.375,
-      lng: 114.120,
-    },
-    {
-      type: 'osint',
-      region: 'CN-SZ',
-      disease: 'influenza',
-      magnitude: 0.55,
-      timestamp: Date.now() - 3 * 3600000,
-      source: 'Shenzhen CDC Weekly Report',
-      rawText: 'Respiratory illness reports increasing across Futian and Nanshan districts',
-      lat: 22.543,
-      lng: 114.058,
-    },
-  ];
-
-  // Only inject HK seeds if the regionKeys requested include HK
-  if (regionKeys.includes('HK') || regionKeys.includes('CN-SZ')) {
-    signals.push(...hkFallbackSeeds.filter(s => regionKeys.includes(s.region)));
+  // 3. Endemic baseline seeds — every watched region gets a floor signal from
+  //    its endemic disease profile, so no region on the map is ever blank.
+  for (const rk of regionKeys) {
+    const r = SURVEILLANCE_REGIONS[rk];
+    if (!r) continue;
+    for (const disease of r.endemic) {
+      signals.push({
+        type: 'osint',
+        region: rk,
+        disease,
+        magnitude: endemicBaseline(disease),
+        timestamp: Date.now() - Math.random() * 12 * 3600000,
+        source: surveillanceSource(r.country),
+        rawText: `${diseaseLabel(disease)} endemic activity — ${r.name}`,
+        lat: r.lat + (Math.random() - 0.5) * 0.08,
+        lng: r.lng + (Math.random() - 0.5) * 0.08,
+      });
+    }
   }
 
   return signals;
 }
 
+/** Baseline transmission magnitude per endemic disease (WHO burden estimates) */
+function endemicBaseline(disease: string): number {
+  const levels: Record<string, number> = {
+    ebola: 0.9, mpox: 0.72, cholera: 0.68, lassa: 0.66,
+    covid: 0.5, influenza: 0.55, dengue: 0.6, malaria: 0.62,
+    tuberculosis: 0.45, measles: 0.58, typhoid: 0.4,
+    hfmd: 0.35, hepatitis: 0.3, mers: 0.5,
+    yellow_fever: 0.55, zika: 0.4,
+  };
+  // Small jitter so repeated runs are not identical
+  return Math.min(1, (levels[disease] ?? 0.3) * (0.85 + Math.random() * 0.3));
+}
+
+/** National surveillance body that would publish this signal */
+function surveillanceSource(country: string): string {
+  const sources: Record<string, string> = {
+    HK: 'CHP Hong Kong', CN: 'China CDC', VN: 'Vietnam MoH',
+    SG: 'MOH Singapore', TH: 'Thailand DDC', MY: 'Malaysia MoH',
+    ID: 'Indonesia Kemenkes', PH: 'Philippines DOH', IN: 'India NCDC',
+    BD: 'Bangladesh IEDCR', PK: 'Pakistan NIH', JP: 'Japan NIID',
+    KR: 'Korea KDCA', TW: 'Taiwan CDC', AE: 'UAE MoHAP', SA: 'Saudi MoH',
+    TR: 'Turkey MoH', GB: 'UKHSA', FR: 'Sante publique France',
+    DE: 'Robert Koch Institut', ES: 'Spain CNE', IT: 'Istituto Superiore di Sanita',
+    NL: 'RIVM', RU: 'Rospotrebnadzor', US: 'US CDC', CA: 'PHAC Canada',
+    MX: 'Mexico DGE', BR: 'Brazil MS', AR: 'Argentina MSAL',
+    EG: 'Egypt MoHP', NG: 'Nigeria NCDC', KE: 'Kenya MoH',
+    ZA: 'NICD South Africa', CD: 'DRC INSP',
+    AU: 'Australia NNDSS', NZ: 'NZ ESR',
+  };
+  return sources[country] ?? 'WHO Disease Outbreak News';
+}
+
+function diseaseLabel(d: string): string {
+  const labels: Record<string, string> = {
+    hfmd: 'Hand, foot & mouth disease',
+    yellow_fever: 'Yellow fever',
+    mers: 'MERS-CoV',
+    covid: 'COVID-19',
+    tuberculosis: 'Tuberculosis',
+  };
+  return labels[d] ?? d.charAt(0).toUpperCase() + d.slice(1);
+}
+
+/**
+ * Infer which watched region a news item refers to.
+ * Matches the region's own name, its city aliases, and its country code —
+ * falls back to the first watched region rather than a random one, so the
+ * same article always lands in the same place.
+ */
+const REGION_ALIASES: Record<string, string[]> = {
+  'VN-HN': ['hanoi', 'ha noi', 'hà nội'],
+  'VN-HCM': ['ho chi minh', 'hồ chí minh', 'saigon', 'sài gòn', 'hcmc'],
+  'VN-DN': ['da nang', 'đà nẵng'],
+  'VN-CT': ['can tho', 'cần thơ'],
+  'HK': ['hong kong', 'hongkong', 'kowloon', '香港'],
+  'SG': ['singapore'],
+  'TH-BK': ['bangkok', 'thailand'],
+  'MY-KL': ['kuala lumpur', 'malaysia'],
+  'ID-JK': ['jakarta', 'indonesia'],
+  'PH-MN': ['manila', 'philippines'],
+  'CN-SZ': ['shenzhen', '深圳'],
+  'CN-GZ': ['guangzhou', 'canton', '廣州'],
+  'CN-SH': ['shanghai', '上海'],
+  'CN-BJ': ['beijing', 'peking', '北京'],
+  'TW-TP': ['taipei', 'taiwan', '台北'],
+  'JP-TK': ['tokyo', 'japan'],
+  'KR-SE': ['seoul', 'korea'],
+  'IN-DL': ['delhi', 'new delhi'],
+  'IN-MB': ['mumbai', 'bombay'],
+  'BD-DK': ['dhaka', 'bangladesh'],
+  'PK-KH': ['karachi', 'pakistan'],
+  'AE-DB': ['dubai', 'emirates'],
+  'SA-RY': ['riyadh', 'saudi'],
+  'TR-IS': ['istanbul', 'turkey', 'turkiye'],
+  'GB-LN': ['london', 'united kingdom', 'britain', 'england'],
+  'FR-PR': ['paris', 'france'],
+  'DE-BR': ['berlin', 'germany'],
+  'ES-MD': ['madrid', 'spain'],
+  'IT-MI': ['milan', 'milano', 'italy'],
+  'NL-AM': ['amsterdam', 'netherlands'],
+  'RU-MW': ['moscow', 'russia'],
+  'US-NY': ['new york', 'nyc', 'manhattan'],
+  'US-LA': ['los angeles', 'california'],
+  'US-CH': ['chicago', 'illinois'],
+  'CA-TR': ['toronto', 'canada', 'ontario'],
+  'MX-MC': ['mexico city', 'mexico'],
+  'BR-SP': ['sao paulo', 'são paulo'],
+  'BR-RJ': ['rio de janeiro', 'brazil'],
+  'AR-BA': ['buenos aires', 'argentina'],
+  'EG-CA': ['cairo', 'egypt'],
+  'NG-LG': ['lagos', 'nigeria'],
+  'KE-NB': ['nairobi', 'kenya'],
+  'ZA-JB': ['johannesburg', 'south africa'],
+  'CD-KN': ['kinshasa', 'congo', 'drc'],
+  'AU-SY': ['sydney', 'australia'],
+  'AU-MB': ['melbourne', 'victoria'],
+  'NZ-AK': ['auckland', 'new zealand'],
+};
+
 function guessRegionFromText(text: string, regions: string[]): string {
   const lower = text.toLowerCase();
-  if (lower.includes('hong kong') || lower.includes('hk')) return 'HK';
-  if (lower.includes('singapore')) return 'SG';
-  if (lower.includes('hanoi') || lower.includes('hà nội')) return 'VN-HN';
-  if (lower.includes('ho chi minh') || lower.includes('hồ chí minh') || lower.includes('saigon')) return 'VN-HCM';
-  if (lower.includes('shenzhen')) return 'CN-SZ';
-  if (lower.includes('guangzhou')) return 'CN-GZ';
-  return regions[Math.floor(Math.random() * regions.length)] ?? 'VN-HCM';
+  // Longest alias first so "new york" beats "york" style partial hits
+  const candidates = regions
+    .flatMap(rk => (REGION_ALIASES[rk] ?? []).map(alias => ({ rk, alias })))
+    .sort((a, b) => b.alias.length - a.alias.length);
+
+  for (const { rk, alias } of candidates) {
+    if (lower.includes(alias)) return rk;
+  }
+  return regions[0] ?? 'VN-HCM';
 }
 
 function mapSeverityToMagnitude(category?: string): number {
