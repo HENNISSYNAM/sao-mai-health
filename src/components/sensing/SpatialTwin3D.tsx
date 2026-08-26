@@ -1,6 +1,7 @@
 import { Suspense, useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Grid, Text, RoundedBox } from "@react-three/drei";
+import { OrbitControls, Grid, Text, RoundedBox, Billboard } from "@react-three/drei";
+import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import type { NodeSensing } from "@/hooks/useRuViewSensing";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -30,6 +31,7 @@ function roomCentre(r: RoomGeometry) {
 }
 
 function Room({ r, occupied }: { r: RoomGeometry; occupied: boolean }) {
+  const { t } = useTranslation();
   const c = roomCentre(r);
   const colour = occupied ? "#22d3ee" : "#475569";
   return (
@@ -44,10 +46,31 @@ function Room({ r, occupied }: { r: RoomGeometry; occupied: boolean }) {
         <edgesGeometry args={[new THREE.BoxGeometry(c.w, 1.15, c.d)]} />
         <lineBasicMaterial color={colour} transparent opacity={occupied ? 0.75 : 0.3} />
       </lineSegments>
-      <Text position={[0, 0.02, -c.d / 2 + 0.12]} rotation={[-Math.PI / 2, 0, 0]}
-            fontSize={0.11} color={occupied ? "#67e8f9" : "#64748b"} anchorY="middle">
-        {r.label}
-      </Text>
+      {/* Billboarded: a floor-flat label reads mirrored from half the orbit. */}
+      <Billboard position={[0, 1.32, 0]} follow>
+        <Text fontSize={0.13} color={occupied ? "#67e8f9" : "#7c8ea1"}
+              anchorX="center" anchorY="middle" outlineWidth={0.006} outlineColor="#020617">
+          {t(r.label, r.label)}
+        </Text>
+      </Billboard>
+    </group>
+  );
+}
+
+/** The ESP32 node itself, drawn so the room geometry can be judged against it. */
+function SensorNode({ x, z, live }: { x: number; z: number; live: boolean }) {
+  const c = live ? "#22d3ee" : "#475569";
+  return (
+    <group position={[x, 0, z]}>
+      <mesh position={[0, 0.055, 0]}>
+        <boxGeometry args={[0.1, 0.11, 0.07]} />
+        <meshStandardMaterial color={c} emissive={c} emissiveIntensity={live ? 0.5 : 0.12} />
+      </mesh>
+      {/* sensing reach, flat on the floor */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}>
+        <ringGeometry args={[0.46, 0.5, 48]} />
+        <meshBasicMaterial color={c} transparent opacity={live ? 0.3 : 0.12} />
+      </mesh>
     </group>
   );
 }
@@ -66,12 +89,14 @@ function Occupant({ x, z, lying, breathBpm, alert, confidence, motion }: OccProp
   const torso = useRef<THREE.Mesh>(null);
   const group = useRef<THREE.Group>(null);
   const ring = useRef<THREE.Mesh>(null);
+  // Seeded at the first solved point so a new occupant does not fly in from origin.
+  const smooth = useRef({ x, z });
 
   const colour = alert ? "#f43f5e" : lying ? "#818cf8" : "#34d399";
   const standH = 0.62, lieH = 0.18;
   const FIG = 1.7; // figure scale — small rooms need a readable person
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = state.clock.elapsedTime;
     // Respiration: expand/contract the torso at the measured rate.
     if (torso.current) {
@@ -80,12 +105,19 @@ function Occupant({ x, z, lying, breathBpm, alert, confidence, motion }: OccProp
       const s = 1 + Math.sin(t * Math.PI * 2 * hz) * amp;
       torso.current.scale.set(s, lying ? 1 : 1 / (1 + amp * 0.4), s);
     }
-    // Gentle sway proportional to measured motion (stillness reads as stillness).
+    // Position is re-solved roughly once a second from noisy presence scores, so
+    // assigning it straight to the mesh teleports the figure. Ease toward the
+    // solved point instead, then add sway on top — the walk reads as a walk.
     if (group.current) {
-      group.current.position.x = x + Math.sin(t * 0.7) * motion * 0.25;
-      group.current.position.z = z + Math.cos(t * 0.5) * motion * 0.2;
+      const ease = 1 - Math.pow(0.001, delta);   // frame-rate independent
+      smooth.current.x += (x - smooth.current.x) * ease;
+      smooth.current.z += (z - smooth.current.z) * ease;
+
+      group.current.position.x = smooth.current.x + Math.sin(t * 0.7) * motion * 0.25;
+      group.current.position.z = smooth.current.z + Math.cos(t * 0.5) * motion * 0.2;
+
       const targetY = lying ? lieH : standH;
-      group.current.position.y += (targetY - group.current.position.y) * 0.05;
+      group.current.position.y += (targetY - group.current.position.y) * Math.min(1, delta * 3);
     }
     // Confidence ring breathes slowly; alert makes it pulse hard.
     if (ring.current) {
@@ -121,33 +153,52 @@ function Scene({ nodes, plan, fix }: {
   nodes: NodeSensing[]; plan: RoomGeometry[];
   fix?: { x: number; y: number; confidence: number; method: string; usedNodes: string[] };
 }) {
-  const occupants = useMemo(
-    () =>
-      nodes.flatMap((n) => {
-        const v = n.latest;
-        if (!v?.presence) return [];
-        const r = plan.find((p) => p.node_id === n.node.node_id);
-        if (!r) return [];
-        const c = roomCentre(r);
-        // Prefer the mesh-wide multilateration fix when it is better than a
-        // room-level guess and this node contributed to it.
-        const useFix =
-          fix && fix.method === "multilateration" && fix.usedNodes.includes(n.node.node_id);
-        return [{
-          id: n.node.node_id,
-          x: useFix ? fix!.x * S : c.x,
-          z: useFix ? fix!.y * S : c.z,
-          lying: n.posture === "lying",
-          breathBpm: n.breathing.value,
-          confidence: Math.max(n.breathing.confidence, n.heart.confidence),
-          motion: v.motion,
-          alert:
-            v.fall_detected || n.fallRisk >= 70 ||
-            n.semantics.some((s) => s.active && s.primitive === "possible_distress"),
-        }];
-      }),
-    [nodes, plan],
-  );
+  const occupants = useMemo(() => {
+    const present = nodes.filter((n) => n.latest?.presence);
+    if (!present.length) return [];
+
+    // A multilateration fix describes ONE subject, not one per node. Applying it
+    // to every contributing node stacked all the figures on a single point,
+    // usually a room boundary. Award it to the node that sees the subject most
+    // strongly; everyone else is placed inside their own room.
+    const fixIsUsable = !!fix && fix.method === "multilateration" && fix.confidence > 0.35;
+    const fixOwner = fixIsUsable
+      ? present
+          .filter((n) => fix!.usedNodes.includes(n.node.node_id))
+          .sort((a, b) => (b.latest!.presence_score ?? 0) - (a.latest!.presence_score ?? 0))[0]
+          ?.node.node_id
+      : undefined;
+
+    return present.flatMap((n) => {
+      const v = n.latest!;
+      const r = plan.find((p) => p.node_id === n.node.node_id);
+      if (!r) return [];
+      const c = roomCentre(r);
+      const owns = fixOwner === n.node.node_id;
+
+      // Room-level placement is a guess, so offset deterministically by node id
+      // rather than dropping every occupant on the exact centre.
+      const seed = n.node.node_id.split("").reduce((a, ch) => a + ch.charCodeAt(0), 0);
+      const jx = ((seed % 7) / 7 - 0.5) * c.w * 0.34;
+      const jz = (((seed >> 3) % 7) / 7 - 0.5) * c.d * 0.34;
+
+      return [{
+        id: n.node.node_id,
+        x: owns ? fix!.x * S : c.x + jx,
+        z: owns ? fix!.y * S : c.z + jz,
+        lying: n.posture === "lying",
+        breathBpm: n.breathing.value,
+        // A room-centre guess is genuinely less certain than a solved fix.
+        confidence: owns
+          ? Math.max(n.breathing.confidence, n.heart.confidence)
+          : Math.min(0.45, Math.max(n.breathing.confidence, n.heart.confidence)),
+        motion: v.motion,
+        alert:
+          v.fall_detected || n.fallRisk >= 70 ||
+          n.semantics.some((sm) => sm.active && sm.primitive === "possible_distress"),
+      }];
+    });
+  }, [nodes, plan, fix]);
   const occupied = new Set(occupants.map((o) => o.id));
 
   return (
@@ -161,6 +212,14 @@ function Scene({ nodes, plan, fix }: {
             fadeDistance={16} infiniteGrid position={[0, -0.002, 0]} />
 
       {plan.map((r) => <Room key={r.node_id} r={r} occupied={occupied.has(r.node_id)} />)}
+      {plan.map((r) => {
+        const c = roomCentre(r);
+        const n = nodes.find((nn) => nn.node.node_id === r.node_id);
+        return (
+          <SensorNode key={"n-" + r.node_id} x={c.x} z={c.z - c.d / 2 + 0.08}
+                      live={!!n?.latest?.presence} />
+        );
+      })}
       {occupants.map((o) => <Occupant key={o.id} {...o} />)}
     </>
   );

@@ -184,9 +184,10 @@ export function SpatialTwin({
       // Drift the figure inside its room using the live motion signal, so an
       // active person visibly wanders and a sleeping one stays put. Seeded by
       // the timestamp → deterministic per frame, no random jitter.
-      const t = v.timestamp_ms / 1000;
-      const dx = Math.sin(t * 0.5 + room.x) * v.motion * room.w * 0.32;
-      const dy = Math.cos(t * 0.37 + room.y) * v.motion * room.h * 0.24;
+      // Named tSec so it cannot shadow the i18n `t` used later in this scope.
+      const tSec = v.timestamp_ms / 1000;
+      const dx = Math.sin(tSec * 0.5 + room.x) * v.motion * room.w * 0.32;
+      const dy = Math.cos(tSec * 0.37 + room.y) * v.motion * room.h * 0.24;
 
       const alert =
         v.fall_detected ||
