@@ -461,6 +461,10 @@ const DEFAULT_ENV: WifiEnvironment = {
   sampledAt: 0,
   downlinkMbps: null,
   rttMs: null,
+  rttBaselineMs: null,
+  rttExcessMs: null,
+  sampleCount: 0,
+  estimatedDevicesRange: [0, 0],
   methodsUsed: [],
   confidence: 0,
   isSupported: false,
@@ -517,19 +521,33 @@ export function useWifiScanning(intervalMs = 15000) {
 
       if (methods.length === 0) methods.push('device-only');
 
-      // Fuse every RTT source we managed to collect
-      const allRTTs = [...stunRTTs, ...timings.rtts, ...raceRTTs];
+      // Fuse every RTT source, then reject outliers before any statistic is taken
+      const rawRTTs = [...stunRTTs, ...timings.rtts, ...raceRTTs];
+      const allRTTs = rejectOutliers(rawRTTs);
       const medianRtt =
         allRTTs.length > 0 ? Math.round(median(allRTTs)) : conn.rtt;
-      const jitter = jitterOf(allRTTs.length >= 2 ? allRTTs : stunRTTs);
+      const jitter = jitterOf(allRTTs);
 
       const downlink = conn.downlink ?? timings.throughputMbps;
 
-      const rttNorm = Math.min(1, (medianRtt ?? 120) / 600);
-      const downNorm = downlink !== null ? Math.max(0, 1 - Math.min(downlink, 100) / 100) : 0.5;
-      const congestion = parseFloat((rttNorm * 0.5 + downNorm * 0.3 + jitter * 0.2).toFixed(3));
+      // Session baseline: the quietest RTT we have ever measured here is the
+      // uncontended channel. Congestion is the *excess* over that reference, so
+      // a naturally distant server no longer reads as a crowded room.
+      if (medianRtt !== null && medianRtt > 0) {
+        baselineRef.current = baselineRef.current === null
+          ? medianRtt
+          : Math.min(baselineRef.current, medianRtt);
+      }
+      const baseline = baselineRef.current;
+      const excess = medianRtt !== null && baseline !== null ? Math.max(0, medianRtt - baseline) : null;
+      // Contention scale grows with the link's own latency, not a fixed 600 ms.
+      const excessScale = Math.max(25, (baseline ?? 40) * 1.5);
+      const rttNorm = excess !== null ? Math.min(1, excess / excessScale) : 0.35;
 
-      const band = inferBand(medianRtt, downlink, conn.effectiveType);
+      const downNorm = downlink !== null ? Math.max(0, 1 - Math.min(downlink, 100) / 100) : 0.4;
+      const congestion = parseFloat((rttNorm * 0.5 + downNorm * 0.2 + jitter * 0.3).toFixed(3));
+
+      const band = inferBand(medianRtt, downlink, conn.type, conn.effectiveType);
       const radius = radiusFor(band, congestion);
       // Sectors are generated in device frame, then rotated by the compass so
       // each sector keeps its real-world bearing as the user turns around.
