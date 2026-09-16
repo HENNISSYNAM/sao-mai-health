@@ -35,6 +35,8 @@ import { SURVEILLANCE_REGIONS } from "@/services/swarmIntelligenceEngine";
 import { useSurveillanceAgents } from "@/hooks/useSurveillanceAgents";
 import { AgentNetworkPanel } from "@/components/AgentNetworkPanel";
 import { useWifiScanning, sectorToLatLng } from "@/hooks/useWifiScanning";
+import { MetricLegend } from "@/components/metrics/MetricLegend";
+import { MetricInfoTooltip } from "@/components/metrics/MetricInfoTooltip";
 
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGVubmlzc3luYW0iLCJhIjoiY21nOWVkOHU4MDZlMTJub3BmbzFuMnNyeiJ9.zZ3ieYtNL9mxuGMMXND0tw';
 

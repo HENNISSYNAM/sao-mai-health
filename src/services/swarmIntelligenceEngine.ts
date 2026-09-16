@@ -86,11 +86,12 @@ export async function extractSeedSignals(regionKeys: string[]): Promise<SeedSign
 
   // 1. Pull from health_news (Supabase)
   try {
-    const { data: news } = await supabase
+    // health_news is not in the generated types yet; shape is validated below.
+    const { data: news } = await (supabase as any)
       .from('health_news')
       .select('*')
       .order('published_at', { ascending: false })
-      .limit(30);
+      .limit(30) as { data: any[] | null };
 
     if (news) {
       for (const item of news) {
