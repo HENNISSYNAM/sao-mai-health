@@ -56,6 +56,14 @@ export interface WifiEnvironment {
   sampledAt: number;
   downlinkMbps: number | null;
   rttMs: number | null;
+  /** Quietest RTT seen this session — the uncontended channel reference, ms */
+  rttBaselineMs: number | null;
+  /** How far this reading sits above that reference, ms */
+  rttExcessMs: number | null;
+  /** Number of timing samples that survived outlier rejection */
+  sampleCount: number;
+  /** Plausible range for the device estimate, [low, high] */
+  estimatedDevicesRange: [number, number];
   /** Which rungs of the ladder actually produced data */
   methodsUsed: ScanMethod[];
   /** 0–1 — how much to trust this reading */
@@ -143,10 +151,21 @@ async function measureStunRTT(server: string, timeoutMs = 1500): Promise<number 
   });
 }
 
-async function probeSTUN(): Promise<number[]> {
+/**
+ * Two rounds against every server. One probe per server conflates server-side
+ * variance with local channel contention; repeated probes let the statistics
+ * below separate them.
+ */
+async function probeSTUN(rounds = 2): Promise<number[]> {
   if (!hasWebRTC()) return [];
-  const results = await Promise.all(STUN_SERVERS.map(s => measureStunRTT(s)));
-  return results.filter((r): r is number => r !== null && r > 0 && r < 3000);
+  const out: number[] = [];
+  for (let r = 0; r < rounds; r++) {
+    const results = await Promise.all(STUN_SERVERS.map(s => measureStunRTT(s)));
+    for (const v of results) {
+      if (v !== null && v > 0 && v < 3000) out.push(v);
+    }
+  }
+  return out;
 }
 
 // ─── Rung 3: Resource Timing API ─────────────────────────────────────────────
@@ -222,22 +241,56 @@ function median(arr: number[]): number {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 }
 
-/** Normalised standard deviation — tight cluster = quiet channel, spread = crowded. */
-function jitterOf(samples: number[]): number {
+/** Median absolute deviation — spread measure that a single slow probe cannot inflate. */
+function mad(samples: number[]): number {
   if (samples.length < 2) return 0;
-  const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
-  const variance = samples.reduce((a, b) => a + (b - mean) ** 2, 0) / samples.length;
-  return Math.min(1, Math.sqrt(variance) / 200);
+  const med = median(samples);
+  return median(samples.map(v => Math.abs(v - med)));
+}
+
+/**
+ * Drop samples further than 3 robust sigma from the median. A CDN hiccup or a
+ * cold TLS handshake is not channel contention, and averaging it in was the
+ * main source of false "crowded" readings.
+ */
+function rejectOutliers(samples: number[]): number[] {
+  if (samples.length < 4) return samples;
+  const med = median(samples);
+  const sigma = mad(samples) * 1.4826 || 1;   // MAD → sigma for a normal spread
+  const kept = samples.filter(v => Math.abs(v - med) <= 3 * sigma);
+  return kept.length >= 3 ? kept : samples;
+}
+
+/**
+ * Jitter relative to the channel's own latency instead of a fixed 200 ms scale.
+ * A ±10 ms spread means something very different on a 6 ms link than on a
+ * 300 ms one, so we normalise by the median (robust coefficient of variation).
+ */
+function jitterOf(samples: number[]): number {
+  if (samples.length < 3) return 0;
+  const med = median(samples) || 1;
+  const sigma = mad(samples) * 1.4826;
+  return Math.min(1, sigma / Math.max(8, med * 0.9));
 }
 
 // ─── Band and space inference ────────────────────────────────────────────────
 
-function inferBand(rtt: number | null, downlink: number | null, effectiveType: string): FrequencyBand {
-  if (effectiveType === '4g' || effectiveType === '5g' || effectiveType === '3g') return 'cellular';
+/**
+ * Band inference. `connection.type` is authoritative when present — only guess
+ * from timing when the browser will not say. Thresholds follow the practical
+ * throughput ceilings of each standard (802.11n ≈ 2.4 GHz, ac ≈ 5 GHz,
+ * ax/be ≈ 6 GHz) rather than round numbers.
+ */
+function inferBand(
+  rtt: number | null, downlink: number | null, connType: string, effectiveType: string,
+): FrequencyBand {
+  if (connType === 'cellular') return 'cellular';
+  if (connType === 'ethernet') return 'unknown';
+  if (connType !== 'wifi' && (effectiveType === '2g' || effectiveType === '3g')) return 'cellular';
   if (rtt === null || downlink === null) return 'unknown';
-  if (rtt < 8 && downlink > 100) return '6GHz';
-  if (rtt < 15 && downlink > 50) return '5GHz';
-  if (rtt < 80) return '2.4GHz';
+  if (rtt < 10 && downlink >= 120) return '6GHz';
+  if (rtt < 20 && downlink >= 45) return '5GHz';
+  if (rtt < 90) return '2.4GHz';
   return 'unknown';
 }
 
@@ -292,9 +345,24 @@ function inferOccupancy(congestion: number, jitter: number): OccupancyDensity {
   return 'crowd';
 }
 
-function inferDeviceCount(congestion: number, jitter: number, band: FrequencyBand): number {
-  const areaFactor = band === '6GHz' ? 0.45 : band === '5GHz' ? 0.65 : 1;
-  return Math.max(1, Math.round((4 + (congestion * 0.5 + jitter * 0.5) * 180) * areaFactor * deviceScale()));
+/**
+ * Device estimate with an honest error bar. Contention grows sub-linearly with
+ * the number of stations sharing a channel (each retry costs more airtime), so
+ * a power curve fits far better than the old straight line, which read 180
+ * devices from a merely slow uplink.
+ */
+function inferDeviceCount(
+  congestion: number, jitter: number, band: FrequencyBand, confidence: number,
+): { estimate: number; range: [number, number] } {
+  const areaFactor = band === '6GHz' ? 0.45 : band === '5GHz' ? 0.65 : band === 'cellular' ? 1.6 : 1;
+  const load = Math.max(0, Math.min(1, congestion * 0.55 + jitter * 0.45));
+  const estimate = Math.max(1, Math.round((2 + Math.pow(load, 1.6) * 70) * areaFactor * deviceScale()));
+  // Wider band when few methods agreed — the uncertainty is real, so show it.
+  const spread = 0.35 + (1 - confidence) * 0.65;
+  return {
+    estimate,
+    range: [Math.max(1, Math.round(estimate * (1 - spread * 0.6))), Math.round(estimate * (1 + spread))],
+  };
 }
 
 // ─── Geography ───────────────────────────────────────────────────────────────
