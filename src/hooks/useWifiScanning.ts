@@ -494,6 +494,7 @@ export function useWifiScanning(intervalMs = 15000) {
   const lastScanPosRef = useRef<{ lat: number; lng: number } | null>(null);
   /** Quietest RTT of the session — the uncontended channel reference. */
   const baselineRef = useRef<number | null>(null);
+  const scanCountRef = useRef(0);
   posRef.current = position;
   headingRef.current = headingDeg;
 
@@ -573,7 +574,9 @@ export function useWifiScanning(intervalMs = 15000) {
       // rejection — three agreeing probes deserve more trust than one.
       const methodScore = Math.min(0.6, methods.filter(m => m !== 'device-only').length * 0.18);
       const sampleScore = Math.min(0.3, allRTTs.length * 0.04);
-      const baselineScore = baseline !== null && history.length >= 2 ? 0.1 : 0;
+      // A baseline is only meaningful after a few scans have had a chance to find it
+      scanCountRef.current += 1;
+      const baselineScore = baseline !== null && scanCountRef.current >= 3 ? 0.1 : 0;
       const confidence = parseFloat(
         Math.max(0.1, Math.min(1, methodScore + sampleScore + baselineScore)).toFixed(2)
       );
