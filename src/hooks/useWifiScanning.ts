@@ -492,6 +492,8 @@ export function useWifiScanning(intervalMs = 15000) {
   const posRef = useRef(position);
   const headingRef = useRef(headingDeg);
   const lastScanPosRef = useRef<{ lat: number; lng: number } | null>(null);
+  /** Quietest RTT of the session — the uncontended channel reference. */
+  const baselineRef = useRef<number | null>(null);
   posRef.current = position;
   headingRef.current = headingDeg;
 
@@ -567,13 +569,19 @@ export function useWifiScanning(intervalMs = 15000) {
         : 0;
       if (pos) lastScanPosRef.current = { lat: pos.lat, lng: pos.lng };
 
-      // Confidence rises with the number of independent methods that produced data
+      // Confidence combines method diversity with how many samples survived
+      // rejection — three agreeing probes deserve more trust than one.
+      const methodScore = Math.min(0.6, methods.filter(m => m !== 'device-only').length * 0.18);
+      const sampleScore = Math.min(0.3, allRTTs.length * 0.04);
+      const baselineScore = baseline !== null && history.length >= 2 ? 0.1 : 0;
       const confidence = parseFloat(
-        Math.min(1, 0.25 + methods.filter(m => m !== 'device-only').length * 0.22).toFixed(2)
+        Math.max(0.1, Math.min(1, methodScore + sampleScore + baselineScore)).toFixed(2)
       );
 
+      const devices = inferDeviceCount(congestion, jitter, band, confidence);
+
       const sample: WifiEnvironment = {
-        estimatedDevices: inferDeviceCount(congestion, jitter, band),
+        estimatedDevices: devices.estimate,
         connectionType: conn.type !== 'unknown' ? conn.type : conn.effectiveType,
         bandwidthCategory: (downlink ?? 0) > 20 ? 'high' : (downlink ?? 0) > 2 ? 'medium' : 'low',
         channelCongestion: congestion,
@@ -586,6 +594,10 @@ export function useWifiScanning(intervalMs = 15000) {
         sampledAt: Date.now(),
         downlinkMbps: downlink !== null ? parseFloat(downlink.toFixed(1)) : null,
         rttMs: medianRtt,
+        rttBaselineMs: baseline,
+        rttExcessMs: excess,
+        sampleCount: allRTTs.length,
+        estimatedDevicesRange: devices.range,
         methodsUsed: methods,
         confidence,
         isSupported: methods.some(m => m !== 'device-only'),
@@ -593,6 +605,7 @@ export function useWifiScanning(intervalMs = 15000) {
         headingDeg: heading,
         movedSinceLastM: moved,
       };
+
 
       setEnv(sample);
       setHistory(prev => [...prev.slice(-30), sample]);
