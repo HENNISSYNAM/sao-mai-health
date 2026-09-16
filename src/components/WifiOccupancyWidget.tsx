@@ -145,8 +145,11 @@ export function WifiOccupancyWidget() {
               <p className="text-xs font-semibold leading-tight">WiFi Spatial Scan</p>
               <p className="text-[10px] text-muted-foreground leading-tight">
                 {env.rttMs !== null && `${env.rttMs} ms`}
+                {env.rttBaselineMs !== null && ` (nền ${env.rttBaselineMs} ms`}
+                {env.rttBaselineMs !== null && env.rttExcessMs !== null && ` · +${env.rttExcessMs} ms`}
+                {env.rttBaselineMs !== null && ')'}
                 {env.downlinkMbps !== null && ` · ${env.downlinkMbps} Mbps`}
-                {' · '}{confidencePct}% confidence
+                {' · '}{confidencePct}% tin cậy · {env.sampleCount} mẫu
               </p>
               {env.anchor && (
                 <p className="text-[9px] text-muted-foreground/70 leading-tight font-mono">
@@ -176,7 +179,12 @@ export function WifiOccupancyWidget() {
               <p className="text-2xl font-semibold leading-none tabular-nums text-cyan-400">
                 ~{env.estimatedDevices}
               </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">devices in range</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                thiết bị trong vùng
+                {env.estimatedDevicesRange[1] > 0 && (
+                  <span className="font-mono"> ({env.estimatedDevicesRange[0]}–{env.estimatedDevicesRange[1]})</span>
+                )}
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-1.5 text-[10px]">
               <div>
