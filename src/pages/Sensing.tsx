@@ -13,6 +13,7 @@ import { useRuViewSensing, type NodeSensing } from "@/hooks/useRuViewSensing";
 import { classifyBreathing, classifyHeart, type VitalStatus } from "@/services/ruview";
 import { setAmbientRF } from "@/services/ruview";
 import { useWifiScanning } from "@/hooks/useWifiScanning";
+import { useFloorplan } from "@/hooks/useFloorplan";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -191,7 +192,8 @@ export default function Sensing() {
       sampledAt: rfEnv.sampledAt,
     });
   }, [rfEnv]);
-  const { nodes, connected, source, engineDetail, summary, positionFix } = useRuViewSensing();
+  const { plan, calibrated } = useFloorplan();
+  const { nodes, connected, source, engineDetail, summary, positionFix } = useRuViewSensing(undefined, plan);
   const [view, setView] = useState<"3d" | "2d">("3d");
 
   return (
@@ -253,7 +255,7 @@ export default function Sensing() {
         </Card>
         <Card className="p-2.5 sm:p-3">
           <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 shrink-0" /> {t("sensing.kpi.totalPeople")}</div>
-          <div className="text-xl sm:text-2xl font-bold">{summary.people}</div>
+          <div className="text-xl sm:text-2xl font-bold">{source === "live" ? summary.people : "—"}</div>
         </Card>
         <Card className="p-2.5 sm:p-3">
           <div className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5 shrink-0" /> {t("sensing.kpi.alerts")}</div>
@@ -275,6 +277,7 @@ export default function Sensing() {
                 {view === "3d"
                   ? t("sensing.twin.subtitle")
                   : t("sensing.twin.posHint")}
+                {` · ${calibrated ? t("sensing.scan.calibrated") : t("sensing.scan.uncalibrated")}`}
               </p>
             </div>
             <div className="flex rounded-lg border overflow-hidden shrink-0">
@@ -301,10 +304,10 @@ export default function Sensing() {
                 </div>
               }
             >
-              <SpatialTwin3D nodes={nodes} fix={positionFix} className="aspect-square sm:aspect-[16/10] w-full max-w-3xl mx-auto touch-none" />
+              <SpatialTwin3D nodes={nodes} plan={plan} fix={positionFix} className="aspect-square sm:aspect-[16/10] w-full max-w-3xl mx-auto touch-none" />
             </Suspense>
           ) : (
-            <SpatialTwin nodes={nodes} className="aspect-square sm:aspect-[4/3] w-full max-w-2xl mx-auto" />
+            <SpatialTwin nodes={nodes} plan={plan} fix={positionFix} className="aspect-square sm:aspect-[4/3] w-full max-w-2xl mx-auto" />
           )}
         </CardContent>
       </Card>

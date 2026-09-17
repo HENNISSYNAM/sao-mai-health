@@ -290,7 +290,9 @@ export function simulateVitals(node: SensingNode, tick: number): EdgeVitals {
     node_id: node.node_id,
     presence: present,
     presence_score: present ? 0.86 + Math.sin(t) * 0.1 : 0.05,
-    n_persons: present ? (crowded > 0.55 ? 2 : 1) : 0,
+    // Browser network timing cannot count people. Demo frames therefore never
+    // turn inferred WiFi device load into a fabricated second occupant.
+    n_persons: present ? 1 : 0,
     breathing_rate_bpm: br,
     heartrate_bpm: hr,
     motion,

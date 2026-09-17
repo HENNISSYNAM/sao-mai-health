@@ -981,7 +981,14 @@
       "usable": "dùng được",
       "blindSpot": "điểm mù",
       "suggestGain": "đề xuất +{{gain}}%",
-      "extraNode": "Bổ sung {{n}}"
+      "extraNode": "Bổ sung {{n}}",
+      "calibrationTitle": "Hiệu chuẩn kích thước phòng",
+      "calibrated": "Đã hiệu chuẩn",
+      "uncalibrated": "Sơ đồ mẫu — chưa hiệu chuẩn",
+      "widthM": "Chiều rộng (m)",
+      "lengthM": "Chiều dài (m)",
+      "saveDimensions": "Lưu kích thước",
+      "resetDimensions": "Dùng lại sơ đồ mẫu"
     }
   }
 }

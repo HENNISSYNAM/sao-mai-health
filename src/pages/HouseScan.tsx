@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { DEFAULT_FLOORPLAN } from "@/components/sensing/SpatialTwin";
 import {
-  surveyCoverage, qualityColour, nodeAnchor, QUALITY, UNIT_M, type ScanRoom,
+  surveyCoverage, qualityColour, nodeAnchor, UNIT_M, type ScanRoom,
 } from "@/services/rfCoverage";
+import { floorplanBounds, type RoomMeasurement } from "@/services/floorplan";
+import { useFloorplan } from "@/hooks/useFloorplan";
 import { useRuViewSensing } from "@/hooks/useRuViewSensing";
-import { Radar, Radio, TriangleAlert, Plus, Minus, Info, CheckCircle2 } from "lucide-react";
+import { Radar, Radio, TriangleAlert, Plus, Minus, Info, CheckCircle2, Save } from "lucide-react";
 
 /**
  * Whole-home RF survey — the commissioning view.
@@ -21,25 +22,16 @@ import { Radar, Radio, TriangleAlert, Plus, Minus, Info, CheckCircle2 } from "lu
  */
 export default function HouseScan() {
   const { t } = useTranslation();
-  const { nodes: live } = useRuViewSensing();
+  const { plan: realRooms, measurements, setMeasurements, resetMeasurements, calibrated } = useFloorplan();
+  const [draft, setDraft] = useState<RoomMeasurement[]>(measurements);
+  const { nodes: live } = useRuViewSensing(undefined, realRooms);
   const [extra, setExtra] = useState<{ x: number; y: number }[]>([]);
 
-  const plan: ScanRoom[] = useMemo(
-    () => [
-      ...DEFAULT_FLOORPLAN.map((r) => ({ ...r })),
-      // Extra nodes are modelled as tiny virtual rooms centred on the drop point,
-      // so they contribute coverage without adding walls.
-      ...extra.map((e, i) => ({
-        node_id: `extra-${i}`, label: `extra-${i + 1}`,
-        x: e.x - 0.5, y: e.y - 0.5, w: 1, h: 1,
-      })),
-    ],
-    [extra],
+  const report = useMemo(
+    () => surveyCoverage(realRooms, 3, extra.map((point, i) => ({ id: `extra-${i}`, ...point }))),
+    [realRooms, extra],
   );
-
-  // Walls should come only from real rooms; virtual node markers must not block.
-  const realRooms = useMemo(() => DEFAULT_FLOORPLAN.map((r) => ({ ...r })), []);
-  const report = useMemo(() => surveyCoverage(plan, 3), [plan]);
+  const bounds = useMemo(() => floorplanBounds(realRooms), [realRooms]);
 
   const pct = (v: number) => `${(v * 100).toFixed(0)}%`;
   const areaM2 = useMemo(
@@ -66,6 +58,51 @@ export default function HouseScan() {
           so với vùng phủ WiFi thông thường. Đây là mô hình ước lượng khi lắp đặt, cần đo thực địa để xác nhận.
         </AlertDescription>
       </Alert>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base">{t("sensing.scan.calibrationTitle")}</CardTitle>
+            <Badge variant={calibrated ? "default" : "outline"}>
+              {calibrated ? t("sensing.scan.calibrated") : t("sensing.scan.uncalibrated")}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-3">
+            {draft.map((room) => {
+              const geometry = realRooms.find((item) => item.node_id === room.node_id);
+              return (
+                <div key={room.node_id} className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-medium">{geometry ? t(geometry.label) : room.node_id}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-xs text-muted-foreground">
+                      {t("sensing.scan.widthM")}
+                      <input type="number" min="1" max="20" step="0.1" value={room.widthM}
+                        onChange={(event) => setDraft((current) => current.map((item) => item.node_id === room.node_id ? { ...item, widthM: Number(event.target.value) } : item))}
+                        className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-foreground" />
+                    </label>
+                    <label className="text-xs text-muted-foreground">
+                      {t("sensing.scan.lengthM")}
+                      <input type="number" min="1" max="20" step="0.1" value={room.lengthM}
+                        onChange={(event) => setDraft((current) => current.map((item) => item.node_id === room.node_id ? { ...item, lengthM: Number(event.target.value) } : item))}
+                        className="mt-1 h-9 w-full rounded-md border bg-background px-2 text-foreground" />
+                    </label>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={() => { resetMeasurements(); setDraft(measurements); }}>
+              <Minus className="mr-1 h-3.5 w-3.5" /> {t("sensing.scan.resetDimensions")}
+            </Button>
+            <Button size="sm" onClick={() => setMeasurements(draft)} disabled={draft.some((room) => room.widthM < 1 || room.widthM > 20 || room.lengthM < 1 || room.lengthM > 20)}>
+              <Save className="mr-1 h-3.5 w-3.5" /> {t("sensing.scan.saveDimensions")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="p-3">
@@ -106,7 +143,7 @@ export default function HouseScan() {
           </div>
         </CardHeader>
         <CardContent>
-          <svg viewBox="0 0 100 100" className="w-full max-w-2xl mx-auto rounded-lg bg-slate-950"
+          <svg viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`} className="w-full max-w-2xl mx-auto rounded-lg bg-slate-950"
                role="img" aria-label={t("sensing.coverage.title")}>
             {/* coverage cells */}
             {report.cells.map((c, i) => (
@@ -124,7 +161,7 @@ export default function HouseScan() {
               <g key={r.node_id}>
                 <rect x={r.x} y={r.y} width={r.w} height={r.h} rx="1"
                       fill="none" stroke="#94a3b8" strokeOpacity="0.55" strokeWidth="0.5" />
-                <text x={r.x + 1.6} y={r.y + 4} fontSize="2.6" fill="#cbd5e1">{r.label}</text>
+                <text x={r.x + 1.6} y={r.y + 4} fontSize="2.6" fill="#cbd5e1">{t(r.label)}</text>
               </g>
             ))}
 

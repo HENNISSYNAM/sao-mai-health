@@ -22,7 +22,8 @@ export interface ScanRoom {
 }
 
 /** 1 plan unit ≈ 10 cm, so a 40-unit room ≈ 4 m across. */
-export const UNIT_M = 0.1;
+export { UNIT_M } from "./floorplan";
+import { UNIT_M } from "./floorplan";
 
 export interface CoverageCell {
   x: number; y: number;          // cell centre, plan units
@@ -96,11 +97,18 @@ export function cellQuality(
  * Survey the whole plan on a grid.
  * `gridStep` is in plan units; 4 (≈40 cm) is a good balance for a flat.
  */
-export function surveyCoverage(rooms: ScanRoom[], gridStep = 4): CoverageReport {
+export function surveyCoverage(
+  rooms: ScanRoom[],
+  gridStep = 4,
+  additionalNodes: { id: string; x: number; y: number }[] = [],
+): CoverageReport {
   if (!rooms.length) {
     return { cells: [], gridStep, covered: 0, wellCovered: 0, blindSpots: [], multilaterable: 0, suggestion: null };
   }
-  const anchors = rooms.map((r) => ({ id: r.node_id, ...nodeAnchor(r) }));
+  const anchors = [
+    ...rooms.map((r) => ({ id: r.node_id, ...nodeAnchor(r) })),
+    ...additionalNodes,
+  ];
   const cells: CoverageCell[] = [];
 
   for (const r of rooms) {
