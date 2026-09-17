@@ -980,7 +980,14 @@
       "usable": "usable",
       "blindSpot": "blind spot",
       "suggestGain": "suggested +{{gain}}%",
-      "extraNode": "Extra {{n}}"
+      "extraNode": "Extra {{n}}",
+      "calibrationTitle": "Calibrate room dimensions",
+      "calibrated": "Calibrated",
+      "uncalibrated": "Sample plan — not calibrated",
+      "widthM": "Width (m)",
+      "lengthM": "Length (m)",
+      "saveDimensions": "Save dimensions",
+      "resetDimensions": "Restore sample plan"
     }
   }
 }

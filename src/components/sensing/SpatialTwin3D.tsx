@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import type { NodeSensing } from "@/hooks/useRuViewSensing";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { DEFAULT_FLOORPLAN, type RoomGeometry } from "./SpatialTwin";
+import { DEFAULT_FLOORPLAN, UNIT_M, type RoomGeometry } from "@/services/floorplan";
 
 
 /**
@@ -24,7 +24,7 @@ import { DEFAULT_FLOORPLAN, type RoomGeometry } from "./SpatialTwin";
  * a sensible camera range.
  */
 
-const S = 0.1; // plan units → scene units
+const S = UNIT_M;
 
 function roomCentre(r: RoomGeometry) {
   return { x: (r.x + r.w / 2) * S, z: (r.y + r.h / 2) * S, w: r.w * S, d: r.h * S };
@@ -162,15 +162,16 @@ function Scene({ nodes, plan, fix }: {
     // usually a room boundary. Award it to the node that sees the subject most
     // strongly; everyone else is placed inside their own room.
     const fixIsUsable = !!fix && fix.method === "multilateration" && fix.confidence > 0.35;
-    const fixOwner = fixIsUsable
+    const fixOwner = fixIsUsable && fix
       ? present
-          .filter((n) => fix!.usedNodes.includes(n.node.node_id))
-          .sort((a, b) => (b.latest!.presence_score ?? 0) - (a.latest!.presence_score ?? 0))[0]
+          .filter((n) => fix.usedNodes.includes(n.node.node_id))
+          .sort((a, b) => (b.latest?.presence_score ?? 0) - (a.latest?.presence_score ?? 0))[0]
           ?.node.node_id
       : undefined;
 
     return present.flatMap((n) => {
-      const v = n.latest!;
+      const v = n.latest;
+      if (!v) return [];
       const r = plan.find((p) => p.node_id === n.node.node_id);
       if (!r) return [];
       const c = roomCentre(r);
@@ -184,8 +185,8 @@ function Scene({ nodes, plan, fix }: {
 
       return [{
         id: n.node.node_id,
-        x: owns ? fix!.x * S : c.x + jx,
-        z: owns ? fix!.y * S : c.z + jz,
+        x: owns && fix ? fix.x * S : c.x + jx,
+        z: owns && fix ? fix.y * S : c.z + jz,
         lying: n.posture === "lying",
         breathBpm: n.breathing.value,
         // A room-centre guess is genuinely less certain than a solved fix.

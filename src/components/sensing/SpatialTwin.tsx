@@ -2,6 +2,8 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { NodeSensing } from "@/hooks/useRuViewSensing";
+import { DEFAULT_FLOORPLAN, floorplanBounds, type RoomGeometry } from "@/services/floorplan";
+import type { PositionFix } from "@/services/positioning";
 
 
 /**
@@ -18,29 +20,6 @@ import type { NodeSensing } from "@/hooks/useRuViewSensing";
  * transitions plus declarative SMIL, so there is no per-frame React state (the
  * twin costs one render per sensing update, not 60/s).
  */
-
-export interface RoomGeometry {
-  node_id: string;
-  label: string;
-  /** Floor-plan rectangle on a 0..100 grid. */
-  x: number; y: number; w: number; h: number;
-  /** Optional furniture hint used to dress the room. */
-  fixture?: "bed" | "sofa" | "toilet";
-}
-
-export const DEFAULT_FLOORPLAN: RoomGeometry[] = [
-  { node_id: "node-a1", label: "sensing.rooms.bedroom",   x: 6,  y: 8,  w: 38, h: 42, fixture: "bed" },
-  { node_id: "node-a2", label: "sensing.rooms.living", x: 50, y: 8,  w: 44, h: 58, fixture: "sofa" },
-  { node_id: "node-a3", label: "sensing.rooms.bathroom", x: 6,  y: 54, w: 38, h: 38, fixture: "toilet" },
-];
-
-/** Door openings drawn as gaps in the wall plus a swing arc. */
-const DOORS: { x: number; y: number; rot: number }[] = [
-  { x: 44, y: 32, rot: 0 },    // bedroom → hallway
-  { x: 44, y: 74, rot: 0 },    // bathroom → hallway
-  { x: 50, y: 44, rot: 180 },  // living → hallway
-];
-
 
 /** Room dressing — drawn faintly so the occupant stays the focal point. */
 function Fixture({ r }: { r: RoomGeometry }) {
@@ -160,10 +139,12 @@ function Occupant({ motion, alert, scale = 1 }: { motion: number; alert: boolean
 export function SpatialTwin({
   nodes,
   plan = DEFAULT_FLOORPLAN,
+  fix,
   className,
 }: {
   nodes: NodeSensing[];
   plan?: RoomGeometry[];
+  fix?: PositionFix;
   className?: string;
 }) {
   const { t } = useTranslation();
@@ -175,7 +156,15 @@ export function SpatialTwin({
 
   const occupants = useMemo(() => {
 
-    return nodes.flatMap((n) => {
+    const present = nodes.filter((n) => n.latest?.presence);
+    const fixIsUsable = !!fix && fix.method === "multilateration" && fix.confidence > 0.35;
+    const fixOwner = fixIsUsable
+      ? [...present]
+          .filter((n) => fix.usedNodes.includes(n.node.node_id))
+          .sort((a, b) => (b.latest?.presence_score ?? 0) - (a.latest?.presence_score ?? 0))[0]?.node.node_id
+      : undefined;
+
+    return present.flatMap((n) => {
       const v = n.latest;
       if (!v?.presence) return [];
       const room = plan.find((r) => r.node_id === n.node.node_id);
@@ -196,8 +185,8 @@ export function SpatialTwin({
 
       return [{
         id: n.node.node_id,
-        x: room.x + room.w / 2 + dx,
-        y: room.y + room.h / 2 + dy,
+        x: fixOwner === n.node.node_id && fix ? fix.x : room.x + room.w / 2 + dx,
+        y: fixOwner === n.node.node_id && fix ? fix.y : room.y + room.h / 2 + dy,
         motion: v.motion,
         halo: 6 + (1 - Math.max(0, Math.min(1, v.presence_score))) * 10,
         alert,
@@ -205,13 +194,14 @@ export function SpatialTwin({
         persons: v.n_persons ?? 1,
       }];
     });
-  }, [nodes, plan]);
+  }, [nodes, plan, fix, t]);
 
   const occupiedIds = new Set(occupants.map((o) => o.id));
+  const bounds = floorplanBounds(plan);
 
   return (
     <div className={className}>
-      <svg viewBox="0 0 100 100" className="w-full h-full" role="img"
+      <svg viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`} className="w-full h-full" role="img"
            aria-label={t("sensing.twin.realtime")}>
         <defs>
           <radialGradient id="twin-halo">
@@ -238,15 +228,15 @@ export function SpatialTwin({
           </filter>
         </defs>
 
-        <rect x="0" y="0" width="100" height="100" fill="url(#twin-grid)" className="text-muted-foreground" />
+        <rect x={bounds.minX} y={bounds.minY} width={bounds.width} height={bounds.height} fill="url(#twin-grid)" className="text-muted-foreground" />
 
         {/* building shell — thick exterior wall gives the plan architectural weight */}
-        <rect x="3.2" y="5.2" width="93.6" height="89.6" rx="2.6"
+        <rect x={bounds.minX + 1} y={bounds.minY + 1} width={bounds.width - 2} height={bounds.height - 2} rx="2.6"
               className="text-muted-foreground" fill="none"
               stroke="currentColor" strokeOpacity="0.35" strokeWidth="1.6" filter="url(#twin-lift)" />
 
         {/* corner registration ticks */}
-        {[[3.2, 5.2, 1, 1], [96.8, 5.2, -1, 1], [3.2, 94.8, 1, -1], [96.8, 94.8, -1, -1]].map(([cx, cy, sx, sy], i) => (
+        {[[bounds.minX + 1, bounds.minY + 1, 1, 1], [bounds.minX + bounds.width - 1, bounds.minY + 1, -1, 1], [bounds.minX + 1, bounds.minY + bounds.height - 1, 1, -1], [bounds.minX + bounds.width - 1, bounds.minY + bounds.height - 1, -1, -1]].map(([cx, cy, sx, sy], i) => (
           <path key={i} d={`M${cx + sx * 3},${cy} L${cx},${cy} L${cx},${cy + sy * 3}`}
                 className="text-primary" fill="none" stroke="currentColor" strokeOpacity="0.5" strokeWidth="0.5" />
         ))}
@@ -294,18 +284,6 @@ export function SpatialTwin({
             </g>
           );
         })}
-
-        {/* doorways — arc + threshold, the detail that reads as a real floor plan */}
-        {DOORS.map((d, i) => (
-          <g key={i} transform={`translate(${d.x} ${d.y}) rotate(${d.rot})`}
-             className="text-muted-foreground">
-            <path d="M0,-3.2 L0,3.2" stroke="hsl(var(--background))" strokeWidth="1.3" />
-            <path d="M0,-3.2 A6.4,6.4 0 0 1 6.4,3.2" fill="none" stroke="currentColor"
-                  strokeOpacity="0.22" strokeWidth="0.25" strokeDasharray="0.8 0.8" />
-            <path d="M0,-3.2 L6.1,-3.2" stroke="currentColor" strokeOpacity="0.4" strokeWidth="0.45" />
-          </g>
-        ))}
-
 
         {occupants.map((o) => (
           <g

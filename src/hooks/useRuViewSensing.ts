@@ -11,7 +11,7 @@ import {
   estimatePosition, postureFromPose, POSE_MIN_SCORE,
   type PoseFrame, type PositionFix,
 } from "@/services/positioning";
-import { DEFAULT_FLOORPLAN } from "@/components/sensing/SpatialTwin";
+import { DEFAULT_FLOORPLAN, type RoomGeometry } from "@/services/floorplan";
 
 const HISTORY_LEN = 120; // ~2 min at 1 Hz
 const DEBOUNCE_WINDOW = 5;
@@ -56,7 +56,10 @@ export interface SensingState {
  * VITE_RUVIEW_WS_URL is set and reachable; otherwise runs the built-in
  * simulator so the platform stays demonstrable without hardware.
  */
-export function useRuViewSensing(nodes: SensingNode[] = DEMO_NODES): SensingState {
+export function useRuViewSensing(
+  nodes: SensingNode[] = DEMO_NODES,
+  plan: RoomGeometry[] = DEFAULT_FLOORPLAN,
+): SensingState {
   const [frames, setFrames] = useState<Record<string, EdgeVitals[]>>({});
   const [connected, setConnected] = useState(false);
   const [engineDetail, setEngineDetail] = useState("");
@@ -230,9 +233,9 @@ export function useRuViewSensing(nodes: SensingNode[] = DEMO_NODES): SensingStat
         presence: !!p.latest?.presence,
         presence_score: p.latest?.presence_score ?? 0,
       })),
-      DEFAULT_FLOORPLAN,
+      plan,
     );
 
     return { ...base, positionFix };
-  }, [frames, nodes, connected, engineDetail, poses]);
+  }, [frames, nodes, connected, engineDetail, poses, plan]);
 }
