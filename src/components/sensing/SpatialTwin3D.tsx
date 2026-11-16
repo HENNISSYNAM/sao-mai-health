@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import * as THREE from "three";
 import type { NodeSensing } from "@/hooks/useRuViewSensing";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { DEFAULT_FLOORPLAN, UNIT_M, type RoomGeometry } from "@/services/floorplan";
+import { DEFAULT_FLOORPLAN, UNIT_M, floorplanBounds, type RoomGeometry } from "@/services/floorplan";
 
 
 /**
@@ -238,13 +238,14 @@ export function SpatialTwin3D({
   // enough that every room is in shot regardless of layout. Phones get a
   // slightly wider pull-back because the viewport is squarer and narrower.
   const { target, camPos } = useMemo(() => {
-    const minX = Math.min(...plan.map((r) => r.x)) * S;
-    const maxX = Math.max(...plan.map((r) => r.x + r.w)) * S;
-    const minZ = Math.min(...plan.map((r) => r.y)) * S;
-    const maxZ = Math.max(...plan.map((r) => r.y + r.h)) * S;
+    const bounds = floorplanBounds(plan, 0);
+    const minX = bounds.minX * S;
+    const maxX = (bounds.minX + bounds.width) * S;
+    const minZ = bounds.minY * S;
+    const maxZ = (bounds.minY + bounds.height) * S;
     const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
     const span = Math.max(maxX - minX, maxZ - minZ);
-    const d = span * (isMobile ? 1.05 : 0.85) + 1.1;
+    const d = span * (isMobile ? 1.35 : 1.1) + 0.8;
     return {
       target: new THREE.Vector3(cx, 0.3, cz),
       camPos: [cx + d * 0.45, d * 0.62, cz + d * 0.80] as [number, number, number],

@@ -66,5 +66,11 @@ export function floorplanBounds(plan: RoomGeometry[], margin = 4) {
   const minY = Math.min(...plan.map((room) => room.y)) - margin;
   const maxX = Math.max(...plan.map((room) => room.x + room.w)) + margin;
   const maxY = Math.max(...plan.map((room) => room.y + room.h)) + margin;
-  return { minX, minY, width: maxX - minX, height: maxY - minY };
+  return {
+    minX,
+    minY,
+    width: maxX - minX,
+    height: maxY - minY,
+    viewBox: `${minX} ${minY} ${maxX - minX} ${maxY - minY}`,
+  };
 }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   buildFloorplan,
   DEFAULT_ROOM_MEASUREMENTS,
@@ -27,22 +27,33 @@ function loadMeasurements(): RoomMeasurement[] {
 
 export function useFloorplan() {
   const [measurements, setMeasurementsState] = useState<RoomMeasurement[]>(loadMeasurements);
+  const [calibrated, setCalibrated] = useState(() =>
+    typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) !== null,
+  );
+
+  useEffect(() => {
+    const sync = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY && event.key !== null) return;
+      setMeasurementsState(loadMeasurements());
+      setCalibrated(event.newValue !== null);
+    };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
 
   const setMeasurements = useCallback((next: RoomMeasurement[]) => {
     setMeasurementsState(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    setCalibrated(true);
   }, []);
 
   const resetMeasurements = useCallback(() => {
     setMeasurementsState(DEFAULT_ROOM_MEASUREMENTS);
     localStorage.removeItem(STORAGE_KEY);
+    setCalibrated(false);
   }, []);
 
   const plan = useMemo(() => buildFloorplan(measurements), [measurements]);
-  const calibrated = useMemo(
-    () => localStorage.getItem(STORAGE_KEY) !== null,
-    [measurements],
-  );
 
   return { plan, measurements, setMeasurements, resetMeasurements, calibrated };
 }

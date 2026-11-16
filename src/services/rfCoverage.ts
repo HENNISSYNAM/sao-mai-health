@@ -5,8 +5,8 @@
  * rooms, which parts of the home can I sense, and where are the blind spots?
  *
  * Model (deliberately simple and physically grounded, not a ray tracer):
- *   - Log-distance path loss at 2.4 GHz: PL(d) = PL(1m) + 10·n·log10(d)
- *   - A fixed penalty per wall crossed between node and cell
+ *   - A simplified reflected-path loss per metre from a room-mounted node
+ *   - A fixed penalty per room boundary crossed between node and cell
  *   - Sensing (not just link) needs far more SNR than data transfer: reflected
  *     energy off a human chest is orders of magnitude below the direct path, so
  *     the usable sensing radius is much smaller than the WiFi coverage radius.
@@ -21,7 +21,7 @@ export interface ScanRoom {
   x: number; y: number; w: number; h: number;   // 0..100 plan grid
 }
 
-/** 1 plan unit ≈ 10 cm, so a 40-unit room ≈ 4 m across. */
+/** Plan coordinates are derived from the user's entered room dimensions. */
 export { UNIT_M } from "./floorplan";
 import { UNIT_M } from "./floorplan";
 

@@ -174,10 +174,6 @@ export function SpatialTwin({
       // active person visibly wanders and a sleeping one stays put. Seeded by
       // the timestamp → deterministic per frame, no random jitter.
       // Named tSec so it cannot shadow the i18n `t` used later in this scope.
-      const tSec = v.timestamp_ms / 1000;
-      const dx = Math.sin(tSec * 0.5 + room.x) * v.motion * room.w * 0.32;
-      const dy = Math.cos(tSec * 0.37 + room.y) * v.motion * room.h * 0.24;
-
       const alert =
         v.fall_detected ||
         n.fallRisk >= 70 ||
@@ -185,8 +181,8 @@ export function SpatialTwin({
 
       return [{
         id: n.node.node_id,
-        x: fixOwner === n.node.node_id && fix ? fix.x : room.x + room.w / 2 + dx,
-        y: fixOwner === n.node.node_id && fix ? fix.y : room.y + room.h / 2 + dy,
+        x: fixOwner === n.node.node_id && fix ? fix.x : room.x + room.w / 2,
+        y: fixOwner === n.node.node_id && fix ? fix.y : room.y + room.h / 2,
         motion: v.motion,
         halo: 6 + (1 - Math.max(0, Math.min(1, v.presence_score))) * 10,
         alert,
@@ -194,14 +190,14 @@ export function SpatialTwin({
         persons: v.n_persons ?? 1,
       }];
     });
-  }, [nodes, plan, fix, t]);
+    }, [nodes, plan, fix, t]);
 
   const occupiedIds = new Set(occupants.map((o) => o.id));
   const bounds = floorplanBounds(plan);
 
   return (
     <div className={className}>
-      <svg viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`} className="w-full h-full" role="img"
+      <svg viewBox={bounds.viewBox} className="w-full h-full" role="img"
            aria-label={t("sensing.twin.realtime")}>
         <defs>
           <radialGradient id="twin-halo">
@@ -230,23 +226,12 @@ export function SpatialTwin({
 
         <rect x={bounds.minX} y={bounds.minY} width={bounds.width} height={bounds.height} fill="url(#twin-grid)" className="text-muted-foreground" />
 
-        {/* building shell — thick exterior wall gives the plan architectural weight */}
-        <rect x={bounds.minX + 1} y={bounds.minY + 1} width={bounds.width - 2} height={bounds.height - 2} rx="2.6"
-              className="text-muted-foreground" fill="none"
-              stroke="currentColor" strokeOpacity="0.35" strokeWidth="1.6" filter="url(#twin-lift)" />
-
-        {/* corner registration ticks */}
-        {[[bounds.minX + 1, bounds.minY + 1, 1, 1], [bounds.minX + bounds.width - 1, bounds.minY + 1, -1, 1], [bounds.minX + 1, bounds.minY + bounds.height - 1, 1, -1], [bounds.minX + bounds.width - 1, bounds.minY + bounds.height - 1, -1, -1]].map(([cx, cy, sx, sy], i) => (
-          <path key={i} d={`M${cx + sx * 3},${cy} L${cx},${cy} L${cx},${cy + sy * 3}`}
-                className="text-primary" fill="none" stroke="currentColor" strokeOpacity="0.5" strokeWidth="0.5" />
-        ))}
-
         {plan.map((r) => {
           const occupied = occupiedIds.has(r.node_id);
           return (
             <g key={r.node_id}>
               <rect
-                x={r.x} y={r.y} width={r.w} height={r.h} rx="1.6"
+                x={r.x} y={r.y} width={r.w} height={r.h} rx="0.8"
                 className={occupied ? "text-primary" : "text-muted-foreground"}
                 fill={`url(#twin-room-${occupied ? "live" : "idle"})`}
                 stroke="currentColor" strokeOpacity={occupied ? 0.6 : 0.22} strokeWidth="0.9"
@@ -260,8 +245,8 @@ export function SpatialTwin({
 
               {/* label plate keeps type legible over the floor texture */}
               <g>
-                <rect x={r.x + 2} y={r.y + 1.9} width={t(r.label).length * labelSize * 0.58 + 4}
-                      height={labelSize * 1.7} rx="1.2"
+                <rect x={r.x + 2} y={r.y + 1.9} width={Math.min(r.w - 4, t(r.label).length * labelSize * 0.58 + 4)}
+                      height={labelSize * 1.7} rx="0.4"
                       className="text-background" fill="currentColor" fillOpacity="0.82" />
                 <text x={r.x + 4} y={r.y + 1.9 + labelSize * 1.25} fontSize={labelSize}
                       className={occupied ? "fill-foreground" : "fill-muted-foreground"}

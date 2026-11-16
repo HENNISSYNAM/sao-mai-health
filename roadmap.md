@@ -1,0 +1,2 @@
+- [ ] Sửa sai lệch đo không gian: phòng, vị trí người, vùng phủ WiFi và số người.
+- [ ] Khôi phục trang Home theo yêu cầu mới; giữ nguyên các thay đổi đang làm về đo không gian.
