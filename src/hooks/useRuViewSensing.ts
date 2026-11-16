@@ -210,7 +210,7 @@ export function useRuViewSensing(
         occupied: per.filter((p) => p.latest?.presence).length,
         // Zone-aware fusion — summing per-node counts double-counts anyone
         // standing where two nodes overlap.
-        people: sourceFor(frames) === "live" ? fuseOccupancy(
+        people: source === "live" ? fuseOccupancy(
           per
             .filter((p) => p.latest?.presence)
             .map((p) => ({
